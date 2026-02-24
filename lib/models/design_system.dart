@@ -1,8 +1,8 @@
-import 'package:json_annotation/json_annotation.dart';
+// import 'package:json_annotation/json_annotation.dart';
 
-part 'design_system.g.dart';
+// part 'design_system.g.dart';
 
-@JsonSerializable()
+// // @JsonSerializable()
 class DesignSystem {
   final String name;
   final String version;
@@ -38,10 +38,10 @@ class DesignSystem {
     required this.roles,
   });
 
-  factory DesignSystem.fromJson(Map<String, dynamic> json) =>
-      _$DesignSystemFromJson(json);
+  // factory DesignSystem.fromJson(Map<String, dynamic> json) =>
+  //     _$DesignSystemFromJson(json);
 
-  Map<String, dynamic> toJson() => _$DesignSystemToJson(this);
+  // Map<String, dynamic> toJson() => _$DesignSystemToJson(this);
 
   factory DesignSystem.empty() => DesignSystem(
         name: '',
@@ -62,7 +62,7 @@ class DesignSystem {
       );
 }
 
-@JsonSerializable()
+// // @JsonSerializable()
 class Colors {
   final Map<String, dynamic> primary;
   final Map<String, dynamic> semantic;
@@ -92,9 +92,9 @@ class Colors {
     this.roleSpecific,
   });
 
-  factory Colors.fromJson(Map<String, dynamic> json) => _$ColorsFromJson(json);
+  // factory Colors.fromJson(Map<String, dynamic> json) => _$ColorsFromJson(json);
 
-  Map<String, dynamic> toJson() => _$ColorsToJson(this);
+  // Map<String, dynamic> toJson() => _$ColorsToJson(this);
 
   factory Colors.empty() => Colors(
         primary: {},
@@ -102,7 +102,7 @@ class Colors {
       );
 }
 
-@JsonSerializable()
+// @JsonSerializable()
 class Typography {
   final FontFamily fontFamily;
   final Map<String, int> fontWeights;
@@ -116,10 +116,10 @@ class Typography {
     required this.textStyles,
   });
 
-  factory Typography.fromJson(Map<String, dynamic> json) =>
-      _$TypographyFromJson(json);
+  // factory Typography.fromJson(Map<String, dynamic> json) =>
+  //     _$TypographyFromJson(json);
 
-  Map<String, dynamic> toJson() => _$TypographyToJson(this);
+  // Map<String, dynamic> toJson() => _$TypographyToJson(this);
 
   factory Typography.empty() => Typography(
         fontFamily: FontFamily(primary: 'Roboto', fallback: 'system-ui'),
@@ -135,20 +135,20 @@ class Typography {
       );
 }
 
-@JsonSerializable()
+// @JsonSerializable()
 class FontFamily {
   final String primary;
   final String fallback;
 
   FontFamily({required this.primary, required this.fallback});
 
-  factory FontFamily.fromJson(Map<String, dynamic> json) =>
-      _$FontFamilyFromJson(json);
+  // factory FontFamily.fromJson(Map<String, dynamic> json) =>
+  //     _$FontFamilyFromJson(json);
 
-  Map<String, dynamic> toJson() => _$FontFamilyToJson(this);
+  // Map<String, dynamic> toJson() => _$FontFamilyToJson(this);
 }
 
-@JsonSerializable()
+// @JsonSerializable()
 class FontSize {
   final String value;
   final String lineHeight;
@@ -160,13 +160,13 @@ class FontSize {
     this.description,
   });
 
-  factory FontSize.fromJson(Map<String, dynamic> json) =>
-      _$FontSizeFromJson(json);
+  // factory FontSize.fromJson(Map<String, dynamic> json) =>
+  //     _$FontSizeFromJson(json);
 
-  Map<String, dynamic> toJson() => _$FontSizeToJson(this);
+  // Map<String, dynamic> toJson() => _$FontSizeToJson(this);
 }
 
-@JsonSerializable()
+// @JsonSerializable()
 class TextStyle {
   final String fontFamily;
   final String fontSize;
@@ -184,23 +184,23 @@ class TextStyle {
     this.textDecoration,
   });
 
-  factory TextStyle.fromJson(Map<String, dynamic> json) =>
-      _$TextStyleFromJson(json);
+  // factory TextStyle.fromJson(Map<String, dynamic> json) =>
+  //     _$TextStyleFromJson(json);
 
-  Map<String, dynamic> toJson() => _$TextStyleToJson(this);
+  // Map<String, dynamic> toJson() => _$TextStyleToJson(this);
 }
 
-@JsonSerializable()
+// @JsonSerializable()
 class Spacing {
   final List<int> scale;
   final Map<String, String> values;
 
   Spacing({required this.scale, required this.values});
 
-  factory Spacing.fromJson(Map<String, dynamic> json) =>
-      _$SpacingFromJson(json);
+  // factory Spacing.fromJson(Map<String, dynamic> json) =>
+  //     _$SpacingFromJson(json);
 
-  Map<String, dynamic> toJson() => _$SpacingToJson(this);
+  // Map<String, dynamic> toJson() => _$SpacingToJson(this);
 
   factory Spacing.empty() => Spacing(
         scale: [0, 4, 8, 12, 16, 20, 24, 32, 40, 48, 64, 80, 96],
@@ -222,7 +222,7 @@ class Spacing {
       );
 }
 
-@JsonSerializable()
+// @JsonSerializable()
 class BorderRadius {
   final String none;
   final String sm;
@@ -242,10 +242,10 @@ class BorderRadius {
     required this.full,
   });
 
-  factory BorderRadius.fromJson(Map<String, dynamic> json) =>
-      _$BorderRadiusFromJson(json);
+  // factory BorderRadius.fromJson(Map<String, dynamic> json) =>
+  //     _$BorderRadiusFromJson(json);
 
-  Map<String, dynamic> toJson() => _$BorderRadiusToJson(this);
+  // Map<String, dynamic> toJson() => _$BorderRadiusToJson(this);
 
   factory BorderRadius.empty() => BorderRadius(
         none: '0px',
@@ -258,49 +258,49 @@ class BorderRadius {
       );
 }
 
-@JsonSerializable()
+// @JsonSerializable()
 class Shadows {
   final Map<String, ShadowValue> values;
 
   Shadows({required this.values});
 
-  factory Shadows.fromJson(Map<String, dynamic> json) =>
-      _$ShadowsFromJson(json);
+  // factory Shadows.fromJson(Map<String, dynamic> json) =>
+  //     _$ShadowsFromJson(json);
 
-  Map<String, dynamic> toJson() => _$ShadowsToJson(this);
+  // Map<String, dynamic> toJson() => _$ShadowsToJson(this);
 
   factory Shadows.empty() => Shadows(values: {});
 }
 
-@JsonSerializable()
+// @JsonSerializable()
 class ShadowValue {
   final String value;
   final String? description;
 
   ShadowValue({required this.value, this.description});
 
-  factory ShadowValue.fromJson(Map<String, dynamic> json) =>
-      _$ShadowValueFromJson(json);
+  // factory ShadowValue.fromJson(Map<String, dynamic> json) =>
+  //     _$ShadowValueFromJson(json);
 
-  Map<String, dynamic> toJson() => _$ShadowValueToJson(this);
+  // Map<String, dynamic> toJson() => _$ShadowValueToJson(this);
 }
 
-@JsonSerializable()
+// @JsonSerializable()
 class Effects {
   final Map<String, dynamic>? glassMorphism;
   final Map<String, dynamic>? darkOverlay;
 
   Effects({this.glassMorphism, this.darkOverlay});
 
-  factory Effects.fromJson(Map<String, dynamic> json) =>
-      _$EffectsFromJson(json);
+  // factory Effects.fromJson(Map<String, dynamic> json) =>
+  //     _$EffectsFromJson(json);
 
-  Map<String, dynamic> toJson() => _$EffectsToJson(this);
+  // Map<String, dynamic> toJson() => _$EffectsToJson(this);
 
   factory Effects.empty() => Effects();
 }
 
-@JsonSerializable()
+// @JsonSerializable()
 class Components {
   final Map<String, dynamic> buttons;
   final Map<String, dynamic> cards;
@@ -316,10 +316,10 @@ class Components {
     required this.avatars,
   });
 
-  factory Components.fromJson(Map<String, dynamic> json) =>
-      _$ComponentsFromJson(json);
+  // factory Components.fromJson(Map<String, dynamic> json) =>
+  //     _$ComponentsFromJson(json);
 
-  Map<String, dynamic> toJson() => _$ComponentsToJson(this);
+  // Map<String, dynamic> toJson() => _$ComponentsToJson(this);
 
   factory Components.empty() => Components(
         buttons: {},
@@ -330,7 +330,7 @@ class Components {
       );
 }
 
-@JsonSerializable()
+// @JsonSerializable()
 class Grid {
   final int columns;
   final String gutter;
@@ -344,9 +344,9 @@ class Grid {
     required this.breakpoints,
   });
 
-  factory Grid.fromJson(Map<String, dynamic> json) => _$GridFromJson(json);
+  // factory Grid.fromJson(Map<String, dynamic> json) => _$GridFromJson(json);
 
-  Map<String, dynamic> toJson() => _$GridToJson(this);
+  // Map<String, dynamic> toJson() => _$GridToJson(this);
 
   factory Grid.empty() => Grid(
         columns: 12,
@@ -360,15 +360,15 @@ class Grid {
       );
 }
 
-@JsonSerializable()
+// @JsonSerializable()
 class Icons {
   final Map<String, String> sizes;
 
   Icons({required this.sizes});
 
-  factory Icons.fromJson(Map<String, dynamic> json) => _$IconsFromJson(json);
+  // factory Icons.fromJson(Map<String, dynamic> json) => _$IconsFromJson(json);
 
-  Map<String, dynamic> toJson() => _$IconsToJson(this);
+  // Map<String, dynamic> toJson() => _$IconsToJson(this);
 
   factory Icons.empty() => Icons(
         sizes: {
@@ -382,21 +382,21 @@ class Icons {
       );
 }
 
-@JsonSerializable()
+// @JsonSerializable()
 class Gradients {
   final Map<String, GradientValue> values;
 
   Gradients({required this.values});
 
-  factory Gradients.fromJson(Map<String, dynamic> json) =>
-      _$GradientsFromJson(json);
+  // factory Gradients.fromJson(Map<String, dynamic> json) =>
+  //     _$GradientsFromJson(json);
 
-  Map<String, dynamic> toJson() => _$GradientsToJson(this);
+  // Map<String, dynamic> toJson() => _$GradientsToJson(this);
 
   factory Gradients.empty() => Gradients(values: {});
 }
 
-@JsonSerializable()
+// @JsonSerializable()
 class GradientValue {
   final String type;
   final String direction;
@@ -410,26 +410,26 @@ class GradientValue {
     required this.stops,
   });
 
-  factory GradientValue.fromJson(Map<String, dynamic> json) =>
-      _$GradientValueFromJson(json);
+  // factory GradientValue.fromJson(Map<String, dynamic> json) =>
+  //     _$GradientValueFromJson(json);
 
-  Map<String, dynamic> toJson() => _$GradientValueToJson(this);
+  // Map<String, dynamic> toJson() => _$GradientValueToJson(this);
 }
 
-@JsonSerializable()
+// @JsonSerializable()
 class Roles {
   final Map<String, RoleValue> values;
 
   Roles({required this.values});
 
-  factory Roles.fromJson(Map<String, dynamic> json) => _$RolesFromJson(json);
+  // factory Roles.fromJson(Map<String, dynamic> json) => _$RolesFromJson(json);
 
-  Map<String, dynamic> toJson() => _$RolesToJson(this);
+  // Map<String, dynamic> toJson() => _$RolesToJson(this);
 
   factory Roles.empty() => Roles(values: {});
 }
 
-@JsonSerializable()
+// @JsonSerializable()
 class RoleValue {
   final String primaryColor;
   final String accentColor;
@@ -441,8 +441,8 @@ class RoleValue {
     required this.background,
   });
 
-  factory RoleValue.fromJson(Map<String, dynamic> json) =>
-      _$RoleValueFromJson(json);
+  // factory RoleValue.fromJson(Map<String, dynamic> json) =>
+  //     _$RoleValueFromJson(json);
 
-  Map<String, dynamic> toJson() => _$RoleValueToJson(this);
+  // Map<String, dynamic> toJson() => _$RoleValueToJson(this);
 }

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import '../models/design_system.dart';
+import '../models/design_system.dart' as models;
 
 class DesignSystemProvider extends ChangeNotifier {
-  DesignSystem _designSystem = DesignSystem.empty();
+  models.DesignSystem _designSystem = models.DesignSystem.empty();
   bool _hasProject = false;
 
-  DesignSystem get designSystem => _designSystem;
+  models.DesignSystem get designSystem => _designSystem;
   bool get hasProject => _hasProject;
 
   void createNewProject({
@@ -13,22 +13,22 @@ class DesignSystemProvider extends ChangeNotifier {
     required String description,
     Color? primaryColor,
   }) {
-    _designSystem = DesignSystem(
+    _designSystem = models.DesignSystem(
       name: name,
       version: '1.0.0',
       description: description,
       created: DateTime.now().toIso8601String().split('T')[0],
-      colors: Colors.empty(),
-      typography: Typography.empty(),
-      spacing: Spacing.empty(),
-      borderRadius: BorderRadius.empty(),
-      shadows: Shadows.empty(),
-      effects: Effects.empty(),
-      components: Components.empty(),
-      grid: Grid.empty(),
-      icons: Icons.empty(),
-      gradients: Gradients.empty(),
-      roles: Roles.empty(),
+      colors: models.Colors.empty(),
+      typography: models.Typography.empty(),
+      spacing: models.Spacing.empty(),
+      borderRadius: models.BorderRadius.empty(),
+      shadows: models.Shadows.empty(),
+      effects: models.Effects.empty(),
+      components: models.Components.empty(),
+      grid: models.Grid.empty(),
+      icons: models.Icons.empty(),
+      gradients: models.Gradients.empty(),
+      roles: models.Roles.empty(),
     );
 
     // Set primary color if provided
@@ -45,13 +45,13 @@ class DesignSystemProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void updateDesignSystem(DesignSystem designSystem) {
+  void updateDesignSystem(models.DesignSystem designSystem) {
     _designSystem = designSystem;
     notifyListeners();
   }
 
-  void updateColors(Colors colors) {
-    _designSystem = DesignSystem(
+  void updateColors(models.Colors colors) {
+    _designSystem = models.DesignSystem(
       name: _designSystem.name,
       version: _designSystem.version,
       description: _designSystem.description,
@@ -71,8 +71,8 @@ class DesignSystemProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void updateTypography(Typography typography) {
-    _designSystem = DesignSystem(
+  void updateTypography(models.Typography typography) {
+    _designSystem = models.DesignSystem(
       name: _designSystem.name,
       version: _designSystem.version,
       description: _designSystem.description,
@@ -92,14 +92,35 @@ class DesignSystemProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void loadProject(DesignSystem designSystem) {
+  void updateSpacing(models.Spacing spacing) {
+    _designSystem = models.DesignSystem(
+      name: _designSystem.name,
+      version: _designSystem.version,
+      description: _designSystem.description,
+      created: _designSystem.created,
+      colors: _designSystem.colors,
+      typography: _designSystem.typography,
+      spacing: spacing,
+      borderRadius: _designSystem.borderRadius,
+      shadows: _designSystem.shadows,
+      effects: _designSystem.effects,
+      components: _designSystem.components,
+      grid: _designSystem.grid,
+      icons: _designSystem.icons,
+      gradients: _designSystem.gradients,
+      roles: _designSystem.roles,
+    );
+    notifyListeners();
+  }
+
+  void loadProject(models.DesignSystem designSystem) {
     _designSystem = designSystem;
     _hasProject = true;
     notifyListeners();
   }
 
   void reset() {
-    _designSystem = DesignSystem.empty();
+    _designSystem = models.DesignSystem.empty();
     _hasProject = false;
     notifyListeners();
   }

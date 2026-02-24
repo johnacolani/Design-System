@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/design_system_provider.dart';
 import 'colors_screen.dart';
 import 'typography_screen.dart';
+import 'spacing_screen.dart';
 import 'design_library_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
@@ -140,7 +141,9 @@ class DashboardScreen extends StatelessWidget {
                   description: 'Spacing scale',
                   color: Colors.green,
                   onTap: () {
-                    // TODO: Navigate to spacing screen
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const SpacingScreen()),
+                    );
                   },
                 ),
                 _buildFeatureCard(
@@ -155,7 +158,7 @@ class DashboardScreen extends StatelessWidget {
                 ),
                 _buildFeatureCard(
                   context,
-                  icon: Icons.shadow,
+                  icon: Icons.auto_awesome,
                   title: 'Shadows',
                   description: 'Elevation and shadows',
                   color: Colors.purple,
