@@ -1,0 +1,117 @@
+{
+  "palettes": [
+    {
+      "name": "Material Design",
+      "colors": [
+        {"name": "Red", "hex": "#F44336"},
+        {"name": "Pink", "hex": "#E91E63"},
+        {"name": "Purple", "hex": "#9C27B0"},
+        {"name": "Deep Purple", "hex": "#673AB7"},
+        {"name": "Indigo", "hex": "#3F51B5"},
+        {"name": "Blue", "hex": "#2196F3"},
+        {"name": "Light Blue", "hex": "#03A9F4"},
+        {"name": "Cyan", "hex": "#00BCD4"},
+        {"name": "Teal", "hex": "#009688"},
+        {"name": "Green", "hex": "#4CAF50"},
+        {"name": "Light Green", "hex": "#8BC34A"},
+        {"name": "Lime", "hex": "#CDDC39"},
+        {"name": "Yellow", "hex": "#FFEB3B"},
+        {"name": "Amber", "hex": "#FFC107"},
+        {"name": "Orange", "hex": "#FF9800"},
+        {"name": "Deep Orange", "hex": "#FF5722"},
+        {"name": "Brown", "hex": "#795548"},
+        {"name": "Grey", "hex": "#9E9E9E"},
+        {"name": "Blue Grey", "hex": "#607D8B"}
+      ]
+    },
+    {
+      "name": "Tailwind CSS",
+      "colors": [
+        {"name": "Slate", "hex": "#64748B"},
+        {"name": "Gray", "hex": "#6B7280"},
+        {"name": "Zinc", "hex": "#71717A"},
+        {"name": "Neutral", "hex": "#737373"},
+        {"name": "Stone", "hex": "#78716C"},
+        {"name": "Red", "hex": "#EF4444"},
+        {"name": "Orange", "hex": "#F97316"},
+        {"name": "Amber", "hex": "#F59E0B"},
+        {"name": "Yellow", "hex": "#EAB308"},
+        {"name": "Lime", "hex": "#84CC16"},
+        {"name": "Green", "hex": "#22C55E"},
+        {"name": "Emerald", "hex": "#10B981"},
+        {"name": "Teal", "hex": "#14B8A6"},
+        {"name": "Cyan", "hex": "#06B6D4"},
+        {"name": "Sky", "hex": "#0EA5E9"},
+        {"name": "Blue", "hex": "#3B82F6"},
+        {"name": "Indigo", "hex": "#6366F1"},
+        {"name": "Violet", "hex": "#8B5CF6"},
+        {"name": "Purple", "hex": "#A855F7"},
+        {"name": "Fuchsia", "hex": "#D946EF"},
+        {"name": "Pink", "hex": "#EC4899"},
+        {"name": "Rose", "hex": "#F43F5E"}
+      ]
+    },
+    {
+      "name": "iOS System Colors",
+      "colors": [
+        {"name": "System Blue", "hex": "#007AFF"},
+        {"name": "System Green", "hex": "#34C759"},
+        {"name": "System Indigo", "hex": "#5856D6"},
+        {"name": "System Orange", "hex": "#FF9500"},
+        {"name": "System Pink", "hex": "#FF2D55"},
+        {"name": "System Purple", "hex": "#AF52DE"},
+        {"name": "System Red", "hex": "#FF3B30"},
+        {"name": "System Teal", "hex": "#5AC8FA"},
+        {"name": "System Yellow", "hex": "#FFCC00"}
+      ]
+    },
+    {
+      "name": "Brand Colors",
+      "colors": [
+        {"name": "Facebook Blue", "hex": "#1877F2"},
+        {"name": "Twitter Blue", "hex": "#1DA1F2"},
+        {"name": "Instagram Purple", "hex": "#E4405F"},
+        {"name": "LinkedIn Blue", "hex": "#0077B5"},
+        {"name": "YouTube Red", "hex": "#FF0000"},
+        {"name": "GitHub Black", "hex": "#181717"},
+        {"name": "Google Red", "hex": "#EA4335"},
+        {"name": "Google Blue", "hex": "#4285F4"},
+        {"name": "Google Yellow", "hex": "#FBBC04"},
+        {"name": "Google Green", "hex": "#34A853"},
+        {"name": "Spotify Green", "hex": "#1DB954"},
+        {"name": "Netflix Red", "hex": "#E50914"},
+        {"name": "Amazon Orange", "hex": "#FF9900"},
+        {"name": "Microsoft Blue", "hex": "#0078D4"},
+        {"name": "Apple Blue", "hex": "#007AFF"}
+      ]
+    },
+    {
+      "name": "Pastel Colors",
+      "colors": [
+        {"name": "Pastel Pink", "hex": "#FFD1DC"},
+        {"name": "Pastel Blue", "hex": "#AEC6CF"},
+        {"name": "Pastel Green", "hex": "#B5EAD7"},
+        {"name": "Pastel Yellow", "hex": "#FFEAA7"},
+        {"name": "Pastel Purple", "hex": "#DDA0DD"},
+        {"name": "Pastel Orange", "hex": "#FFD3A5"},
+        {"name": "Pastel Mint", "hex": "#C7F5D9"},
+        {"name": "Pastel Lavender", "hex": "#E6E6FA"},
+        {"name": "Pastel Peach", "hex": "#FFE5B4"},
+        {"name": "Pastel Coral", "hex": "#FFB6C1"}
+      ]
+    },
+    {
+      "name": "Neutral Colors",
+      "colors": [
+        {"name": "Black", "hex": "#000000"},
+        {"name": "Charcoal", "hex": "#36454F"},
+        {"name": "Dark Gray", "hex": "#4A4A4A"},
+        {"name": "Gray", "hex": "#808080"},
+        {"name": "Light Gray", "hex": "#D3D3D3"},
+        {"name": "Silver", "hex": "#C0C0C0"},
+        {"name": "White Smoke", "hex": "#F5F5F5"},
+        {"name": "White", "hex": "#FFFFFF"}
+      ]
+    }
+  ]
+}

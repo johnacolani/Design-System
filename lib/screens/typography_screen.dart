@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/design_system_provider.dart';
 import '../models/design_system.dart' as models;
+import 'home_screen.dart';
 
 class TypographyScreen extends StatefulWidget {
   const TypographyScreen({super.key});
@@ -19,6 +20,16 @@ class _TypographyScreenState extends State<TypographyScreen> {
       length: 4,
       child: Scaffold(
         appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.home),
+            onPressed: () {
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const HomeScreen()),
+                (route) => false,
+              );
+            },
+            tooltip: 'Home',
+          ),
           title: const Text('Typography'),
           bottom: TabBar(
             onTap: (index) {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/design_system.dart' as models;
+import '../services/project_service.dart';
 
 class DesignSystemProvider extends ChangeNotifier {
   models.DesignSystem _designSystem = models.DesignSystem.empty();
@@ -116,6 +117,28 @@ class DesignSystemProvider extends ChangeNotifier {
   void loadProject(models.DesignSystem designSystem) {
     _designSystem = designSystem;
     _hasProject = true;
+    notifyListeners();
+  }
+
+  /// Save current project to disk
+  Future<String> saveProject() async {
+    return await ProjectService.saveProject(_designSystem);
+  }
+
+  /// Load project from file path
+  Future<void> loadProjectFromPath(String filePath) async {
+    final designSystem = await ProjectService.loadProject(filePath);
+    loadProject(designSystem);
+  }
+
+  /// Get list of all saved projects
+  Future<List<ProjectInfo>> getProjectList() async {
+    return await ProjectService.getProjectList();
+  }
+
+  /// Delete a project
+  Future<void> deleteProject(String filePath) async {
+    await ProjectService.deleteProject(filePath);
     notifyListeners();
   }
 

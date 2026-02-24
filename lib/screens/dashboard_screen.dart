@@ -1,10 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/design_system_provider.dart';
+import '../providers/user_provider.dart';
+import '../utils/responsive.dart';
 import 'colors_screen.dart';
+import 'profile_screen.dart';
+import 'home_screen.dart';
 import 'typography_screen.dart';
 import 'spacing_screen.dart';
+import 'border_radius_screen.dart';
+import 'shadows_screen.dart';
+import 'effects_screen.dart';
+import 'components_screen.dart';
+import 'grid_screen.dart';
+import 'icons_screen.dart';
+import 'gradients_screen.dart';
+import 'roles_screen.dart';
+import 'export_screen.dart';
+import 'preview_screen.dart';
 import 'design_library_screen.dart';
+import 'projects_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -16,8 +31,76 @@ class DashboardScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.home),
+          onPressed: () {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => const HomeScreen()),
+            );
+          },
+          tooltip: 'Home',
+        ),
         title: Text(designSystem.name.isEmpty ? 'Design System' : designSystem.name),
         actions: [
+          Consumer<UserProvider>(
+            builder: (context, userProvider, _) {
+              final user = userProvider.currentUser;
+              return GestureDetector(
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                  );
+                },
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  child: CircleAvatar(
+                    radius: 18,
+                    backgroundColor: Colors.white,
+                    backgroundImage: user?.avatarUrl != null
+                        ? NetworkImage(user!.avatarUrl!)
+                        : null,
+                    child: user?.avatarUrl == null
+                        ? Text(
+                            user?.name.substring(0, 1).toUpperCase() ?? 'G',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          )
+                        : null,
+                  ),
+                ),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.save_outlined),
+            tooltip: 'Save Project',
+            onPressed: () async {
+              try {
+                final provider = Provider.of<DesignSystemProvider>(context, listen: false);
+                await provider.saveProject();
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Project saved successfully!'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Failed to save: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.auto_awesome),
             tooltip: 'Design Library',
@@ -28,15 +111,18 @@ class DashboardScreen extends StatelessWidget {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.settings_outlined),
+            icon: const Icon(Icons.folder_outlined),
+            tooltip: 'My Projects',
             onPressed: () {
-              // TODO: Open settings
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (_) => const ProjectsScreen()),
+              );
             },
           ),
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(context.responsive.isMobile ? 16 : 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -103,12 +189,12 @@ class DashboardScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             GridView.count(
-              crossAxisCount: _getCrossAxisCount(context),
+              crossAxisCount: context.responsive.gridColumns,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-              childAspectRatio: 1.2,
+              crossAxisSpacing: context.responsive.isMobile ? 12 : 16,
+              mainAxisSpacing: context.responsive.isMobile ? 12 : 16,
+              childAspectRatio: context.responsive.isMobile ? 1.1 : 1.2,
               children: [
                 _buildFeatureCard(
                   context,
@@ -153,7 +239,9 @@ class DashboardScreen extends StatelessWidget {
                   description: 'Corner radius values',
                   color: Colors.orange,
                   onTap: () {
-                    // TODO: Navigate to border radius screen
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const BorderRadiusScreen()),
+                    );
                   },
                 ),
                 _buildFeatureCard(
@@ -163,7 +251,9 @@ class DashboardScreen extends StatelessWidget {
                   description: 'Elevation and shadows',
                   color: Colors.purple,
                   onTap: () {
-                    // TODO: Navigate to shadows screen
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const ShadowsScreen()),
+                    );
                   },
                 ),
                 _buildFeatureCard(
@@ -173,7 +263,9 @@ class DashboardScreen extends StatelessWidget {
                   description: 'Glass morphism, overlays',
                   color: Colors.pink,
                   onTap: () {
-                    // TODO: Navigate to effects screen
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const EffectsScreen()),
+                    );
                   },
                 ),
                 _buildFeatureCard(
@@ -183,7 +275,9 @@ class DashboardScreen extends StatelessWidget {
                   description: 'Buttons, cards, inputs',
                   color: Colors.teal,
                   onTap: () {
-                    // TODO: Navigate to components screen
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const ComponentsScreen()),
+                    );
                   },
                 ),
                 _buildFeatureCard(
@@ -193,7 +287,9 @@ class DashboardScreen extends StatelessWidget {
                   description: 'Layout grid system',
                   color: Colors.indigo,
                   onTap: () {
-                    // TODO: Navigate to grid screen
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const GridScreen()),
+                    );
                   },
                 ),
                 _buildFeatureCard(
@@ -203,7 +299,9 @@ class DashboardScreen extends StatelessWidget {
                   description: 'Icon sizes',
                   color: Colors.amber,
                   onTap: () {
-                    // TODO: Navigate to icons screen
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const IconsScreen()),
+                    );
                   },
                 ),
                 _buildFeatureCard(
@@ -213,7 +311,9 @@ class DashboardScreen extends StatelessWidget {
                   description: 'Gradient definitions',
                   color: Colors.cyan,
                   onTap: () {
-                    // TODO: Navigate to gradients screen
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const GradientsScreen()),
+                    );
                   },
                 ),
                 _buildFeatureCard(
@@ -223,7 +323,21 @@ class DashboardScreen extends StatelessWidget {
                   description: 'Role-based theming',
                   color: Colors.red,
                   onTap: () {
-                    // TODO: Navigate to roles screen
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const RolesScreen()),
+                    );
+                  },
+                ),
+                _buildFeatureCard(
+                  context,
+                  icon: Icons.preview,
+                  title: 'Preview',
+                  description: 'Visual preview of design system',
+                  color: Colors.green,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const PreviewScreen()),
+                    );
                   },
                 ),
                 _buildFeatureCard(
@@ -233,7 +347,9 @@ class DashboardScreen extends StatelessWidget {
                   description: 'Export to Flutter/Kotlin/Swift',
                   color: Colors.brown,
                   onTap: () {
-                    // TODO: Navigate to export screen
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const ExportScreen()),
+                    );
                   },
                 ),
               ],

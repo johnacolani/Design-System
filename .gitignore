@@ -43,3 +43,10 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Firebase (optional - uncomment if you want to keep credentials private)
+# lib/firebase_options.dart
+
+# Environment variables
+.env
+.env.local

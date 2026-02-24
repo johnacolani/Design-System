@@ -11,17 +11,17 @@ A comprehensive Flutter application for creating, managing, and exporting design
 - **Design Library**: Browse and import from Material Design and Cupertino (iOS) design systems
 
 ### Design Token Management
-- ✅ **Colors**: Primary, semantic, and custom color palettes
+- ✅ **Colors**: Primary, semantic, and custom color palettes with color picker, scales, and suggestions
 - ✅ **Typography**: Font families, weights, sizes, and text styles
-- 🔄 **Spacing**: Spacing scale and values
-- 🔄 **Border Radius**: Corner radius values
-- 🔄 **Shadows**: Elevation and shadow definitions
-- 🔄 **Effects**: Glass morphism, overlays, and visual effects
-- 🔄 **Components**: Buttons, cards, inputs, navigation, avatars
-- 🔄 **Grid**: Layout grid system with breakpoints
-- 🔄 **Icons**: Icon size definitions
-- 🔄 **Gradients**: Gradient definitions
-- 🔄 **Roles**: Role-based theming
+- ✅ **Spacing**: Spacing scale and values
+- ✅ **Border Radius**: Corner radius values
+- ✅ **Shadows**: Elevation and shadow definitions
+- ✅ **Effects**: Glass morphism, overlays, and visual effects
+- ✅ **Components**: Buttons, cards, inputs, navigation, avatars
+- ✅ **Grid**: Layout grid system with breakpoints
+- ✅ **Icons**: Icon size definitions
+- ✅ **Gradients**: Gradient definitions
+- ✅ **Roles**: Role-based theming
 
 ### Design Libraries
 - ✅ **Material Design**: Browse and import Material components, colors, icons, and typography
@@ -33,6 +33,7 @@ A comprehensive Flutter application for creating, managing, and exporting design
 - Flutter SDK (3.10.0 or higher)
 - Dart SDK
 - Android Studio / VS Code with Flutter extensions
+- Firebase account (for authentication and data storage)
 
 ### Installation
 
@@ -47,14 +48,25 @@ cd design_system
 flutter pub get
 ```
 
-3. Generate JSON serialization code:
+3. Configure Firebase (see `FIREBASE_SETUP.md` for detailed instructions):
 ```bash
-flutter pub run build_runner build
+# Install FlutterFire CLI
+dart pub global activate flutterfire_cli
+
+# Configure Firebase
+flutterfire configure
 ```
 
 4. Run the app:
 ```bash
-flutter run
+# For web
+flutter run -d chrome
+
+# For macOS
+flutter run -d macos
+
+# For Windows
+flutter run -d windows
 ```
 
 ### Supported Platforms
@@ -115,24 +127,35 @@ Navigate to specific sections from the dashboard:
 - [x] Project structure and dependencies
 - [x] Data models for design system
 - [x] State management with Provider
+- [x] User authentication (Email, Google, Guest mode)
+- [x] Firebase integration (Auth, Firestore, Storage)
+- [x] Welcome screen with authentication options
 - [x] Onboarding flow with project creation
-- [x] Color picker widget
-- [x] Basic color management UI
-- [x] Basic typography management UI
+- [x] Home screen with project preview (Figma-inspired design)
+- [x] Responsive design for web, mobile, and desktop
+- [x] Color picker with multiple color selection
+- [x] Color management with scales and suggestions
+- [x] Typography management (fonts, weights, sizes, styles)
+- [x] Spacing management
+- [x] Border radius management
+- [x] Shadows management
+- [x] Effects management
+- [x] Components management
+- [x] Grid configuration
+- [x] Icons management
+- [x] Gradients management
+- [x] Roles management
 - [x] Main navigation/dashboard UI
 - [x] Material Design library picker
 - [x] Cupertino (iOS) design library picker
-
-### 🔄 In Progress / Planned Features
-- [ ] Full CRUD operations for all design tokens
-- [ ] JSON export functionality
-- [ ] Flutter code generator
-- [ ] Kotlin (Android) code generator
-- [ ] Swift (iOS) code generator
-- [ ] Project save/load functionality
-- [ ] File system integration
-- [ ] Preview functionality
-- [ ] Platform-specific UI adaptations
+- [x] Project save/load functionality
+- [x] JSON export functionality
+- [x] Flutter code generator
+- [x] Kotlin (Android) code generator
+- [x] Swift (iOS) code generator
+- [x] Preview functionality
+- [x] User profile management
+- [x] Project management (list, open, delete)
 
 ## 📦 Dependencies
 
@@ -143,6 +166,11 @@ Navigate to specific sections from the dashboard:
 - `file_picker`: File selection
 - `json_annotation`: JSON serialization
 - `intl`: Internationalization
+- `firebase_core`: Firebase core functionality
+- `firebase_auth`: User authentication
+- `cloud_firestore`: Cloud database
+- `firebase_storage`: File storage
+- `google_sign_in`: Google Sign-In authentication
 
 ## 🛠️ Development
 

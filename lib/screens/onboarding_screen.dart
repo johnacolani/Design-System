@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/design_system_provider.dart';
+import '../providers/user_provider.dart';
+import '../widgets/app_logo.dart';
 import 'dashboard_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -25,22 +27,37 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   void _createProject() {
     if (_formKey.currentState!.validate()) {
-      final provider = Provider.of<DesignSystemProvider>(context, listen: false);
-      provider.createNewProject(
+      final designSystemProvider = Provider.of<DesignSystemProvider>(context, listen: false);
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      
+      designSystemProvider.createNewProject(
         name: _nameController.text,
         description: _descriptionController.text,
         primaryColor: _selectedColor,
       );
 
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const DashboardScreen()),
-      );
+      // Increment user's project count
+      userProvider.incrementProjectsCreated();
+
+      // Navigate back to home screen to show the preview
+      Navigator.of(context).pop();
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+        ),
+        title: const Text('Create Design System'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -62,10 +79,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Icon(
-                      Icons.palette_outlined,
+                    AppLogo(
                       size: 80,
-                      color: _selectedColor,
                     ),
                     const SizedBox(height: 24),
                     Text(
