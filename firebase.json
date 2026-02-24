@@ -1,1 +1,67 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"my-flutter-apps-f87ea","appId":"1:47033728900:android:56cfe85c9f6b1b3495a7d1","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"my-flutter-apps-f87ea","configurations":{"android":"1:47033728900:android:56cfe85c9f6b1b3495a7d1","ios":"1:47033728900:ios:7a9b609fa9a75ffb95a7d1","macos":"1:47033728900:ios:7a9b609fa9a75ffb95a7d1","web":"1:47033728900:web:2b513c3e6096e86e95a7d1","windows":"1:47033728900:web:72141861e787f83595a7d1"}}}}}}
+{
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ],
+    "headers": [
+      {
+        "source": "**/*.@(js|css|wasm|woff|woff2|ttf|otf)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=31536000, immutable"
+          }
+        ]
+      },
+      {
+        "source": "**",
+        "headers": [
+          {
+            "key": "X-Content-Type-Options",
+            "value": "nosniff"
+          },
+          {
+            "key": "X-Frame-Options",
+            "value": "DENY"
+          },
+          {
+            "key": "X-XSS-Protection",
+            "value": "1; mode=block"
+          }
+        ]
+      }
+    ]
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "my-flutter-apps-f87ea",
+          "appId": "1:47033728900:android:56cfe85c9f6b1b3495a7d1",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "my-flutter-apps-f87ea",
+          "configurations": {
+            "android": "1:47033728900:android:56cfe85c9f6b1b3495a7d1",
+            "ios": "1:47033728900:ios:7a9b609fa9a75ffb95a7d1",
+            "macos": "1:47033728900:ios:7a9b609fa9a75ffb95a7d1",
+            "web": "1:47033728900:web:2b513c3e6096e86e95a7d1",
+            "windows": "1:47033728900:web:72141861e787f83595a7d1"
+          }
+        }
+      }
+    }
+  }
+}
