@@ -191,25 +191,29 @@ class HomeScreen extends StatelessWidget {
   Widget _buildHeroSection(BuildContext context, DesignSystemProvider designSystemProvider, UserProvider userProvider) {
     final responsive = Responsive(context);
     
-    return Stack(
-      children: [
-        // Background with project previews
-        Container(
-          height: responsive.isMobile ? 400 : responsive.isTablet ? 500 : 600,
-          margin: responsive.margin,
-          child: _buildProjectPreviewsGrid(context, designSystemProvider),
-        ),
-        
-        // Floating Call-to-Action Card (Figma-style)
-        Positioned(
-          top: responsive.isMobile ? 120 : responsive.isTablet ? 150 : 200,
-          left: 0,
-          right: 0,
-          child: Center(
-            child: _buildFloatingCTACard(context, designSystemProvider, userProvider),
+    return SizedBox(
+      height: responsive.isMobile ? 400 : responsive.isTablet ? 500 : 600,
+      child: Stack(
+        children: [
+          // Background with project previews
+          Positioned.fill(
+            child: Padding(
+              padding: responsive.margin,
+              child: _buildProjectPreviewsGrid(context, designSystemProvider),
+            ),
           ),
-        ),
-      ],
+          
+          // Floating Call-to-Action Card (Figma-style)
+          Positioned(
+            top: responsive.isMobile ? 120 : responsive.isTablet ? 150 : 200,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: _buildFloatingCTACard(context, designSystemProvider, userProvider),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -217,6 +221,7 @@ class HomeScreen extends StatelessWidget {
     if (!designSystemProvider.hasProject) {
       // Show placeholder previews when no project exists
       return Stack(
+        clipBehavior: Clip.none,
         children: [
           Positioned(
             top: 0,

@@ -6,6 +6,7 @@ import '../models/design_system.dart' as models;
 import '../services/color_palette_service.dart';
 import 'color_picker_screen.dart';
 import 'home_screen.dart';
+import 'dashboard_screen.dart';
 
 class ColorsScreen extends StatefulWidget {
   const ColorsScreen({super.key});
@@ -82,9 +83,12 @@ class _ColorsScreenState extends State<ColorsScreen> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            Navigator.of(context).pop();
+            // Navigate back to Dashboard (Design Tokens screen)
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => const DashboardScreen()),
+            );
           },
-          tooltip: 'Back',
+          tooltip: 'Back to Design Tokens',
         ),
         title: const Text('Colors'),
         actions: [
