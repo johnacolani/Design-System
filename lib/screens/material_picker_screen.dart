@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/design_system_provider.dart';
+import '../models/design_system.dart' as models;
 
 class MaterialPickerScreen extends StatefulWidget {
   const MaterialPickerScreen({super.key});
@@ -172,7 +175,90 @@ class MaterialColorsTab extends StatelessWidget {
           ),
           ElevatedButton(
             onPressed: () {
-              // TODO: Add to design system provider
+              final provider = Provider.of<DesignSystemProvider>(context, listen: false);
+              final colors = provider.designSystem.colors;
+              
+              // Convert palette name to lowercase for the color category
+              final categoryName = palette.name.toLowerCase();
+              
+              // Create a map for this color palette with all shades
+              final paletteMap = <String, dynamic>{};
+              palette.shades.forEach((shade, color) {
+                final colorHex = '#${color.value.toRadixString(16).substring(2).toUpperCase()}';
+                paletteMap['$categoryName$shade'] = {
+                  'value': colorHex,
+                  'type': 'color',
+                  'description': '${palette.name} $shade',
+                };
+              });
+              
+              // Add primary color from palette
+              final primaryHex = '#${palette.primary.value.toRadixString(16).substring(2).toUpperCase()}';
+              paletteMap['$categoryName'] = {
+                'value': primaryHex,
+                'type': 'color',
+                'description': '${palette.name} primary color',
+              };
+              
+              // Update colors based on category
+              Map<String, dynamic> updatedPrimary = Map<String, dynamic>.from(colors.primary);
+              Map<String, dynamic>? updatedBlue = colors.blue != null ? Map<String, dynamic>.from(colors.blue!) : null;
+              Map<String, dynamic>? updatedGreen = colors.green != null ? Map<String, dynamic>.from(colors.green!) : null;
+              Map<String, dynamic>? updatedOrange = colors.orange != null ? Map<String, dynamic>.from(colors.orange!) : null;
+              Map<String, dynamic>? updatedPurple = colors.purple != null ? Map<String, dynamic>.from(colors.purple!) : null;
+              Map<String, dynamic>? updatedRed = colors.red != null ? Map<String, dynamic>.from(colors.red!) : null;
+              Map<String, dynamic>? updatedGrey = colors.grey != null ? Map<String, dynamic>.from(colors.grey!) : null;
+              
+              // Add to appropriate category
+              switch (categoryName) {
+                case 'blue':
+                  updatedBlue ??= {};
+                  updatedBlue.addAll(paletteMap);
+                  break;
+                case 'green':
+                  updatedGreen ??= {};
+                  updatedGreen.addAll(paletteMap);
+                  break;
+                case 'orange':
+                  updatedOrange ??= {};
+                  updatedOrange.addAll(paletteMap);
+                  break;
+                case 'purple':
+                  updatedPurple ??= {};
+                  updatedPurple.addAll(paletteMap);
+                  break;
+                case 'red':
+                  updatedRed ??= {};
+                  updatedRed.addAll(paletteMap);
+                  break;
+                case 'grey':
+                case 'gray':
+                  updatedGrey ??= {};
+                  updatedGrey.addAll(paletteMap);
+                  break;
+                default:
+                  // Add to primary if no specific category
+                  updatedPrimary.addAll(paletteMap);
+              }
+              
+              // Update design system
+              final updatedColors = models.Colors(
+                primary: updatedPrimary,
+                semantic: colors.semantic,
+                blue: updatedBlue,
+                green: updatedGreen,
+                orange: updatedOrange,
+                purple: updatedPurple,
+                red: updatedRed,
+                grey: updatedGrey,
+                white: colors.white,
+                text: colors.text,
+                input: colors.input,
+                roleSpecific: colors.roleSpecific,
+              );
+              
+              provider.updateColors(updatedColors);
+              
               Navigator.of(context).pop();
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -762,16 +848,24 @@ class _MaterialIconsTabState extends State<MaterialIconsTab> {
           ),
           ElevatedButton(
             onPressed: () {
-              // TODO: Add to design system provider
+              // Note: The design system Icons model only stores sizes, not icon names.
+              // Material icons are part of Flutter's icon library and don't need to be stored.
+              // This feature would require extending the Icons model to support icon names/references.
+              // For now, we'll show a message explaining this limitation.
               Navigator.of(context).pop();
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('${_getIconName(icon)} added successfully!'),
-                  backgroundColor: Colors.green,
+                  content: Text(
+                    'Material icons are available via Flutter\'s Icon widget.\n'
+                    'Use Icon(${_getIconName(icon)}) in your code.\n'
+                    'Icon sizes can be managed in the Icons section.',
+                  ),
+                  backgroundColor: Colors.blue,
+                  duration: const Duration(seconds: 4),
                 ),
               );
             },
-            child: const Text('Add'),
+            child: const Text('Got it'),
           ),
         ],
       ),

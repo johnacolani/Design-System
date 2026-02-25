@@ -6,10 +6,14 @@ import 'home_screen.dart';
 
 class AuthScreen extends StatefulWidget {
   final bool isSignUp;
+  final String? preFilledEmail;
+  final String? preFilledPassword;
   
   const AuthScreen({
     super.key,
     this.isSignUp = false,
+    this.preFilledEmail,
+    this.preFilledPassword,
   });
 
   @override
@@ -28,6 +32,14 @@ class _AuthScreenState extends State<AuthScreen> {
   void initState() {
     super.initState();
     _isLogin = !widget.isSignUp;
+    
+    // Pre-fill email and password if provided (after signup)
+    if (widget.preFilledEmail != null) {
+      _emailController.text = widget.preFilledEmail!;
+    }
+    if (widget.preFilledPassword != null) {
+      _passwordController.text = widget.preFilledPassword!;
+    }
   }
 
   @override
@@ -47,18 +59,61 @@ class _AuthScreenState extends State<AuthScreen> {
           _emailController.text.trim(),
           _passwordController.text,
         );
+        
+        if (mounted && userProvider.isLoggedIn) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const HomeScreen()),
+          );
+        }
       } else {
-        await userProvider.signUp(
-          _nameController.text.trim(),
-          _emailController.text.trim(),
-          _passwordController.text,
-        );
-      }
+        // Sign up - save email and password for login screen
+        final email = _emailController.text.trim();
+        final password = _passwordController.text;
+        final name = _nameController.text.trim();
+        
+        try {
+          await userProvider.signUp(
+            name,
+            email,
+            password,
+          );
 
-      if (mounted && userProvider.isLoggedIn) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
-        );
+          if (mounted) {
+            // Sign out so user can log in with pre-filled credentials
+            await userProvider.logout();
+            
+            // Show success message
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Account created successfully! Please sign in.'),
+                  backgroundColor: Colors.green,
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+              
+              // Navigate to login screen with pre-filled credentials
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(
+                  builder: (_) => AuthScreen(
+                    isSignUp: false,
+                    preFilledEmail: email,
+                    preFilledPassword: password,
+                  ),
+                ),
+              );
+            }
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Sign up failed: ${e.toString()}'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
       }
     }
   }

@@ -29,6 +29,7 @@ flutterfire configure
 ```
 
 This command will:
+
 - Detect your Firebase projects
 - Let you select the "design-system" project (or create a new one)
 - Configure Firebase for Web, macOS, and Windows platforms
@@ -37,9 +38,9 @@ This command will:
 ### During Configuration:
 
 1. **Select Firebase Project**: Choose "design-system" or create a new one
-2. **Select Platforms**: 
+2. **Select Platforms**:
    - ✅ Web
-   - ✅ macOS  
+   - ✅ macOS
    - ✅ Windows
    - ❌ iOS (skip)
    - ❌ Android (skip)
@@ -53,16 +54,19 @@ This command will:
 In the Firebase Console (https://console.firebase.google.com/), enable the following services:
 
 ### Authentication
+
 1. Go to **Authentication** → **Get Started**
 2. Enable **Email/Password** sign-in method
 3. Optionally enable **Google** sign-in for better UX
 
 ### Firestore Database
+
 1. Go to **Firestore Database** → **Create Database**
 2. Start in **Test Mode** (for development)
 3. Choose a location close to your users
 
 ### Storage
+
 1. Go to **Storage** → **Get Started**
 2. Start in **Test Mode** (for development)
 3. Choose the same location as Firestore
@@ -166,15 +170,18 @@ To complete the setup, you need:
 ## Troubleshooting
 
 ### Error: "Firebase not configured"
+
 - Make sure you've run `flutterfire configure`
 - Check that `lib/firebase_options.dart` exists and has correct values
 - Verify Firebase project name matches
 
 ### Error: "Platform not supported"
+
 - Make sure you selected the correct platforms during `flutterfire configure`
 - For macOS/Windows, ensure you have the latest Flutter SDK
 
 ### Web: "Firebase SDK not found"
+
 - Check that `web/index.html` includes Firebase SDK (already added)
 - Verify Firebase configuration in Firebase Console
 
@@ -190,6 +197,7 @@ After Firebase is configured:
 ## Support
 
 If you encounter issues:
+
 1. Check Firebase Console for project status
 2. Verify all services are enabled
 3. Check FlutterFire documentation: https://firebase.flutter.dev/
