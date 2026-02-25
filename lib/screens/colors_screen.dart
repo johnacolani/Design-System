@@ -185,22 +185,132 @@ class _ColorsScreenState extends State<ColorsScreen> {
                       ],
                     ),
                   )
-                : GridView.builder(
-                    padding: const EdgeInsets.all(16),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                      childAspectRatio: 0.75,
-                    ),
-                    itemCount: currentCategory.length,
-                    itemBuilder: (context, index) {
-                      final entry = currentCategory.entries.elementAt(index);
-                      return _buildColorCard(context, entry.key, entry.value, _selectedCategory);
-                    },
-                  ),
+                : _selectedCategory == 'semantic'
+                    ? ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: currentCategory.length,
+                        itemBuilder: (context, index) {
+                          final entry = currentCategory.entries.elementAt(index);
+                          return _buildSemanticColorCard(context, entry.key, entry.value, _selectedCategory);
+                        },
+                      )
+                    : GridView.builder(
+                        padding: const EdgeInsets.all(16),
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                          childAspectRatio: 0.75,
+                        ),
+                        itemCount: currentCategory.length,
+                        itemBuilder: (context, index) {
+                          final entry = currentCategory.entries.elementAt(index);
+                          return _buildColorCard(context, entry.key, entry.value, _selectedCategory);
+                        },
+                      ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSemanticColorCard(
+    BuildContext context,
+    String name,
+    dynamic colorData,
+    String category,
+  ) {
+    Color color;
+    String description = '';
+
+    if (colorData is Map) {
+      final value = colorData['value'] as String? ?? '#000000';
+      color = _parseColor(value);
+      description = colorData['description'] as String? ?? '';
+    } else {
+      color = Colors.grey;
+    }
+
+    return Card(
+      elevation: 1,
+      margin: const EdgeInsets.only(bottom: 8),
+      child: InkWell(
+        onTap: () {
+          _showEditColorDialog(context, name, colorData, category);
+        },
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: Colors.grey.shade300, width: 1),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      name,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _colorToHex(color),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Colors.grey[600],
+                            fontFamily: 'monospace',
+                            fontSize: 11,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert, size: 20),
+                onSelected: (value) {
+                  if (value == 'edit') {
+                    _showEditColorDialog(context, name, colorData, category);
+                  } else if (value == 'delete') {
+                    _deleteColor(context, name, category);
+                  }
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: 'edit',
+                    child: Row(
+                      children: [
+                        Icon(Icons.edit, size: 18),
+                        SizedBox(width: 8),
+                        Text('Edit'),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'delete',
+                    child: Row(
+                      children: [
+                        Icon(Icons.delete, size: 18, color: Colors.red),
+                        SizedBox(width: 8),
+                        Text('Delete', style: TextStyle(color: Colors.red)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
