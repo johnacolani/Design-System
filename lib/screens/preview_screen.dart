@@ -17,9 +17,29 @@ class _PreviewScreenState extends State<PreviewScreen> {
   final ScreenshotController _screenshotController = ScreenshotController();
 
   Future<void> _exportAsImage() async {
+    if (!mounted) return;
+    
     try {
+      // Show loading indicator
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+              SizedBox(width: 16),
+              Text('Capturing preview...'),
+            ],
+          ),
+          duration: Duration(seconds: 2),
+        ),
+      );
+
       final image = await _screenshotController.capture();
-      if (image == null) return;
+      if (!mounted || image == null) return;
 
       // Save the image
       final fileName = 'design_system_preview_${DateTime.now().millisecondsSinceEpoch}.png';
@@ -32,7 +52,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
           type: FileType.image,
         );
         
-        if (path != null) {
+        if (path != null && mounted) {
           final file = File(path);
           await file.writeAsBytes(image);
           if (mounted) {
@@ -40,16 +60,18 @@ class _PreviewScreenState extends State<PreviewScreen> {
               SnackBar(
                 content: Text('Preview exported to: $path'),
                 backgroundColor: Colors.green,
+                duration: const Duration(seconds: 3),
               ),
             );
           }
         }
       } else {
-        // Mobile/Web - show download option
+        // Web - trigger download
         if (mounted) {
+          // For web, we'd need to use html package or similar
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Image export not available on this platform'),
+              content: Text('Image export available on desktop platforms (Windows, macOS, Linux)'),
               backgroundColor: Colors.orange,
             ),
           );
@@ -61,6 +83,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
           SnackBar(
             content: Text('Failed to export image: $e'),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
           ),
         );
       }

@@ -27,7 +27,7 @@ dependencies:
   file_picker: ^8.1.2
   
   # Screenshot/Image export
-  screenshot: ^2.1.0
+  screenshot: ^3.0.0
   
   # JSON handling
   json_annotation: ^4.8.1
