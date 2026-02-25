@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -10,7 +11,15 @@ class UserProvider extends ChangeNotifier {
   bool _isLoading = false;
 
   User? get currentUser => _currentUser;
-  bool get isLoggedIn => _currentUser != null;
+  bool get isLoggedIn {
+    // Check if user is actually authenticated with Firebase (not just a guest)
+    final firebaseUser = firebase_auth.FirebaseAuth.instance.currentUser;
+    if (firebaseUser == null || _currentUser == null) {
+      return false;
+    }
+    // Check that it's not a guest user (guests have IDs starting with 'guest_')
+    return !_currentUser!.id.startsWith('guest_');
+  }
   bool get isLoading => _isLoading;
   bool get isPremium => _currentUser?.isPremium ?? false;
   UserRole get userRole => _currentUser?.role ?? UserRole.free;
@@ -93,8 +102,32 @@ class UserProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // Configure Google Sign-In
+      // IMPORTANT: For web, you MUST add the client ID to web/index.html:
+      // <meta name="google-signin-client_id" content="YOUR_CLIENT_ID.apps.googleusercontent.com">
+      // 
+      // To get your Web Client ID:
+      // 1. Go to: https://console.firebase.google.com/project/my-flutter-apps-f87ea/authentication/providers
+      // 2. Click on "Google" provider
+      // 3. Under "Web SDK configuration", copy the "Web client ID"
+      // 4. Replace YOUR_WEB_CLIENT_ID in web/index.html line 43 with your actual client ID
+      //
+      // Alternatively, uncomment the clientId parameter below and add your client ID here
+      final GoogleSignIn googleSignIn = GoogleSignIn(
+        scopes: ['email', 'profile'],
+        // Uncomment and add your web client ID here if meta tag doesn't work:
+        // clientId: '47033728900-xxxxx.apps.googleusercontent.com',
+      );
+      
+      // Sign out any previous session first (helps with web and prevents cached auth issues)
+      try {
+        await googleSignIn.signOut();
+      } catch (e) {
+        // Ignore sign out errors (user might not be signed in)
+        debugPrint('Sign out error (ignored): $e');
+      }
+      
       // Trigger the authentication flow
-      final GoogleSignIn googleSignIn = GoogleSignIn();
       final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
 
       if (googleUser == null) {
@@ -106,6 +139,10 @@ class UserProvider extends ChangeNotifier {
 
       // Obtain the auth details from the request
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+      if (googleAuth.accessToken == null && googleAuth.idToken == null) {
+        throw Exception('Failed to obtain Google authentication tokens');
+      }
 
       // Create a new credential
       final credential = firebase_auth.GoogleAuthProvider.credential(
@@ -146,10 +183,14 @@ class UserProvider extends ChangeNotifier {
         }
 
         await _loadUserFromFirebase(userCredential.user!);
+      } else {
+        throw Exception('Failed to sign in with Google: No user returned');
       }
     } catch (e) {
       _isLoading = false;
       notifyListeners();
+      // Log the error for debugging
+      debugPrint('Google Sign-In Error: $e');
       rethrow;
     }
 

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:file_picker/file_picker.dart';
-import 'dart:io';
 import '../providers/design_system_provider.dart';
 import '../models/design_system.dart' as models;
 
@@ -47,33 +47,18 @@ class _PreviewScreenState extends State<PreviewScreen> {
       
       if (!mounted) return;
 
-      if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-        // Desktop platforms - use file picker to save
-        final fileName = 'design_system_${designSystem.name.replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch}.pdf';
-        final path = await FilePicker.platform.saveFile(
-          dialogTitle: 'Save Design System PDF',
-          fileName: fileName,
-          type: FileType.custom,
-          allowedExtensions: ['pdf'],
-        );
-        
-        if (path != null && mounted) {
-          final file = File(path);
-          await file.writeAsBytes(await pdf.save());
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('PDF exported to: $path'),
-                backgroundColor: Colors.green,
-                duration: const Duration(seconds: 3),
-              ),
-            );
-          }
-        }
-      } else {
-        // Mobile/Web - use printing package to share/preview
-        await Printing.layoutPdf(
-          onLayout: (PdfPageFormat format) async => pdf.save(),
+      // Use printing package for all platforms (works on web, mobile, and desktop)
+      await Printing.layoutPdf(
+        onLayout: (PdfPageFormat format) async => pdf.save(),
+      );
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('PDF ready! Use the print dialog to save or share.'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 3),
+          ),
         );
       }
     } catch (e) {

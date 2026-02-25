@@ -4,7 +4,12 @@ import '../providers/design_system_provider.dart';
 import '../models/design_system.dart' as models;
 
 class MaterialPickerScreen extends StatefulWidget {
-  const MaterialPickerScreen({super.key});
+  final bool isColorPickerMode;
+  
+  const MaterialPickerScreen({
+    super.key,
+    this.isColorPickerMode = true,
+  });
 
   @override
   State<MaterialPickerScreen> createState() => _MaterialPickerScreenState();
@@ -43,11 +48,11 @@ class _MaterialPickerScreenState extends State<MaterialPickerScreen>
       ),
       body: TabBarView(
         controller: _tabController,
-        children: const [
-          MaterialColorsTab(),
-          MaterialIconsTab(),
-          MaterialComponentsTab(),
-          MaterialTypographyTab(),
+        children: [
+          MaterialColorsTab(isColorPickerMode: widget.isColorPickerMode),
+          const MaterialIconsTab(),
+          const MaterialComponentsTab(),
+          const MaterialTypographyTab(),
         ],
       ),
     );
@@ -55,31 +60,102 @@ class _MaterialPickerScreenState extends State<MaterialPickerScreen>
 }
 
 // Material Colors Tab
-class MaterialColorsTab extends StatelessWidget {
-  const MaterialColorsTab({super.key});
+class MaterialColorsTab extends StatefulWidget {
+  final bool isColorPickerMode;
+  
+  const MaterialColorsTab({
+    super.key,
+    this.isColorPickerMode = false,
+  });
+
+  @override
+  State<MaterialColorsTab> createState() => _MaterialColorsTabState();
+}
+
+class _MaterialColorsTabState extends State<MaterialColorsTab> {
+  Color? _selectedColor;
 
   @override
   Widget build(BuildContext context) {
     final materialColors = _getMaterialColorPalettes();
 
-    return ListView(
-      padding: const EdgeInsets.all(16),
+    return Column(
       children: [
-        Text(
-          'Material Design 3 Color Palettes',
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
+        if (widget.isColorPickerMode && _selectedColor != null)
+          Container(
+            padding: const EdgeInsets.all(16),
+            color: Colors.blue[50],
+            child: Row(
+              children: [
+                Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: _selectedColor,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.grey[300]!, width: 2),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Selected Color',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: Colors.blue[900],
+                        ),
+                      ),
+                      Text(
+                        '#${_selectedColor!.value.toRadixString(16).substring(2).toUpperCase()}',
+                        style: TextStyle(
+                          fontFamily: 'monospace',
+                          color: Colors.blue[700],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).pop(_selectedColor);
+                  },
+                  icon: const Icon(Icons.check),
+                  label: const Text('Use This Color'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue[700],
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              Text(
+                'Material Design 3 Color Palettes',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Select a color palette to add to your design system',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Colors.grey[600],
+              const SizedBox(height: 8),
+              Text(
+                widget.isColorPickerMode
+                    ? 'Tap a color to select it, then click "Use This Color"'
+                    : 'Select a color palette to add to your design system',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Colors.grey[600],
+                    ),
               ),
+              const SizedBox(height: 24),
+              ...materialColors.map((palette) => _buildColorPaletteCard(context, palette)),
+            ],
+          ),
         ),
-        const SizedBox(height: 24),
-        ...materialColors.map((palette) => _buildColorPaletteCard(context, palette)),
       ],
     );
   }
@@ -123,13 +199,14 @@ class MaterialColorsTab extends StatelessWidget {
                     ],
                   ),
                 ),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    _addPaletteToDesignSystem(context, palette);
-                  },
-                  icon: const Icon(Icons.add, size: 18),
-                  label: const Text('Add'),
-                ),
+                if (!widget.isColorPickerMode)
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      _addPaletteToDesignSystem(context, palette);
+                    },
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Add'),
+                  ),
               ],
             ),
             const SizedBox(height: 16),
@@ -137,23 +214,82 @@ class MaterialColorsTab extends StatelessWidget {
               spacing: 8,
               runSpacing: 8,
               children: palette.shades.entries.map((entry) {
-                return Tooltip(
-                  message: '${entry.key}: ${_colorToHex(entry.value)}',
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: entry.value,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: Colors.grey[300]!,
-                        width: 0.5,
+                final isSelected = widget.isColorPickerMode && _selectedColor == entry.value;
+                return GestureDetector(
+                  onTap: widget.isColorPickerMode
+                      ? () {
+                          setState(() {
+                            _selectedColor = entry.value;
+                          });
+                        }
+                      : null,
+                  child: Tooltip(
+                    message: '${entry.key}: ${_colorToHex(entry.value)}',
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: entry.value,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: isSelected ? Colors.black : Colors.grey[300]!,
+                          width: isSelected ? 3 : 0.5,
+                        ),
                       ),
+                      child: isSelected
+                          ? const Icon(Icons.check, color: Colors.white, size: 20)
+                          : null,
                     ),
                   ),
                 );
               }).toList(),
             ),
+            // Also make primary color selectable
+            if (widget.isColorPickerMode) ...[
+              const SizedBox(height: 12),
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _selectedColor = palette.primary;
+                  });
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: _selectedColor == palette.primary ? Colors.blue[50] : Colors.grey[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: _selectedColor == palette.primary ? Colors.blue : Colors.grey[300]!,
+                      width: _selectedColor == palette.primary ? 2 : 1,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 30,
+                        height: 30,
+                        decoration: BoxDecoration(
+                          color: palette.primary,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.grey[300]!),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Primary Color: ${_colorToHex(palette.primary)}',
+                          style: TextStyle(
+                            fontWeight: _selectedColor == palette.primary ? FontWeight.w600 : FontWeight.normal,
+                          ),
+                        ),
+                      ),
+                      if (_selectedColor == palette.primary)
+                        const Icon(Icons.check, color: Colors.blue),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),

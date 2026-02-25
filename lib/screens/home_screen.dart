@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import '../providers/user_provider.dart';
 import '../providers/design_system_provider.dart';
 import '../models/user.dart';
@@ -467,14 +468,25 @@ class HomeScreen extends StatelessWidget {
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () {
-                // If logged in, go directly to onboarding. Otherwise, go to welcome screen
-                if (userProvider.isLoggedIn) {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+                // Require authentication before creating a project
+                // Check Firebase Auth directly to ensure user is actually logged in
+                final firebaseAuth = firebase_auth.FirebaseAuth.instance;
+                if (firebaseAuth.currentUser == null || !userProvider.isLoggedIn) {
+                  // Show message and redirect to welcome screen for authentication
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please sign in or sign up to create a project'),
+                      backgroundColor: Colors.orange,
+                      duration: Duration(seconds: 2),
+                    ),
                   );
-                } else {
                   Navigator.of(context).push(
                     MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+                  );
+                } else {
+                  // User is logged in, allow project creation
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const OnboardingScreen()),
                   );
                 }
               },

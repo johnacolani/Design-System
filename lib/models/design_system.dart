@@ -19,6 +19,10 @@ class DesignSystem {
   final Icons icons;
   final Gradients gradients;
   final Roles roles;
+  final SemanticTokens semanticTokens;
+  final MotionTokens motionTokens;
+  final String? lastModified;
+  final List<VersionHistory>? versionHistory;
 
   DesignSystem({
     required this.name,
@@ -36,6 +40,10 @@ class DesignSystem {
     required this.icons,
     required this.gradients,
     required this.roles,
+    required this.semanticTokens,
+    required this.motionTokens,
+    this.lastModified,
+    this.versionHistory,
   });
 
   // factory DesignSystem.fromJson(Map<String, dynamic> json) =>
@@ -59,7 +67,63 @@ class DesignSystem {
         icons: Icons.empty(),
         gradients: Gradients.empty(),
         roles: Roles.empty(),
+        semanticTokens: SemanticTokens.empty(),
+        motionTokens: MotionTokens.empty(),
+        lastModified: DateTime.now().toIso8601String(),
+        versionHistory: [
+          VersionHistory(
+            version: '1.0.0',
+            date: DateTime.now().toIso8601String(),
+            changes: ['Initial project creation'],
+          ),
+        ],
       );
+}
+
+// Motion/Animation Tokens
+class MotionTokens {
+  final Map<String, String> duration;
+  final Map<String, String> easing;
+
+  MotionTokens({
+    required this.duration,
+    required this.easing,
+  });
+
+  factory MotionTokens.empty() => MotionTokens(
+        duration: {
+          'fast': '150ms',
+          'medium': '300ms',
+          'slow': '500ms',
+        },
+        easing: {
+          'ease-in': 'cubic-bezier(0.4, 0, 1, 1)',
+          'ease-out': 'cubic-bezier(0, 0, 0.2, 1)',
+          'ease-in-out': 'cubic-bezier(0.4, 0, 0.2, 1)',
+          'linear': 'linear',
+        },
+      );
+}
+
+class VersionHistory {
+  final String version;
+  final String date;
+  final List<String> changes;
+  final String? description;
+
+  VersionHistory({
+    required this.version,
+    required this.date,
+    required this.changes,
+    this.description,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'version': version,
+        'date': date,
+        'changes': changes,
+        if (description != null) 'description': description,
+      };
 }
 
 // // @JsonSerializable()
@@ -307,6 +371,10 @@ class Components {
   final Map<String, dynamic> inputs;
   final Map<String, dynamic> navigation;
   final Map<String, dynamic> avatars;
+  final Map<String, dynamic>? modals;
+  final Map<String, dynamic>? tables;
+  final Map<String, dynamic>? progress;
+  final Map<String, dynamic>? alerts;
 
   Components({
     required this.buttons,
@@ -314,6 +382,10 @@ class Components {
     required this.inputs,
     required this.navigation,
     required this.avatars,
+    this.modals,
+    this.tables,
+    this.progress,
+    this.alerts,
   });
 
   // factory Components.fromJson(Map<String, dynamic> json) =>
@@ -327,6 +399,10 @@ class Components {
         inputs: {},
         navigation: {},
         avatars: {},
+        modals: {},
+        tables: {},
+        progress: {},
+        alerts: {},
       );
 }
 
@@ -445,4 +521,29 @@ class RoleValue {
   //     _$RoleValueFromJson(json);
 
   // Map<String, dynamic> toJson() => _$RoleValueToJson(this);
+}
+
+// Semantic Tokens - Purpose-driven tokens that map to base tokens
+class SemanticTokens {
+  final Map<String, dynamic> color;
+  final Map<String, dynamic> typography;
+  final Map<String, dynamic> spacing;
+  final Map<String, dynamic> shadow;
+  final Map<String, dynamic> borderRadius;
+
+  SemanticTokens({
+    required this.color,
+    required this.typography,
+    required this.spacing,
+    required this.shadow,
+    required this.borderRadius,
+  });
+
+  factory SemanticTokens.empty() => SemanticTokens(
+        color: {},
+        typography: {},
+        spacing: {},
+        shadow: {},
+        borderRadius: {},
+      );
 }

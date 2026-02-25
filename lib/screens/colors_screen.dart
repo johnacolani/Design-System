@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:provider/provider.dart';
 import '../providers/design_system_provider.dart';
 import '../models/design_system.dart' as models;
 import '../services/color_palette_service.dart';
 import 'color_picker_screen.dart';
-import 'home_screen.dart';
-import 'dashboard_screen.dart';
 
 class ColorsScreen extends StatefulWidget {
   const ColorsScreen({super.key});
@@ -83,10 +80,8 @@ class _ColorsScreenState extends State<ColorsScreen> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            // Navigate back to Dashboard (Design Tokens screen)
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (_) => const DashboardScreen()),
-            );
+            // Navigate back to Dashboard (preserve navigation stack)
+            Navigator.of(context).pop();
           },
           tooltip: 'Back to Design Tokens',
         ),
@@ -201,7 +196,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
                           crossAxisCount: 2,
                           crossAxisSpacing: 16,
                           mainAxisSpacing: 16,
-                          childAspectRatio: 0.75,
+                          childAspectRatio: 1.2,
                         ),
                         itemCount: currentCategory.length,
                         itemBuilder: (context, index) {
@@ -341,13 +336,14 @@ class _ColorsScreenState extends State<ColorsScreen> {
         },
         borderRadius: BorderRadius.circular(12),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Container(
                 width: double.infinity,
-                height: 100,
+                height: 60,
                 decoration: BoxDecoration(
                   color: color,
                   borderRadius: BorderRadius.circular(8),
@@ -361,7 +357,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               Row(
                 children: [
                   Expanded(
@@ -369,6 +365,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
                       name,
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
                             fontWeight: FontWeight.w600,
+                            fontSize: 13,
                           ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -376,6 +373,8 @@ class _ColorsScreenState extends State<ColorsScreen> {
                   ),
                   PopupMenuButton<String>(
                     icon: const Icon(Icons.more_vert, size: 18),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
                     onSelected: (value) {
                       if (value == 'edit') {
                         _showEditColorDialog(context, name, colorData, category);
@@ -408,22 +407,26 @@ class _ColorsScreenState extends State<ColorsScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 2),
               Text(
                 _colorToHex(color),
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Colors.grey[600],
                       fontFamily: 'monospace',
+                      fontSize: 10,
                     ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
               if (description.isNotEmpty) ...[
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
                   description,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Colors.grey[600],
+                        fontSize: 10,
                       ),
-                  maxLines: 2,
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               ],

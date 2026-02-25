@@ -20,6 +20,9 @@ import 'export_screen.dart';
 import 'preview_screen.dart';
 import 'design_library_screen.dart';
 import 'projects_screen.dart';
+import 'semantic_tokens_screen.dart';
+import 'version_history_screen.dart';
+import 'motion_tokens_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -107,6 +110,15 @@ class DashboardScreen extends StatelessWidget {
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const DesignLibraryScreen()),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.history),
+            tooltip: 'Version History',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const VersionHistoryScreen()),
               );
             },
           ),
@@ -325,6 +337,30 @@ class DashboardScreen extends StatelessWidget {
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(builder: (_) => const RolesScreen()),
+                    );
+                  },
+                ),
+                _buildFeatureCard(
+                  context,
+                  icon: Icons.label_important,
+                  title: 'Semantic Tokens',
+                  description: 'Purpose-driven tokens',
+                  color: Colors.deepOrange,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const SemanticTokensScreen()),
+                    );
+                  },
+                ),
+                _buildFeatureCard(
+                  context,
+                  icon: Icons.animation,
+                  title: 'Motion Tokens',
+                  description: 'Animation duration & easing',
+                  color: Colors.purple,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const MotionTokensScreen()),
                     );
                   },
                 ),

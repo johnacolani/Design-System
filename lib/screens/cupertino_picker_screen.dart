@@ -2,7 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 
 class CupertinoPickerScreen extends StatefulWidget {
-  const CupertinoPickerScreen({super.key});
+  final bool isColorPickerMode;
+  
+  const CupertinoPickerScreen({
+    super.key,
+    this.isColorPickerMode = true,
+  });
 
   @override
   State<CupertinoPickerScreen> createState() => _CupertinoPickerScreenState();
@@ -41,11 +46,11 @@ class _CupertinoPickerScreenState extends State<CupertinoPickerScreen>
       ),
       body: TabBarView(
         controller: _tabController,
-        children: const [
-          CupertinoColorsTab(),
-          CupertinoIconsTab(),
-          CupertinoComponentsTab(),
-          CupertinoTypographyTab(),
+        children: [
+          CupertinoColorsTab(isColorPickerMode: widget.isColorPickerMode),
+          const CupertinoIconsTab(),
+          const CupertinoComponentsTab(),
+          const CupertinoTypographyTab(),
         ],
       ),
     );
@@ -53,88 +58,178 @@ class _CupertinoPickerScreenState extends State<CupertinoPickerScreen>
 }
 
 // Cupertino Colors Tab
-class CupertinoColorsTab extends StatelessWidget {
-  const CupertinoColorsTab({super.key});
+class CupertinoColorsTab extends StatefulWidget {
+  final bool isColorPickerMode;
+  
+  const CupertinoColorsTab({
+    super.key,
+    this.isColorPickerMode = false,
+  });
+
+  @override
+  State<CupertinoColorsTab> createState() => _CupertinoColorsTabState();
+}
+
+class _CupertinoColorsTabState extends State<CupertinoColorsTab> {
+  Color? _selectedColor;
 
   @override
   Widget build(BuildContext context) {
     final cupertinoColors = _getCupertinoColorPalettes();
 
-    return ListView(
-      padding: const EdgeInsets.all(16),
+    return Column(
       children: [
-        Text(
-          'iOS System Colors',
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
+        if (widget.isColorPickerMode && _selectedColor != null)
+          Container(
+            padding: const EdgeInsets.all(16),
+            color: Colors.blue[50],
+            child: Row(
+              children: [
+                Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: _selectedColor,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.grey[300]!, width: 2),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Selected Color',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: Colors.blue[900],
+                        ),
+                      ),
+                      Text(
+                        '#${_selectedColor!.value.toRadixString(16).substring(2).toUpperCase()}',
+                        style: TextStyle(
+                          fontFamily: 'monospace',
+                          color: Colors.blue[700],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).pop(_selectedColor);
+                  },
+                  icon: const Icon(Icons.check),
+                  label: const Text('Use This Color'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue[700],
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              Text(
+                'iOS System Colors',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Select iOS system colors to add to your design system',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Colors.grey[600],
+              const SizedBox(height: 8),
+              Text(
+                widget.isColorPickerMode
+                    ? 'Tap a color to select it, then click "Use This Color"'
+                    : 'Select iOS system colors to add to your design system',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Colors.grey[600],
+                    ),
               ),
+              const SizedBox(height: 24),
+              ...cupertinoColors.map((color) => _buildColorCard(context, color)),
+            ],
+          ),
         ),
-        const SizedBox(height: 24),
-        ...cupertinoColors.map((color) => _buildColorCard(context, color)),
       ],
     );
   }
 
   Widget _buildColorCard(BuildContext context, CupertinoColorItem color) {
+    final isSelected = widget.isColorPickerMode && _selectedColor == color.color;
+    
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                color: color.color,
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.grey[300]!),
+      child: InkWell(
+        onTap: widget.isColorPickerMode
+            ? () {
+                setState(() {
+                  _selectedColor = color.color;
+                });
+              }
+            : null,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: color.color,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isSelected ? Colors.black : Colors.grey[300]!,
+                    width: isSelected ? 3 : 1,
+                  ),
+                ),
+                child: isSelected
+                    ? const Icon(Icons.check, color: Colors.white, size: 24)
+                    : null,
               ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    color.name,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    color.description,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.grey[600],
-                        ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _colorToHex(color.color),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.grey[600],
-                          fontFamily: 'monospace',
-                        ),
-                  ),
-                ],
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      color.name,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                          ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      color.description,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Colors.grey[600],
+                          ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _colorToHex(color.color),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Colors.grey[600],
+                            fontFamily: 'monospace',
+                          ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            ElevatedButton.icon(
-              onPressed: () {
-                _addColorToDesignSystem(context, color);
-              },
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('Add'),
-            ),
-          ],
+              if (!widget.isColorPickerMode)
+                ElevatedButton.icon(
+                  onPressed: () {
+                    _addColorToDesignSystem(context, color);
+                  },
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('Add'),
+                ),
+            ],
+          ),
         ),
       ),
     );

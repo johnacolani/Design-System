@@ -163,13 +163,34 @@ class WelcomeScreen extends StatelessWidget {
                                 onPressed: userProvider.isLoading
                                     ? null
                                     : () async {
-                                        await userProvider.signInWithGoogle();
-                                        if (context.mounted && userProvider.isLoggedIn) {
-                                          Navigator.of(context).pushReplacement(
-                                            MaterialPageRoute(
-                                              builder: (_) => const OnboardingScreen(),
-                                            ),
-                                          );
+                                        try {
+                                          await userProvider.signInWithGoogle();
+                                          if (context.mounted && userProvider.isLoggedIn) {
+                                            Navigator.of(context).pushReplacement(
+                                              MaterialPageRoute(
+                                                builder: (_) => const OnboardingScreen(),
+                                              ),
+                                            );
+                                          } else if (context.mounted) {
+                                            // User might have canceled, don't show error
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(
+                                                content: Text('Sign in canceled or failed. Please try again.'),
+                                                backgroundColor: Colors.orange,
+                                                duration: Duration(seconds: 3),
+                                              ),
+                                            );
+                                          }
+                                        } catch (e) {
+                                          if (context.mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(
+                                                content: Text('Google Sign-In failed: ${e.toString()}'),
+                                                backgroundColor: Colors.red,
+                                                duration: const Duration(seconds: 4),
+                                              ),
+                                            );
+                                          }
                                         }
                                       },
                                 icon: userProvider.isLoading

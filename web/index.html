@@ -1,7 +1,7 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
-  <!--
+  <head>
+    <!--
     If you are serving your web app in a path other than the root, change the
     href value below to reflect the base path you are serving from.
 
@@ -14,32 +14,69 @@
     This is a placeholder for base href that will be replaced by the value of
     the `--base-href` argument provided to `flutter build`.
   -->
-  <base href="$FLUTTER_BASE_HREF">
+    <base href="$FLUTTER_BASE_HREF" />
 
-  <meta charset="UTF-8">
-  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="Design System Builder - Create and export design systems for Flutter, Kotlin, and Swift">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta charset="UTF-8" />
+    <meta content="IE=Edge" http-equiv="X-UA-Compatible" />
+    <meta
+      name="description"
+      content="Design System Builder - Create and export design systems for Flutter, Kotlin, and Swift"
+    />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
 
-  <!-- iOS meta tags & icons -->
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="design_system">
-  <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <!-- iOS meta tags & icons -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <meta name="apple-mobile-web-app-title" content="design_system" />
+    <link rel="apple-touch-icon" href="icons/icon-192.png" />
 
-  <!-- Favicon -->
-  <link rel="icon" type="image/x-icon" href="favicon.ico"/>
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="favicon.ico" />
 
-  <title>design_system</title>
-  <link rel="manifest" href="manifest.json">
-  
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
-</head>
-<body>
-  <script src="flutter_bootstrap.js" async></script>
-</body>
+    <!-- Google Sign-In Client ID -->
+    <!-- 
+    ⚠️ CRITICAL: You MUST replace YOUR_WEB_CLIENT_ID below with your actual OAuth Client ID!
+    
+    The error "Error 401: invalid_client" means the OAuth client is not found.
+    
+    HOW TO FIX:
+    
+    Option 1: Get from Firebase Console (if already created)
+    1. Go to: https://console.firebase.google.com/project/my-flutter-apps-f87ea/authentication/providers
+    2. Click "Google" provider
+    3. Under "Web SDK configuration", copy the "Web client ID"
+    4. Replace YOUR_WEB_CLIENT_ID.apps.googleusercontent.com below
+    
+    Option 2: Create in Google Cloud Console (if not exists)
+    1. Go to: https://console.cloud.google.com/apis/credentials?project=my-flutter-apps-f87ea
+    2. Click "+ CREATE CREDENTIALS" → "OAuth client ID"
+    3. Application type: "Web application"
+    4. Add authorized origins: http://localhost, http://localhost:8080
+    5. Click "Create" and copy the Client ID
+    6. Replace YOUR_WEB_CLIENT_ID.apps.googleusercontent.com below
+    
+    Example: <meta name="google-signin-client_id" content="47033728900-abc123def456.apps.googleusercontent.com">
+    
+    See FIX_GOOGLE_SIGNIN_ERROR.md for detailed instructions.
+  -->
+    <meta
+      name="google-signin-client_id"
+      content="47033728900-7923nf8tkda84icsnsh02fc1dc2daqoa.apps.googleusercontent.com.apps.googleusercontent.com"
+    />
+
+    <title>design_system</title>
+    <link rel="manifest" href="manifest.json" />
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+  </head>
+  <body>
+    <script src="flutter_bootstrap.js" async></script>
+  </body>
 </html>

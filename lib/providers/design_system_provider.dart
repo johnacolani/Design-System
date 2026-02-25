@@ -30,6 +30,16 @@ class DesignSystemProvider extends ChangeNotifier {
       icons: models.Icons.empty(),
       gradients: models.Gradients.empty(),
       roles: models.Roles.empty(),
+      semanticTokens: models.SemanticTokens.empty(),
+      motionTokens: models.MotionTokens.empty(),
+      lastModified: DateTime.now().toIso8601String(),
+      versionHistory: [
+        models.VersionHistory(
+          version: '1.0.0',
+          date: DateTime.now().toIso8601String(),
+          changes: ['Initial project creation'],
+        ),
+      ],
     );
 
     // Set primary color if provided
@@ -47,7 +57,28 @@ class DesignSystemProvider extends ChangeNotifier {
   }
 
   void updateDesignSystem(models.DesignSystem designSystem) {
-    _designSystem = designSystem;
+    // Preserve version history and update lastModified
+    _designSystem = models.DesignSystem(
+      name: designSystem.name,
+      version: designSystem.version,
+      description: designSystem.description,
+      created: designSystem.created,
+      colors: designSystem.colors,
+      typography: designSystem.typography,
+      spacing: designSystem.spacing,
+      borderRadius: designSystem.borderRadius,
+      shadows: designSystem.shadows,
+      effects: designSystem.effects,
+      components: designSystem.components,
+      grid: designSystem.grid,
+      icons: designSystem.icons,
+      gradients: designSystem.gradients,
+      roles: designSystem.roles,
+      semanticTokens: designSystem.semanticTokens,
+      motionTokens: designSystem.motionTokens,
+      lastModified: DateTime.now().toIso8601String(),
+      versionHistory: designSystem.versionHistory ?? _designSystem.versionHistory,
+    );
     notifyListeners();
   }
 
@@ -68,6 +99,10 @@ class DesignSystemProvider extends ChangeNotifier {
       icons: _designSystem.icons,
       gradients: _designSystem.gradients,
       roles: _designSystem.roles,
+      semanticTokens: _designSystem.semanticTokens,
+      motionTokens: _designSystem.motionTokens,
+      lastModified: _designSystem.lastModified,
+      versionHistory: _designSystem.versionHistory,
     );
     notifyListeners();
   }
@@ -89,6 +124,10 @@ class DesignSystemProvider extends ChangeNotifier {
       icons: _designSystem.icons,
       gradients: _designSystem.gradients,
       roles: _designSystem.roles,
+      semanticTokens: _designSystem.semanticTokens,
+      motionTokens: _designSystem.motionTokens,
+      lastModified: _designSystem.lastModified,
+      versionHistory: _designSystem.versionHistory,
     );
     notifyListeners();
   }
@@ -110,6 +149,68 @@ class DesignSystemProvider extends ChangeNotifier {
       icons: _designSystem.icons,
       gradients: _designSystem.gradients,
       roles: _designSystem.roles,
+      semanticTokens: _designSystem.semanticTokens,
+      motionTokens: _designSystem.motionTokens,
+      lastModified: _designSystem.lastModified,
+      versionHistory: _designSystem.versionHistory,
+    );
+    notifyListeners();
+  }
+
+  void updateMotionTokens(models.MotionTokens motionTokens) {
+    _designSystem = models.DesignSystem(
+      name: _designSystem.name,
+      version: _designSystem.version,
+      description: _designSystem.description,
+      created: _designSystem.created,
+      colors: _designSystem.colors,
+      typography: _designSystem.typography,
+      spacing: _designSystem.spacing,
+      borderRadius: _designSystem.borderRadius,
+      shadows: _designSystem.shadows,
+      effects: _designSystem.effects,
+      components: _designSystem.components,
+      grid: _designSystem.grid,
+      icons: _designSystem.icons,
+      gradients: _designSystem.gradients,
+      roles: _designSystem.roles,
+      semanticTokens: _designSystem.semanticTokens,
+      motionTokens: motionTokens,
+      lastModified: _designSystem.lastModified,
+      versionHistory: _designSystem.versionHistory,
+    );
+    notifyListeners();
+  }
+
+  void addVersionHistory(String version, List<String> changes, {String? description}) {
+    final history = List<models.VersionHistory>.from(_designSystem.versionHistory ?? []);
+    history.insert(0, models.VersionHistory(
+      version: version,
+      date: DateTime.now().toIso8601String(),
+      changes: changes,
+      description: description,
+    ));
+    
+    _designSystem = models.DesignSystem(
+      name: _designSystem.name,
+      version: version,
+      description: _designSystem.description,
+      created: _designSystem.created,
+      colors: _designSystem.colors,
+      typography: _designSystem.typography,
+      spacing: _designSystem.spacing,
+      borderRadius: _designSystem.borderRadius,
+      shadows: _designSystem.shadows,
+      effects: _designSystem.effects,
+      components: _designSystem.components,
+      grid: _designSystem.grid,
+      icons: _designSystem.icons,
+      gradients: _designSystem.gradients,
+      roles: _designSystem.roles,
+      semanticTokens: _designSystem.semanticTokens,
+      motionTokens: _designSystem.motionTokens,
+      lastModified: DateTime.now().toIso8601String(),
+      versionHistory: history,
     );
     notifyListeners();
   }
