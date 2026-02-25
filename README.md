@@ -103,37 +103,179 @@ lib/
 └── main.dart            # App entry point
 ```
 
-## 🎯 Usage
+## 🎯 Usage Guide
 
-### Creating a New Design System
+### Getting Started
 
-1. Launch the app
-2. Enter your project name and description
-3. Pick a primary color
-4. Start adding design tokens from the dashboard
+#### First Launch
+
+1. **Launch the app** - Run `flutter run -d chrome` (or your preferred platform)
+2. **Choose Authentication**:
+   - **Sign Up**: Create an account with email/password or Google Sign-In
+   - **Guest Mode**: Click "Continue as Guest" to try without an account
+3. **Home Screen**: You'll see the home screen with promotional content and project previews
+
+#### Creating Your First Project
+
+1. **Click "Get Started"** (or "Create New Project" if logged in) on the home screen
+2. **Onboarding Screen**:
+   - Enter your **Project Name** (e.g., "My App Design System")
+   - Add a **Description** (optional but recommended)
+   - **Pick a Primary Color**:
+     - Click the color circle or "Pick Color" button
+     - Browse color palettes, select colors, and get suggestions
+     - Tap colors to select multiple, then click "Add X" to confirm
+   - Click **"Create Design System"**
+3. **Dashboard**: You'll be taken to the Design Tokens dashboard
+
+### Working with Design Tokens
+
+The dashboard shows all available design token categories. Click any card to start editing:
+
+#### 🎨 Colors
+
+1. **Navigate**: Click "Colors" from the dashboard
+2. **Categories**: Switch between Primary, Semantic, Blue, Green, Orange, Purple, Red, Grey
+3. **Add Colors**:
+   - Click the **"+"** button (top right)
+   - Enter color name and description
+   - Click **"Browse Color Palettes"** to use the advanced color picker:
+     - Select from curated color palettes
+     - Pick multiple colors at once
+     - Get color suggestions and scales
+     - Generate primary-to-dark and primary-to-light scales
+   - Or tap the color preview to pick a color
+   - Click **"Add"** to save
+4. **Edit Colors**: Click any color card → Edit name/description/color → Save
+5. **Delete Colors**: Click the three dots menu → Delete
+6. **Back Navigation**: Use the back arrow to return to Design Tokens
+
+#### ✍️ Typography
+
+1. **Navigate**: Click "Typography" from the dashboard
+2. **Tabs Available**:
+   - **Font Family**: Edit primary and fallback fonts
+     - Click the edit icon next to "Font Family"
+     - Enter font names (e.g., "Roboto", "Inter", "system-ui")
+     - Primary font is required
+   - **Font Weights**: Add/edit font weight values (100-900)
+   - **Font Sizes**: Define size values with line heights
+   - **Text Styles**: Create reusable text styles combining font family, size, weight, color, etc.
+3. **Add Items**: Use the "+" button in each tab
+4. **Edit**: Click any item to edit
+5. **Color in Text Styles**: Click the colorize icon next to the color field to use the color picker
+
+#### 📏 Spacing
+
+1. **Navigate**: Click "Spacing" from the dashboard
+2. **View Scale**: See all spacing values in a visual scale
+3. **Add Values**: Click "+" to add custom spacing values
+4. **Edit**: Click any spacing value to modify
+
+#### 🔲 Border Radius
+
+1. **Navigate**: Click "Border Radius" from the dashboard
+2. **Edit Values**: Click any radius value (None, Small, Base, Medium, Large, XL, Full) to edit
+3. **Visual Preview**: See how each radius looks applied to shapes
+
+#### 🌑 Shadows
+
+1. **Navigate**: Click "Shadows" from the dashboard
+2. **Add Shadow**: Click "+" → Enter name and shadow value (format: "offsetX offsetY blur color")
+3. **Edit**: Click any shadow to modify
+
+#### ✨ Effects
+
+1. **Navigate**: Click "Effects" from the dashboard
+2. **Configure**: Set up Glass Morphism and Dark Overlay effects
+
+#### 🧩 Components
+
+1. **Navigate**: Click "Components" from the dashboard
+2. **Categories**: Manage Buttons, Cards, Inputs, Navigation, Avatars
+3. **Add Components**: Click "+" in each category → Configure properties → Save
+4. **Edit**: Click any component to modify
+
+#### 📐 Grid
+
+1. **Navigate**: Click "Grid" from the dashboard
+2. **Configure**: Set columns, gutter, margin, and breakpoints
+
+#### 🎯 Icons
+
+1. **Navigate**: Click "Icons" from the dashboard
+2. **Add Sizes**: Click "+" → Enter icon name and size → Save
+
+#### 🌈 Gradients
+
+1. **Navigate**: Click "Gradients" from the dashboard
+2. **Add Gradient**: Click "+" → Configure type, direction, colors, and stops → Save
+
+#### 👥 Roles
+
+1. **Navigate**: Click "Roles" from the dashboard
+2. **Add Role**: Click "+" → Set primary color, accent color, and background → Save
 
 ### Using Design Libraries
 
-1. Click the "Design Library" button from the dashboard
-2. Choose between Material Design or Cupertino (iOS)
-3. Browse colors, icons, components, or typography
-4. Click "Add" to import items into your design system
-5. **Material Color Palettes**: Import complete color palettes (Blue, Green, Red, Orange, Purple, Teal, Grey) with all shades (50-900)
+Import ready-made components from Material Design or iOS (Cupertino):
 
-### Authentication Flow
+1. **Navigate**: Click "Design Library" from the dashboard
+2. **Choose Library**:
+   - **Material Design**: Google's Material Design system
+   - **Cupertino**: Apple's iOS design system
+3. **Browse Categories**:
+   - **Colors**: Browse color palettes
+     - **Material**: Import complete palettes (Blue, Green, Red, Orange, Purple, Grey) with all shades (50-900)
+     - Click "Add" on any palette to import all shades
+   - **Icons**: Browse icon libraries
+   - **Components**: Browse pre-built components
+   - **Typography**: Browse typography styles
+4. **Import**: Click "Add" on any item to import into your design system
 
-1. **Sign Up**: Create an account with email/password or Google Sign-In
-2. **After Signup**: You'll be redirected to the login screen with your credentials pre-filled
-3. **Login**: Sign in to access your projects and profile
-4. **Guest Mode**: Continue as guest to try the app without creating an account
+### Preview and Export
 
-### Managing Design Tokens
+#### Preview Your Design System
 
-Navigate to specific sections from the dashboard:
-- **Colors**: Manage color palettes and semantic colors
-- **Typography**: Configure fonts, sizes, weights, and text styles
-- **Spacing**: Define spacing scale
-- **Components**: Configure button styles, cards, inputs, etc.
+1. **Navigate**: Click "Preview" from the dashboard
+2. **View**: See all your design tokens in a visual preview
+3. **Export as PDF**: Click the PDF icon (top right) to generate a PDF document
+   - **Desktop**: Choose save location
+   - **Mobile/Web**: Preview and share options
+
+#### Export Your Design System
+
+1. **Navigate**: Click "Export" from the dashboard
+2. **Choose Format**:
+   - **JSON**: Raw design system data
+   - **Flutter**: Dart code for Flutter projects
+   - **Kotlin**: Code for Android projects
+   - **Swift**: Code for iOS projects
+3. **Save**: Choose location and save the file
+
+### Managing Projects
+
+#### View All Projects
+
+1. **From Home Screen**: Click your profile icon → "Projects"
+2. **View List**: See all your created projects
+3. **Open Project**: Click any project to open and continue editing
+4. **Delete Project**: Use the delete option (if available)
+
+#### Project Settings
+
+1. **Profile**: Click profile icon → View your profile and statistics
+2. **Settings**: Click settings icon → Configure account, app preferences, privacy
+
+### Tips & Best Practices
+
+- **Color Picker**: Use the advanced color picker (palette icon) for better color selection with scales and suggestions
+- **Save Frequently**: Your changes are saved automatically, but you can manually save from the dashboard
+- **Preview First**: Always preview your design system before exporting
+- **Start Simple**: Begin with colors and typography, then add components
+- **Use Design Libraries**: Import from Material/Cupertino to speed up your workflow
+- **Consistent Naming**: Use consistent naming conventions (e.g., "primary", "secondary", "error", "success")
+- **PDF Export**: Export as PDF for documentation and sharing with your team
 
 ## 🔧 Development Status
 

@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../providers/design_system_provider.dart';
 import '../models/design_system.dart' as models;
 import 'home_screen.dart';
+import 'dashboard_screen.dart';
+import 'color_picker_screen.dart';
 
 class TypographyScreen extends StatefulWidget {
   const TypographyScreen({super.key});
@@ -21,14 +23,13 @@ class _TypographyScreenState extends State<TypographyScreen> {
       child: Scaffold(
         appBar: AppBar(
           leading: IconButton(
-            icon: const Icon(Icons.home),
+            icon: const Icon(Icons.arrow_back),
             onPressed: () {
-              Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (_) => const HomeScreen()),
-                (route) => false,
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (_) => const DashboardScreen()),
               );
             },
-            tooltip: 'Home',
+            tooltip: 'Back to Design Tokens',
           ),
           title: const Text('Typography'),
           bottom: TabBar(
@@ -436,10 +437,22 @@ class _TypographyScreenState extends State<TypographyScreen> {
           ),
           ElevatedButton(
             onPressed: () {
-                final updatedTypography = models.Typography(
-                  fontFamily: models.FontFamily(
-                  primary: primaryController.text,
-                  fallback: fallbackController.text,
+              if (primaryController.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Primary font cannot be empty'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return;
+              }
+              
+              final updatedTypography = models.Typography(
+                fontFamily: models.FontFamily(
+                  primary: primaryController.text.trim(),
+                  fallback: fallbackController.text.trim().isEmpty 
+                      ? 'system-ui' 
+                      : fallbackController.text.trim(),
                 ),
                 fontWeights: typography.fontWeights,
                 fontSizes: typography.fontSizes,
@@ -961,12 +974,38 @@ class _TypographyScreenState extends State<TypographyScreen> {
                   },
                 ),
                 const SizedBox(height: 16),
-                TextField(
-                  controller: colorController,
-                  decoration: const InputDecoration(
-                    labelText: 'Color (Optional, e.g., #000000)',
-                    border: OutlineInputBorder(),
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: colorController,
+                        decoration: const InputDecoration(
+                          labelText: 'Color (Optional)',
+                          border: OutlineInputBorder(),
+                          hintText: '#000000 or tap to pick',
+                        ),
+                        readOnly: true,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: const Icon(Icons.colorize),
+                      onPressed: () async {
+                        final result = await Navigator.of(context).push<Map<String, dynamic>>(
+                          MaterialPageRoute(
+                            builder: (_) => const ColorPickerScreen(),
+                          ),
+                        );
+                        if (result != null && result['color'] != null && mounted) {
+                          setDialogState(() {
+                            final color = result['color'] as Color;
+                            colorController.text = '#${color.value.toRadixString(16).substring(2).toUpperCase()}';
+                          });
+                        }
+                      },
+                      tooltip: 'Pick Color',
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
@@ -1129,12 +1168,38 @@ class _TypographyScreenState extends State<TypographyScreen> {
                   },
                 ),
                 const SizedBox(height: 16),
-                TextField(
-                  controller: colorController,
-                  decoration: const InputDecoration(
-                    labelText: 'Color (Optional)',
-                    border: OutlineInputBorder(),
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: colorController,
+                        decoration: const InputDecoration(
+                          labelText: 'Color (Optional)',
+                          border: OutlineInputBorder(),
+                          hintText: '#000000 or tap to pick',
+                        ),
+                        readOnly: true,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: const Icon(Icons.colorize),
+                      onPressed: () async {
+                        final result = await Navigator.of(context).push<Map<String, dynamic>>(
+                          MaterialPageRoute(
+                            builder: (_) => const ColorPickerScreen(),
+                          ),
+                        );
+                        if (result != null && result['color'] != null && mounted) {
+                          setDialogState(() {
+                            final color = result['color'] as Color;
+                            colorController.text = '#${color.value.toRadixString(16).substring(2).toUpperCase()}';
+                          });
+                        }
+                      },
+                      tooltip: 'Pick Color',
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(

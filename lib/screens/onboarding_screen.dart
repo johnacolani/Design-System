@@ -4,6 +4,7 @@ import '../providers/design_system_provider.dart';
 import '../providers/user_provider.dart';
 import '../widgets/app_logo.dart';
 import 'dashboard_screen.dart';
+import 'color_picker_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -153,15 +154,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         children: [
                           GestureDetector(
                             onTap: () async {
-                              final color = await showDialog<Color>(
-                                context: context,
-                                builder: (context) => _ColorPickerDialog(
-                                  initialColor: _selectedColor,
+                              final result = await Navigator.of(context).push<Map<String, dynamic>>(
+                                MaterialPageRoute(
+                                  builder: (_) => const ColorPickerScreen(),
                                 ),
                               );
-                              if (color != null) {
+                              if (result != null && result['color'] != null) {
                                 setState(() {
-                                  _selectedColor = color;
+                                  _selectedColor = result['color'] as Color;
                                 });
                               }
                             },
@@ -195,15 +195,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           const SizedBox(height: 8),
                           TextButton.icon(
                             onPressed: () async {
-                              final color = await showDialog<Color>(
-                                context: context,
-                                builder: (context) => _ColorPickerDialog(
-                                  initialColor: _selectedColor,
+                              final result = await Navigator.of(context).push<Map<String, dynamic>>(
+                                MaterialPageRoute(
+                                  builder: (_) => const ColorPickerScreen(),
                                 ),
                               );
-                              if (color != null) {
+                              if (result != null && result['color'] != null) {
                                 setState(() {
-                                  _selectedColor = color;
+                                  _selectedColor = result['color'] as Color;
                                 });
                               }
                             },
@@ -244,119 +243,3 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 }
 
-class _ColorPickerDialog extends StatefulWidget {
-  final Color initialColor;
-
-  const _ColorPickerDialog({required this.initialColor});
-
-  @override
-  State<_ColorPickerDialog> createState() => _ColorPickerDialogState();
-}
-
-class _ColorPickerDialogState extends State<_ColorPickerDialog> {
-  late Color _selectedColor;
-
-  @override
-  void initState() {
-    super.initState();
-    _selectedColor = widget.initialColor;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Pick Primary Color'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: double.infinity,
-              height: 200,
-              decoration: BoxDecoration(
-                color: _selectedColor,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey[300]!),
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildColorGrid(),
-            const SizedBox(height: 16),
-            TextField(
-              decoration: InputDecoration(
-                labelText: 'Hex Color',
-                hintText: '#FF5722',
-                prefixText: '#',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              onChanged: (value) {
-                try {
-                  final color = Color(
-                    int.parse('FF$value', radix: 16),
-                  );
-                  setState(() {
-                    _selectedColor = color;
-                  });
-                } catch (e) {
-                  // Invalid color
-                }
-              },
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
-        ),
-        ElevatedButton(
-          onPressed: () => Navigator.of(context).pop(_selectedColor),
-          child: const Text('Select'),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildColorGrid() {
-    final presetColors = [
-      Colors.deepPurple,
-      Colors.blue,
-      Colors.green,
-      Colors.orange,
-      Colors.red,
-      Colors.pink,
-      Colors.teal,
-      Colors.indigo,
-      Colors.amber,
-      Colors.cyan,
-      Colors.lime,
-      Colors.brown,
-    ];
-
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: presetColors.map((color) {
-        final isSelected = color.value == _selectedColor.value;
-        return GestureDetector(
-          onTap: () => setState(() => _selectedColor = color),
-          child: Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: isSelected ? Colors.black : Colors.grey[300]!,
-                width: isSelected ? 3 : 1,
-              ),
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-}

@@ -586,46 +586,74 @@ class _ColorsScreenState extends State<ColorsScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text('Or use color picker:', style: TextStyle(fontWeight: FontWeight.w600)),
+                const Text('Or pick color:', style: TextStyle(fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
-                Container(
-                  height: 200,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey[300]!),
-                  ),
-                  child: ColorPicker(
-                    pickerColor: selectedColor,
-                    onColorChanged: (color) {
-                      setDialogState(() {
-                        selectedColor = color;
-                      });
-                    },
-                    displayThumbColor: true,
-                    enableAlpha: true,
-                    pickerAreaHeightPercent: 0.8,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: selectedColor,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey[300]!),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        _colorToHex(selectedColor),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'monospace',
-                        ),
+                GestureDetector(
+                  onTap: () async {
+                    final result = await Navigator.of(context).push<Map<String, dynamic>>(
+                      MaterialPageRoute(
+                        builder: (_) => const ColorPickerScreen(),
                       ),
-                    ],
+                    );
+                    if (result != null && result['color'] != null && mounted) {
+                      setDialogState(() {
+                        selectedColor = result['color'] as Color;
+                      });
+                    }
+                  },
+                  child: Container(
+                    height: 200,
+                    decoration: BoxDecoration(
+                      color: selectedColor,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey[300]!, width: 2),
+                    ),
+                    child: Stack(
+                      children: [
+                        Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.colorize, size: 48, color: Colors.white),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Tap to pick color',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  shadows: [
+                                    Shadow(
+                                      color: Colors.black.withValues(alpha: 0.5),
+                                      blurRadius: 4,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Positioned(
+                          bottom: 8,
+                          right: 8,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.7),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              _colorToHex(selectedColor),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontFamily: 'monospace',
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -709,44 +737,72 @@ class _ColorsScreenState extends State<ColorsScreen> {
                 const SizedBox(height: 16),
                 const Text('Pick Color:', style: TextStyle(fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
-                Container(
-                  height: 200,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey[300]!),
-                  ),
-                  child: ColorPicker(
-                    pickerColor: selectedColor,
-                    onColorChanged: (color) {
-                      setDialogState(() {
-                        selectedColor = color;
-                      });
-                    },
-                    displayThumbColor: true,
-                    enableAlpha: true,
-                    pickerAreaHeightPercent: 0.8,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: selectedColor,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey[300]!),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        _colorToHex(selectedColor),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'monospace',
-                        ),
+                GestureDetector(
+                  onTap: () async {
+                    final result = await Navigator.of(context).push<Map<String, dynamic>>(
+                      MaterialPageRoute(
+                        builder: (_) => const ColorPickerScreen(),
                       ),
-                    ],
+                    );
+                    if (result != null && result['color'] != null && mounted) {
+                      setDialogState(() {
+                        selectedColor = result['color'] as Color;
+                      });
+                    }
+                  },
+                  child: Container(
+                    height: 200,
+                    decoration: BoxDecoration(
+                      color: selectedColor,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey[300]!, width: 2),
+                    ),
+                    child: Stack(
+                      children: [
+                        Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.colorize, size: 48, color: Colors.white),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Tap to pick color',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  shadows: [
+                                    Shadow(
+                                      color: Colors.black.withValues(alpha: 0.5),
+                                      blurRadius: 4,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Positioned(
+                          bottom: 8,
+                          right: 8,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.7),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              _colorToHex(selectedColor),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontFamily: 'monospace',
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
