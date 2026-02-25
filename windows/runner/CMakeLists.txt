@@ -34,6 +34,22 @@ target_compile_definitions(${BINARY_NAME} PRIVATE "NOMINMAX")
 # dependencies here.
 target_link_libraries(${BINARY_NAME} PRIVATE flutter flutter_wrapper_app)
 target_link_libraries(${BINARY_NAME} PRIVATE "dwmapi.lib")
+
+# Fix Firebase C++ SDK linker errors by ensuring proper C++ runtime linkage
+if(MSVC)
+  # Use dynamic runtime library (DLL) to match Firebase SDK
+  set_property(TARGET ${BINARY_NAME} PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+  
+  # Add linker flags to resolve missing C++ standard library symbols
+  # These symbols are from newer MSVC C++ standard library implementations
+  target_link_options(${BINARY_NAME} PRIVATE "/WHOLEARCHIVE:msvcprt.lib")
+  target_link_options(${BINARY_NAME} PRIVATE "$<$<CONFIG:Debug>:/WHOLEARCHIVE:msvcprtd.lib>")
+  
+  # Ensure we link against the C++ standard library
+  target_link_libraries(${BINARY_NAME} PRIVATE "$<$<CONFIG:Debug>:msvcprtd.lib>")
+  target_link_libraries(${BINARY_NAME} PRIVATE "$<$<NOT:$<CONFIG:Debug>>:msvcprt.lib>")
+endif()
+
 target_include_directories(${BINARY_NAME} PRIVATE "${CMAKE_SOURCE_DIR}")
 
 # Run the Flutter tool portions of the build. This must not be removed.
