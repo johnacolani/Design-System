@@ -37,8 +37,12 @@ class DashboardScreen extends StatelessWidget {
         leading: IconButton(
           icon: const Icon(Icons.home),
           onPressed: () {
+            // Clear any snackbars before navigating
+            ScaffoldMessenger.of(context).clearSnackBars();
+            // Navigate to projects screen instead of home screen
+            // This shows all projects rather than "Continue working" card
             Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (_) => const HomeScreen()),
+              MaterialPageRoute(builder: (_) => const ProjectsScreen()),
             );
           },
           tooltip: 'Home',

@@ -258,6 +258,10 @@ class _GridScreenState extends State<GridScreen> {
                 icons: provider.designSystem.icons,
                 gradients: provider.designSystem.gradients,
                 roles: provider.designSystem.roles,
+                semanticTokens: provider.designSystem.semanticTokens,
+                motionTokens: provider.designSystem.motionTokens,
+                lastModified: provider.designSystem.lastModified,
+                versionHistory: provider.designSystem.versionHistory,
               ));
 
               Navigator.of(context).pop();

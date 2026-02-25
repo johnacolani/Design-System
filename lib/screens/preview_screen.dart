@@ -187,52 +187,161 @@ class _PreviewScreenState extends State<PreviewScreen> {
   }
 
   pw.Widget _buildPdfColors(models.DesignSystem ds) {
-    final colors = <String, dynamic>{};
-    colors.addAll(ds.colors.primary);
-    colors.addAll(ds.colors.semantic);
-    if (ds.colors.blue != null) colors.addAll(ds.colors.blue!);
-    if (ds.colors.green != null) colors.addAll(ds.colors.green!);
-    if (ds.colors.orange != null) colors.addAll(ds.colors.orange!);
-    if (ds.colors.purple != null) colors.addAll(ds.colors.purple!);
-    if (ds.colors.red != null) colors.addAll(ds.colors.red!);
-    if (ds.colors.grey != null) colors.addAll(ds.colors.grey!);
+    final List<pw.Widget> colorSections = [];
+    
+    // Primary Colors
+    if (ds.colors.primary.isNotEmpty) {
+      colorSections.add(_buildPdfColorCategory(
+        'Primary Colors',
+        ds.colors.primary,
+        PdfColors.deepPurple,
+      ));
+    }
+    
+    // Semantic Colors
+    if (ds.colors.semantic.isNotEmpty) {
+      colorSections.add(_buildPdfColorCategory(
+        'Semantic Colors',
+        ds.colors.semantic,
+        PdfColors.blue,
+      ));
+    }
+    
+    // Blue Palette
+    if (ds.colors.blue != null && ds.colors.blue!.isNotEmpty) {
+      colorSections.add(_buildPdfColorCategory(
+        'Blue Palette',
+        ds.colors.blue!,
+        PdfColors.blue,
+      ));
+    }
+    
+    // Green Palette
+    if (ds.colors.green != null && ds.colors.green!.isNotEmpty) {
+      colorSections.add(_buildPdfColorCategory(
+        'Green Palette',
+        ds.colors.green!,
+        PdfColors.green,
+      ));
+    }
+    
+    // Orange Palette
+    if (ds.colors.orange != null && ds.colors.orange!.isNotEmpty) {
+      colorSections.add(_buildPdfColorCategory(
+        'Orange Palette',
+        ds.colors.orange!,
+        PdfColors.orange,
+      ));
+    }
+    
+    // Purple Palette
+    if (ds.colors.purple != null && ds.colors.purple!.isNotEmpty) {
+      colorSections.add(_buildPdfColorCategory(
+        'Purple Palette',
+        ds.colors.purple!,
+        PdfColors.purple,
+      ));
+    }
+    
+    // Red Palette
+    if (ds.colors.red != null && ds.colors.red!.isNotEmpty) {
+      colorSections.add(_buildPdfColorCategory(
+        'Red Palette',
+        ds.colors.red!,
+        PdfColors.red,
+      ));
+    }
+    
+    // Grey Palette
+    if (ds.colors.grey != null && ds.colors.grey!.isNotEmpty) {
+      colorSections.add(_buildPdfColorCategory(
+        'Grey Palette',
+        ds.colors.grey!,
+        PdfColors.grey,
+      ));
+    }
 
-    if (colors.isEmpty) {
+    if (colorSections.isEmpty) {
       return pw.Text('No colors defined', style: pw.TextStyle(color: PdfColors.grey));
     }
 
-    return pw.Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: colors.entries.map((entry) {
-        final colorValue = entry.value is Map
-            ? (entry.value as Map)['value']?.toString() ?? '#000000'
-            : entry.value.toString();
-        final color = _parsePdfColor(colorValue);
-        return pw.Container(
-          width: 50,
-          height: 50,
-          decoration: pw.BoxDecoration(
-            color: color,
-            border: pw.Border.all(color: PdfColors.grey300),
-          ),
-          margin: const pw.EdgeInsets.only(right: 8, bottom: 8),
-          child: pw.Column(
-            mainAxisAlignment: pw.MainAxisAlignment.end,
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: colorSections,
+    );
+  }
+
+  pw.Widget _buildPdfColorCategory(
+    String categoryName,
+    Map<String, dynamic> colors,
+    PdfColor accentColor,
+  ) {
+    return pw.Container(
+      margin: const pw.EdgeInsets.only(bottom: 20),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Row(
             children: [
               pw.Container(
-                color: PdfColors.white,
-                padding: const pw.EdgeInsets.all(2),
-                child: pw.Text(
-                  entry.key,
-                  style: pw.TextStyle(fontSize: 8),
-                  maxLines: 1,
+                width: 4,
+                height: 16,
+                color: accentColor,
+              ),
+              pw.SizedBox(width: 8),
+              pw.Text(
+                categoryName,
+                style: pw.TextStyle(
+                  fontSize: 14,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+              pw.SizedBox(width: 8),
+              pw.Text(
+                '(${colors.length})',
+                style: pw.TextStyle(
+                  fontSize: 10,
+                  color: PdfColors.grey600,
                 ),
               ),
             ],
           ),
-        );
-      }).toList(),
+          pw.SizedBox(height: 10),
+          pw.Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: colors.entries.map((entry) {
+              final colorValue = entry.value is Map
+                  ? (entry.value as Map)['value']?.toString() ?? '#000000'
+                  : entry.value.toString();
+              final color = _parsePdfColor(colorValue);
+              return pw.Container(
+                width: 50,
+                height: 50,
+                decoration: pw.BoxDecoration(
+                  color: color,
+                  border: pw.Border.all(color: PdfColors.grey300),
+                ),
+                margin: const pw.EdgeInsets.only(right: 8, bottom: 8),
+                child: pw.Column(
+                  mainAxisAlignment: pw.MainAxisAlignment.end,
+                  children: [
+                    pw.Container(
+                      color: PdfColors.white,
+                      padding: const pw.EdgeInsets.all(2),
+                      child: pw.Text(
+                        entry.key,
+                        style: pw.TextStyle(fontSize: 8),
+                        maxLines: 1,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
     );
   }
 
@@ -554,53 +663,199 @@ class _PreviewScreenState extends State<PreviewScreen> {
   }
 
   Widget _buildColorPreview(BuildContext context, models.DesignSystem ds) {
-    final colors = <String, dynamic>{};
-    colors.addAll(ds.colors.primary);
-    colors.addAll(ds.colors.semantic);
-    if (ds.colors.blue != null) colors.addAll(ds.colors.blue!);
-    if (ds.colors.green != null) colors.addAll(ds.colors.green!);
-    if (ds.colors.orange != null) colors.addAll(ds.colors.orange!);
-    if (ds.colors.purple != null) colors.addAll(ds.colors.purple!);
-    if (ds.colors.red != null) colors.addAll(ds.colors.red!);
-    if (ds.colors.grey != null) colors.addAll(ds.colors.grey!);
+    final List<Widget> colorSections = [];
+    
+    // Primary Colors
+    if (ds.colors.primary.isNotEmpty) {
+      colorSections.add(_buildColorCategory(
+        context,
+        'Primary Colors',
+        ds.colors.primary,
+        Colors.deepPurple,
+      ));
+    }
+    
+    // Semantic Colors
+    if (ds.colors.semantic.isNotEmpty) {
+      colorSections.add(_buildColorCategory(
+        context,
+        'Semantic Colors',
+        ds.colors.semantic,
+        Colors.blue,
+      ));
+    }
+    
+    // Blue Palette
+    if (ds.colors.blue != null && ds.colors.blue!.isNotEmpty) {
+      colorSections.add(_buildColorCategory(
+        context,
+        'Blue Palette',
+        ds.colors.blue!,
+        Colors.blue,
+      ));
+    }
+    
+    // Green Palette
+    if (ds.colors.green != null && ds.colors.green!.isNotEmpty) {
+      colorSections.add(_buildColorCategory(
+        context,
+        'Green Palette',
+        ds.colors.green!,
+        Colors.green,
+      ));
+    }
+    
+    // Orange Palette
+    if (ds.colors.orange != null && ds.colors.orange!.isNotEmpty) {
+      colorSections.add(_buildColorCategory(
+        context,
+        'Orange Palette',
+        ds.colors.orange!,
+        Colors.orange,
+      ));
+    }
+    
+    // Purple Palette
+    if (ds.colors.purple != null && ds.colors.purple!.isNotEmpty) {
+      colorSections.add(_buildColorCategory(
+        context,
+        'Purple Palette',
+        ds.colors.purple!,
+        Colors.purple,
+      ));
+    }
+    
+    // Red Palette
+    if (ds.colors.red != null && ds.colors.red!.isNotEmpty) {
+      colorSections.add(_buildColorCategory(
+        context,
+        'Red Palette',
+        ds.colors.red!,
+        Colors.red,
+      ));
+    }
+    
+    // Grey Palette
+    if (ds.colors.grey != null && ds.colors.grey!.isNotEmpty) {
+      colorSections.add(_buildColorCategory(
+        context,
+        'Grey Palette',
+        ds.colors.grey!,
+        Colors.grey,
+      ));
+    }
 
-    if (colors.isEmpty) {
+    if (colorSections.isEmpty) {
       return const Text('No colors defined', style: TextStyle(color: Colors.grey));
     }
 
-    return Wrap(
-      spacing: 12,
-      runSpacing: 12,
-      children: colors.entries.map((entry) {
-        final colorValue = entry.value is Map
-            ? (entry.value as Map)['value']?.toString() ?? '#000000'
-            : entry.value.toString();
-        return _buildColorSwatch(colorValue, entry.key);
-      }).toList(),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: colorSections,
+    );
+  }
+
+  Widget _buildColorCategory(
+    BuildContext context,
+    String categoryName,
+    Map<String, dynamic> colors,
+    Color accentColor,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 4,
+                height: 20,
+                decoration: BoxDecoration(
+                  color: accentColor,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                categoryName,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: accentColor,
+                    ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '(${colors.length})',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.grey[600],
+                    ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: colors.entries.map((entry) {
+              final colorValue = entry.value is Map
+                  ? (entry.value as Map)['value']?.toString() ?? '#000000'
+                  : entry.value.toString();
+              return _buildColorSwatch(colorValue, entry.key);
+            }).toList(),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildColorSwatch(String colorHex, String name) {
     Color? color = _parseColor(colorHex);
-    return Column(
-      children: [
-        Container(
-          width: 60,
-          height: 60,
-          decoration: BoxDecoration(
-            color: color ?? Colors.grey,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.grey.shade300),
+    return Container(
+      width: 80,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 80,
+            height: 60,
+            decoration: BoxDecoration(
+              color: color ?? Colors.grey,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey.shade300, width: 1.5),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          name,
-          style: const TextStyle(fontSize: 12),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ],
+          const SizedBox(height: 6),
+          Text(
+            name,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 2),
+          Text(
+            colorHex.toUpperCase(),
+            style: TextStyle(
+              fontSize: 9,
+              color: Colors.grey[600],
+              fontFamily: 'monospace',
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
     );
   }
 

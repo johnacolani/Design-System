@@ -37,7 +37,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   String? _colorSchemeType;
   
   // Step 4: Base Color
-  Color _baseColor = Colors.blue;
+  Color _baseColor = Colors.blue; // Will be updated when step 4 loads
   final _hexColorController = TextEditingController();
   
   // Step 5: Generated Colors
@@ -116,18 +116,55 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   Color? _getRecommendedBaseColor() {
     // Recommend colors based on app type and brand personality
-    if (_appType == 'Business' || _brandPersonality == 'Professional') {
+    // Priority: Brand personality first, then app type, then audience
+    
+    // Brand personality takes priority
+    if (_brandPersonality == 'Professional') {
       return Colors.blue;
-    } else if (_appType == 'Creative' || _brandPersonality == 'Creative') {
+    } else if (_brandPersonality == 'Creative') {
       return Colors.purple;
-    } else if (_appType == 'E-commerce' || _brandPersonality == 'Energetic') {
+    } else if (_brandPersonality == 'Energetic') {
       return Colors.orange;
-    } else if (_appType == 'Health' || _brandPersonality == 'Calm') {
+    } else if (_brandPersonality == 'Calm') {
       return Colors.green;
-    } else if (_targetAudience == 'Young') {
-      return Colors.pink;
+    } else if (_brandPersonality == 'Luxury') {
+      return Colors.indigo;
+    } else if (_brandPersonality == 'Friendly') {
+      return Colors.teal;
+    } else if (_brandPersonality == 'Modern') {
+      return Colors.blue;
+    } else if (_brandPersonality == 'Classic') {
+      return Colors.grey[800]!;
     }
-    return Colors.blue; // Default
+    
+    // Then check app type
+    if (_appType == 'Business') {
+      return Colors.blue;
+    } else if (_appType == 'Creative') {
+      return Colors.purple;
+    } else if (_appType == 'E-commerce') {
+      return Colors.orange;
+    } else if (_appType == 'Health') {
+      return Colors.green;
+    } else if (_appType == 'Education') {
+      return Colors.blue;
+    } else if (_appType == 'Social') {
+      return Colors.pink;
+    } else if (_appType == 'Entertainment') {
+      return Colors.purple;
+    }
+    
+    // Then check target audience
+    if (_targetAudience == 'Young (18-25)') {
+      return Colors.pink;
+    } else if (_targetAudience == 'Adult (26-40)') {
+      return Colors.blue;
+    } else if (_targetAudience == 'Mature (40+)') {
+      return Colors.grey[700]!;
+    }
+    
+    // Default fallback
+    return Colors.blue;
   }
 
   void _nextStep() {
@@ -153,12 +190,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           setState(() {
             _baseColor = recommended;
             _updateHexColorController();
+            _generateColorScheme();
           });
         }
         _pageController.nextPage(duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
         setState(() {
           _currentStep++;
-          _generateColorScheme();
         });
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -798,18 +835,22 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       color: Colors.grey[600],
                     ),
               ),
-              if (recommendedColor != null && recommendedColor != _baseColor) ...[
+              // Always show recommendation if we have app info, even if color matches
+              if (recommendedColor != null && _appType != null && _brandPersonality != null) ...[
                 const SizedBox(height: 16),
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.blue[50],
+                    color: recommendedColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.blue[200]!),
+                    border: Border.all(
+                      color: recommendedColor.withValues(alpha: 0.3),
+                      width: 2,
+                    ),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.lightbulb, color: Colors.blue[700]),
+                      Icon(Icons.lightbulb, color: recommendedColor),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
@@ -819,15 +860,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               'Recommended for you',
                               style: TextStyle(
                                 fontWeight: FontWeight.w600,
-                                color: Colors.blue[900],
+                                color: recommendedColor,
                               ),
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Based on your app type and brand personality',
+                              'Based on your ${_appType ?? 'app type'} and ${_brandPersonality ?? 'brand personality'}',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.blue[700],
+                                color: recommendedColor.withValues(alpha: 0.8),
                               ),
                             ),
                           ],
@@ -842,13 +883,26 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           });
                         },
                         child: Container(
-                          width: 40,
-                          height: 40,
+                          width: 50,
+                          height: 50,
                           decoration: BoxDecoration(
                             color: recommendedColor,
                             shape: BoxShape.circle,
-                            border: Border.all(color: Colors.blue[300]!, width: 2),
+                            border: Border.all(
+                              color: Colors.white,
+                              width: 3,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: recommendedColor.withValues(alpha: 0.5),
+                                blurRadius: 8,
+                                spreadRadius: 2,
+                              ),
+                            ],
                           ),
+                          child: _baseColor == recommendedColor
+                              ? const Icon(Icons.check, color: Colors.white, size: 24)
+                              : null,
                         ),
                       ),
                     ],

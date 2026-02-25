@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/design_system_provider.dart';
 import '../models/design_system.dart' as models;
 import '../services/color_palette_service.dart';
 import 'color_picker_screen.dart';
+import 'semantic_tokens_screen.dart';
 
 class ColorsScreen extends StatefulWidget {
   const ColorsScreen({super.key});
@@ -196,7 +198,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
                           crossAxisCount: 2,
                           crossAxisSpacing: 16,
                           mainAxisSpacing: 16,
-                          childAspectRatio: 1.2,
+                          childAspectRatio: 4.0,
                         ),
                         itemCount: currentCategory.length,
                         itemBuilder: (context, index) {
@@ -336,28 +338,28 @@ class _ColorsScreenState extends State<ColorsScreen> {
         },
         borderRadius: BorderRadius.circular(12),
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(6),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
                 width: double.infinity,
-                height: 60,
+                height: 20,
                 decoration: BoxDecoration(
                   color: color,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(6),
                   border: Border.all(color: Colors.grey[300]!),
                   boxShadow: [
                     BoxShadow(
                       color: color.withOpacity(0.3),
-                      blurRadius: 8,
-                      spreadRadius: 2,
+                      blurRadius: 4,
+                      spreadRadius: 1,
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 3),
               Row(
                 children: [
                   Expanded(
@@ -365,14 +367,14 @@ class _ColorsScreenState extends State<ColorsScreen> {
                       name,
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
                             fontWeight: FontWeight.w600,
-                            fontSize: 13,
+                            fontSize: 11,
                           ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   PopupMenuButton<String>(
-                    icon: const Icon(Icons.more_vert, size: 18),
+                    icon: const Icon(Icons.more_vert, size: 16),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                     onSelected: (value) {
@@ -407,24 +409,24 @@ class _ColorsScreenState extends State<ColorsScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 1),
               Text(
                 _colorToHex(color),
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Colors.grey[600],
                       fontFamily: 'monospace',
-                      fontSize: 10,
+                      fontSize: 8,
                     ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
               if (description.isNotEmpty) ...[
-                const SizedBox(height: 2),
+                const SizedBox(height: 1),
                 Text(
                   description,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Colors.grey[600],
-                        fontSize: 10,
+                        fontSize: 8,
                       ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -463,6 +465,12 @@ class _ColorsScreenState extends State<ColorsScreen> {
     return '#${color.value.toRadixString(16).substring(2).toUpperCase()}';
   }
 
+  Color _getContrastColor(Color color) {
+    // Calculate relative luminance
+    final luminance = (0.299 * color.red + 0.587 * color.green + 0.114 * color.blue) / 255;
+    return luminance > 0.5 ? Colors.black : Colors.white;
+  }
+
   void _showAddColorDialog(BuildContext context, String category) {
     _showAddColorDialogWithColor(context, category, Colors.blue, '', '');
   }
@@ -476,23 +484,90 @@ class _ColorsScreenState extends State<ColorsScreen> {
   ) {
     final nameController = TextEditingController(text: initialName);
     final descriptionController = TextEditingController(text: initialDescription);
-    Color selectedColor = initialColor;
-
+    
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Add Color'),
+      builder: (context) {
+        Color selectedColor = initialColor;
+        Map<String, String>? storedPrimaryToDark;
+        Map<String, String>? storedPrimaryToLight;
+        List<ColorSuggestion>? storedSuggestions;
+        
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            return AlertDialog(
+          title: Text(category == 'semantic' ? 'Add Semantic Color' : 'Add Color'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (category == 'semantic') ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.blue[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.blue[200]!),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.info_outline, color: Colors.blue[700], size: 20),
+                            const SizedBox(width: 8),
+                            Text(
+                              'About Semantic Colors',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue[900],
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Semantic colors represent meaning (e.g., "success", "error", "warning"). '
+                          'Pick a color below, then map it to semantic tokens in the Semantic Tokens screen.',
+                          style: TextStyle(
+                            color: Colors.blue[800],
+                            fontSize: 12,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        TextButton.icon(
+                          onPressed: () {
+                            Navigator.of(context).pop(); // Close this dialog
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const SemanticTokensScreen(),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.link, size: 16),
+                          label: const Text('Go to Semantic Tokens'),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
                 TextField(
                   controller: nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Color Name',
-                    hintText: 'e.g., primaryBlue',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: category == 'semantic' ? 'Semantic Color Name' : 'Color Name',
+                    hintText: category == 'semantic' ? 'e.g., success, error, warning' : 'e.g., primaryBlue',
+                    border: const OutlineInputBorder(),
+                    helperText: category == 'semantic' 
+                        ? 'Use meaningful names like "success", "error", "info"'
+                        : null,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -508,14 +583,12 @@ class _ColorsScreenState extends State<ColorsScreen> {
                 const SizedBox(height: 16),
                 ElevatedButton.icon(
                   onPressed: () async {
-                    // Store values before closing dialog
+                    // Store values before navigating
                     final name = nameController.text;
                     final description = descriptionController.text;
                     
-                    Navigator.of(context).pop(); // Close current dialog
-                    
-                    // Use the widget's build context (from State)
-                    final result = await Navigator.of(this.context).push<Map<String, dynamic>>(
+                    // Navigate to color picker WITHOUT closing dialog
+                    final result = await Navigator.of(dialogContext).push<Map<String, dynamic>>(
                       MaterialPageRoute(
                         builder: (_) => ColorPickerScreen(
                           category: category,
@@ -524,72 +597,155 @@ class _ColorsScreenState extends State<ColorsScreen> {
                     );
                     
                     if (result != null && mounted) {
+                      // Get the selected color
+                      Color? pickedColor;
+                      Map<String, String>? primaryToDark;
+                      Map<String, String>? primaryToLight;
+                      List<ColorSuggestion>? suggestions;
+                      
                       // Check if multiple colors were selected
                       if (result.containsKey('colors') && (result['colors'] as List).isNotEmpty) {
                         final colors = result['colors'] as List<Color>;
-                        final primaryToDark = result['primaryToDark'] as Map<String, String>;
-                        final primaryToLight = result['primaryToLight'] as Map<String, String>;
+                        pickedColor = colors.first; // Use first color for display
+                        primaryToDark = result['primaryToDark'] as Map<String, String>;
+                        primaryToLight = result['primaryToLight'] as Map<String, String>;
+                        suggestions = result['suggestions'] as List<ColorSuggestion>;
                         
-                        // Add each color with auto-generated name
-                        for (int i = 0; i < colors.length; i++) {
-                          final color = colors[i];
-                          final colorName = name.isNotEmpty 
-                              ? (colors.length > 1 ? '$name ${i + 1}' : name)
-                              : 'Color ${i + 1}';
+                        // If name is provided and multiple colors, add all directly
+                        if (name.isNotEmpty && colors.length > 1) {
+                          Navigator.of(dialogContext).pop(); // Close dialog
                           
-                          _addColorWithScales(
-                            this.context,
-                            colorName,
-                            description,
-                            color,
-                            primaryToDark,
-                            primaryToLight,
-                            result['suggestions'] as List<ColorSuggestion>,
-                            category,
-                          );
+                          // Add each color with auto-generated name
+                          for (int i = 0; i < colors.length; i++) {
+                            final color = colors[i];
+                            final colorName = '$name ${i + 1}';
+                            
+                            _addColorWithScales(
+                              context,
+                              colorName,
+                              description,
+                              color,
+                              primaryToDark!,
+                              primaryToLight!,
+                              suggestions!,
+                              category,
+                            );
+                          }
+                          
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Added ${colors.length} color${colors.length > 1 ? 's' : ''}'),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          }
+                          return;
                         }
-                        
-                        if (mounted) {
-                          ScaffoldMessenger.of(this.context).showSnackBar(
-                            SnackBar(
-                              content: Text('Added ${colors.length} color${colors.length > 1 ? 's' : ''}'),
-                              backgroundColor: Colors.green,
-                            ),
-                          );
-                        }
-                      } else {
-                        // Single color (backward compatibility)
-                        final color = result['color'] as Color;
-                        final primaryToDark = result['primaryToDark'] as Map<String, String>;
-                        final primaryToLight = result['primaryToLight'] as Map<String, String>;
-                        final suggestions = result['suggestions'] as List<ColorSuggestion>;
-                        
-                        if (name.isNotEmpty) {
-                          _addColorWithScales(
-                            this.context,
-                            name,
-                            description,
-                            color,
-                            primaryToDark,
-                            primaryToLight,
-                            suggestions,
-                            category,
-                          );
-                        } else {
-                          // Reopen dialog with selected color
-                          _showAddColorDialogWithColor(this.context, category, color, name, description);
-                        }
+                      } else if (result.containsKey('color')) {
+                        // Single color
+                        pickedColor = result['color'] as Color;
+                        primaryToDark = result['primaryToDark'] as Map<String, String>;
+                        primaryToLight = result['primaryToLight'] as Map<String, String>;
+                        suggestions = result['suggestions'] as List<ColorSuggestion>;
+                      }
+                      
+                      if (pickedColor != null) {
+                        // Update the dialog state to show selected color and store scales
+                        setDialogState(() {
+                          selectedColor = pickedColor!;
+                          storedPrimaryToDark = primaryToDark;
+                          storedPrimaryToLight = primaryToLight;
+                          storedSuggestions = suggestions;
+                        });
                       }
                     }
                   },
                   icon: const Icon(Icons.palette),
-                  label: const Text('Browse Color Palettes & Get Suggestions'),
+                  label: Text(category == 'semantic' 
+                      ? 'Browse Palettes & Pick Semantic Color'
+                      : 'Browse Color Palettes & Get Suggestions'),
                   style: ElevatedButton.styleFrom(
                     minimumSize: const Size(double.infinity, 48),
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text('Or pick color:', style: TextStyle(fontWeight: FontWeight.w600)),
+                Row(
+                  children: [
+                    const Text('Or pick color:', style: TextStyle(fontWeight: FontWeight.w600)),
+                    if (category == 'semantic') ...[
+                      const SizedBox(width: 8),
+                      Tooltip(
+                        message: 'Tap the color box below to open the color picker',
+                        child: Icon(Icons.help_outline, size: 16, color: Colors.grey[600]),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 8),
+                // Hex color input field
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        decoration: InputDecoration(
+                          labelText: 'Or paste hex color',
+                          hintText: '#FF5733',
+                          prefixIcon: const Icon(Icons.color_lens, size: 20),
+                          border: const OutlineInputBorder(),
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        ),
+                        onChanged: (value) {
+                          if (value.isNotEmpty && value.startsWith('#')) {
+                            try {
+                              final color = _parseColor(value);
+                              setDialogState(() {
+                                selectedColor = color;
+                              });
+                            } catch (e) {
+                              // Invalid color, ignore
+                            }
+                          }
+                        },
+                        onSubmitted: (value) {
+                          if (value.isNotEmpty && value.startsWith('#')) {
+                            try {
+                              final color = _parseColor(value);
+                              setDialogState(() {
+                                selectedColor = color;
+                              });
+                            } catch (e) {
+                              // Invalid color, ignore
+                            }
+                          }
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: selectedColor,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey[300]!, width: 2),
+                      ),
+                      child: Center(
+                        child: Text(
+                          _colorToHex(selectedColor).substring(1),
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                            color: _getContrastColor(selectedColor),
+                            fontFamily: 'monospace',
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 8),
                 GestureDetector(
                   onTap: () async {
@@ -670,9 +826,10 @@ class _ColorsScreenState extends State<ColorsScreen> {
             ElevatedButton(
               onPressed: () {
                 if (nameController.text.isNotEmpty) {
-                  // Generate scales for the selected color
-                  final primaryToDark = ColorPaletteService.generatePrimaryToDark(selectedColor, steps: 10);
-                  final primaryToLight = ColorPaletteService.generatePrimaryToLight(selectedColor, steps: 10);
+                  // Use stored scales if available (from color picker), otherwise generate new ones
+                  final primaryToDark = storedPrimaryToDark ?? ColorPaletteService.generatePrimaryToDark(selectedColor, steps: 10);
+                  final primaryToLight = storedPrimaryToLight ?? ColorPaletteService.generatePrimaryToLight(selectedColor, steps: 10);
+                  final suggestions = storedSuggestions ?? [];
                   
                   _addColorWithScales(
                     context,
@@ -681,17 +838,74 @@ class _ColorsScreenState extends State<ColorsScreen> {
                     selectedColor,
                     primaryToDark,
                     primaryToLight,
-                    [],
+                    suggestions,
                     category,
                   );
-                  Navigator.of(context).pop();
+                  Navigator.of(dialogContext).pop();
+                  
+                  // Show helpful message for semantic colors
+                  if (category == 'semantic' && mounted) {
+                    // Hide any existing snackbars first
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    
+                    // Use a timer to ensure it dismisses even if user navigates
+                    Future.delayed(const Duration(seconds: 4), () {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                      }
+                    });
+                    
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Row(
+                          children: [
+                            const Icon(Icons.check_circle, color: Colors.white),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Text(
+                                    'Semantic color added!',
+                                    style: TextStyle(fontWeight: FontWeight.bold),
+                                  ),
+                                  Text(
+                                    'Go to Semantic Tokens to map it to base colors',
+                                    style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.9)),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        backgroundColor: Colors.green,
+                        duration: const Duration(seconds: 4),
+                        behavior: SnackBarBehavior.floating,
+                        action: SnackBarAction(
+                          label: 'Go to Tokens',
+                          textColor: Colors.white,
+                          onPressed: () {
+                            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const SemanticTokensScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    );
+                  }
                 }
               },
               child: const Text('Add'),
             ),
           ],
-        ),
-      ),
+        );
+          },
+        );
+      },
     );
   }
 

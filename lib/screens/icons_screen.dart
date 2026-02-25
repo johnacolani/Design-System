@@ -214,6 +214,10 @@ class _IconsScreenState extends State<IconsScreen> {
                   icons: models.Icons(sizes: updatedSizes),
                   gradients: provider.designSystem.gradients,
                   roles: provider.designSystem.roles,
+                  semanticTokens: provider.designSystem.semanticTokens,
+                  motionTokens: provider.designSystem.motionTokens,
+                  lastModified: provider.designSystem.lastModified,
+                  versionHistory: provider.designSystem.versionHistory,
                 ));
 
                 Navigator.of(context).pop();
@@ -292,6 +296,10 @@ class _IconsScreenState extends State<IconsScreen> {
                   icons: models.Icons(sizes: updatedSizes),
                   gradients: provider.designSystem.gradients,
                   roles: provider.designSystem.roles,
+                  semanticTokens: provider.designSystem.semanticTokens,
+                  motionTokens: provider.designSystem.motionTokens,
+                  lastModified: provider.designSystem.lastModified,
+                  versionHistory: provider.designSystem.versionHistory,
                 ));
 
                 Navigator.of(context).pop();
@@ -344,6 +352,10 @@ class _IconsScreenState extends State<IconsScreen> {
                 icons: models.Icons(sizes: updatedSizes),
                 gradients: provider.designSystem.gradients,
                 roles: provider.designSystem.roles,
+                semanticTokens: provider.designSystem.semanticTokens,
+                motionTokens: provider.designSystem.motionTokens,
+                lastModified: provider.designSystem.lastModified,
+                versionHistory: provider.designSystem.versionHistory,
               ));
 
               Navigator.of(context).pop();

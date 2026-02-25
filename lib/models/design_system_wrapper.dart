@@ -82,6 +82,19 @@ class DesignSystemWrapper {
         'accentColor': r.accentColor,
         'background': r.background,
       })),
+      'semanticTokens': {
+        'color': ds.semanticTokens.color,
+        'typography': ds.semanticTokens.typography,
+        'spacing': ds.semanticTokens.spacing,
+        'shadow': ds.semanticTokens.shadow,
+        'borderRadius': ds.semanticTokens.borderRadius,
+      },
+      'motionTokens': {
+        'duration': ds.motionTokens.duration,
+        'easing': ds.motionTokens.easing,
+      },
+      if (ds.lastModified != null) 'lastModified': ds.lastModified,
+      if (ds.versionHistory != null) 'versionHistory': ds.versionHistory!.map((v) => v.toJson()).toList(),
     };
   }
 
@@ -125,6 +138,10 @@ class DesignSystemWrapper {
         inputs: Map<String, dynamic>.from(json['components']['inputs'] as Map),
         navigation: Map<String, dynamic>.from(json['components']['navigation'] as Map),
         avatars: Map<String, dynamic>.from(json['components']['avatars'] as Map),
+        modals: json['components']['modals'] != null ? Map<String, dynamic>.from(json['components']['modals'] as Map) : null,
+        tables: json['components']['tables'] != null ? Map<String, dynamic>.from(json['components']['tables'] as Map) : null,
+        progress: json['components']['progress'] != null ? Map<String, dynamic>.from(json['components']['progress'] as Map) : null,
+        alerts: json['components']['alerts'] != null ? Map<String, dynamic>.from(json['components']['alerts'] as Map) : null,
       ),
       grid: Grid(
         columns: json['grid']['columns'] as int,
@@ -154,6 +171,30 @@ class DesignSystemWrapper {
           ),
         )),
       ),
+      semanticTokens: json['semanticTokens'] != null
+          ? SemanticTokens(
+              color: Map<String, dynamic>.from(json['semanticTokens']['color'] as Map? ?? {}),
+              typography: Map<String, dynamic>.from(json['semanticTokens']['typography'] as Map? ?? {}),
+              spacing: Map<String, dynamic>.from(json['semanticTokens']['spacing'] as Map? ?? {}),
+              shadow: Map<String, dynamic>.from(json['semanticTokens']['shadow'] as Map? ?? {}),
+              borderRadius: Map<String, dynamic>.from(json['semanticTokens']['borderRadius'] as Map? ?? {}),
+            )
+          : SemanticTokens.empty(),
+      motionTokens: json['motionTokens'] != null
+          ? MotionTokens(
+              duration: Map<String, String>.from(json['motionTokens']['duration'] as Map? ?? {}),
+              easing: Map<String, String>.from(json['motionTokens']['easing'] as Map? ?? {}),
+            )
+          : MotionTokens.empty(),
+      lastModified: json['lastModified'] as String?,
+      versionHistory: json['versionHistory'] != null
+          ? (json['versionHistory'] as List).map((v) => VersionHistory(
+                version: v['version'] as String,
+                date: v['date'] as String,
+                changes: List<String>.from(v['changes'] as List),
+                description: v['description'] as String?,
+              )).toList()
+          : null,
     );
   }
 

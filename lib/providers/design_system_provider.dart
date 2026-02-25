@@ -126,7 +126,7 @@ class DesignSystemProvider extends ChangeNotifier {
       roles: _designSystem.roles,
       semanticTokens: _designSystem.semanticTokens,
       motionTokens: _designSystem.motionTokens,
-      lastModified: _designSystem.lastModified,
+      lastModified: DateTime.now().toIso8601String(),
       versionHistory: _designSystem.versionHistory,
     );
     notifyListeners();
@@ -150,6 +150,31 @@ class DesignSystemProvider extends ChangeNotifier {
       gradients: _designSystem.gradients,
       roles: _designSystem.roles,
       semanticTokens: _designSystem.semanticTokens,
+      motionTokens: _designSystem.motionTokens,
+      lastModified: _designSystem.lastModified,
+      versionHistory: _designSystem.versionHistory,
+    );
+    notifyListeners();
+  }
+
+  void updateSemanticTokens(models.SemanticTokens semanticTokens) {
+    _designSystem = models.DesignSystem(
+      name: _designSystem.name,
+      version: _designSystem.version,
+      description: _designSystem.description,
+      created: _designSystem.created,
+      colors: _designSystem.colors,
+      typography: _designSystem.typography,
+      spacing: _designSystem.spacing,
+      borderRadius: _designSystem.borderRadius,
+      shadows: _designSystem.shadows,
+      effects: _designSystem.effects,
+      components: _designSystem.components,
+      grid: _designSystem.grid,
+      icons: _designSystem.icons,
+      gradients: _designSystem.gradients,
+      roles: _designSystem.roles,
+      semanticTokens: semanticTokens,
       motionTokens: _designSystem.motionTokens,
       lastModified: _designSystem.lastModified,
       versionHistory: _designSystem.versionHistory,

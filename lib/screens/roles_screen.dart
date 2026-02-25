@@ -270,6 +270,10 @@ class _RolesScreenState extends State<RolesScreen> {
                   icons: provider.designSystem.icons,
                   gradients: provider.designSystem.gradients,
                   roles: models.Roles(values: updatedRoles),
+                  semanticTokens: provider.designSystem.semanticTokens,
+                  motionTokens: provider.designSystem.motionTokens,
+                  lastModified: provider.designSystem.lastModified,
+                  versionHistory: provider.designSystem.versionHistory,
                 ));
 
                 Navigator.of(context).pop();
@@ -379,6 +383,10 @@ class _RolesScreenState extends State<RolesScreen> {
                   icons: provider.designSystem.icons,
                   gradients: provider.designSystem.gradients,
                   roles: models.Roles(values: updatedRoles),
+                  semanticTokens: provider.designSystem.semanticTokens,
+                  motionTokens: provider.designSystem.motionTokens,
+                  lastModified: provider.designSystem.lastModified,
+                  versionHistory: provider.designSystem.versionHistory,
                 ));
 
                 Navigator.of(context).pop();
@@ -431,6 +439,10 @@ class _RolesScreenState extends State<RolesScreen> {
                 icons: provider.designSystem.icons,
                 gradients: provider.designSystem.gradients,
                 roles: models.Roles(values: updatedRoles),
+                semanticTokens: provider.designSystem.semanticTokens,
+                motionTokens: provider.designSystem.motionTokens,
+                lastModified: provider.designSystem.lastModified,
+                versionHistory: provider.designSystem.versionHistory,
               ));
 
               Navigator.of(context).pop();

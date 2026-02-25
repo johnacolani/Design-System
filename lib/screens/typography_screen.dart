@@ -401,44 +401,49 @@ class _TypographyScreenState extends State<TypographyScreen> {
   }
 
   void _showEditFontFamilyDialog(BuildContext context) {
-    final provider = Provider.of<DesignSystemProvider>(context);
+    final provider = Provider.of<DesignSystemProvider>(context, listen: false);
     final typography = provider.designSystem.typography;
     final primaryController = TextEditingController(text: typography.fontFamily.primary);
     final fallbackController = TextEditingController(text: typography.fontFamily.fallback);
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Edit Font Family'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: primaryController,
-              decoration: const InputDecoration(
-                labelText: 'Primary Font',
-                border: OutlineInputBorder(),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: primaryController,
+                decoration: const InputDecoration(
+                  labelText: 'Primary Font',
+                  border: OutlineInputBorder(),
+                  hintText: 'e.g., Roboto, Inter, Arial',
+                ),
+                autofocus: true,
               ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: fallbackController,
-              decoration: const InputDecoration(
-                labelText: 'Fallback Font',
-                border: OutlineInputBorder(),
+              const SizedBox(height: 16),
+              TextField(
+                controller: fallbackController,
+                decoration: const InputDecoration(
+                  labelText: 'Fallback Font',
+                  border: OutlineInputBorder(),
+                  hintText: 'e.g., system-ui, sans-serif',
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(dialogContext).pop(),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () {
               if (primaryController.text.trim().isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
+                ScaffoldMessenger.of(dialogContext).showSnackBar(
                   const SnackBar(
                     content: Text('Primary font cannot be empty'),
                     backgroundColor: Colors.red,
@@ -458,12 +463,15 @@ class _TypographyScreenState extends State<TypographyScreen> {
                 fontSizes: typography.fontSizes,
                 textStyles: typography.textStyles,
               );
+              
               provider.updateTypography(updatedTypography);
-              Navigator.of(context).pop();
+              Navigator.of(dialogContext).pop();
+              
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Font family updated!'),
                   backgroundColor: Colors.green,
+                  duration: Duration(seconds: 2),
                 ),
               );
             },
@@ -879,21 +887,44 @@ class _TypographyScreenState extends State<TypographyScreen> {
   }
 
   void _showAddTextStyleDialog(BuildContext context) {
-    final provider = Provider.of<DesignSystemProvider>(context);
+    final provider = Provider.of<DesignSystemProvider>(context, listen: false);
     final typography = provider.designSystem.typography;
+
+    // Check if required data exists
+    if (typography.fontSizes.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please add at least one font size before creating a text style'),
+          backgroundColor: Colors.orange,
+          duration: Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
+
+    if (typography.fontWeights.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please add at least one font weight before creating a text style'),
+          backgroundColor: Colors.orange,
+          duration: Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
 
     final nameController = TextEditingController();
     String? selectedFontFamily = typography.fontFamily.primary;
-    String? selectedFontSize;
-    int selectedFontWeight = 400;
-    String? selectedLineHeight;
+    String? selectedFontSize = typography.fontSizes.values.first.value;
+    int selectedFontWeight = typography.fontWeights.values.first;
+    String? selectedLineHeight = typography.fontSizes.values.first.lineHeight;
     final colorController = TextEditingController();
     String? selectedTextDecoration;
 
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
           title: const Text('Add Text Style'),
           content: SingleChildScrollView(
             child: Column(
@@ -904,7 +935,9 @@ class _TypographyScreenState extends State<TypographyScreen> {
                   decoration: const InputDecoration(
                     labelText: 'Style Name (e.g., h1, body)',
                     border: OutlineInputBorder(),
+                    hintText: 'Enter a unique style name',
                   ),
+                  autofocus: true,
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
@@ -933,8 +966,9 @@ class _TypographyScreenState extends State<TypographyScreen> {
                 DropdownButtonFormField<String>(
                   value: selectedFontSize,
                   decoration: const InputDecoration(
-                    labelText: 'Font Size',
+                    labelText: 'Font Size *',
                     border: OutlineInputBorder(),
+                    helperText: 'Required',
                   ),
                   items: typography.fontSizes.entries.map((entry) {
                     return DropdownMenuItem(
@@ -946,10 +980,14 @@ class _TypographyScreenState extends State<TypographyScreen> {
                     setDialogState(() {
                       selectedFontSize = value;
                       if (value != null) {
-                        final fontSize = typography.fontSizes.values.firstWhere(
-                          (fs) => fs.value == value,
-                        );
-                        selectedLineHeight = fontSize.lineHeight;
+                        try {
+                          final fontSize = typography.fontSizes.values.firstWhere(
+                            (fs) => fs.value == value,
+                          );
+                          selectedLineHeight = fontSize.lineHeight;
+                        } catch (e) {
+                          // If not found, keep current line height
+                        }
                       }
                     });
                   },
@@ -958,8 +996,9 @@ class _TypographyScreenState extends State<TypographyScreen> {
                 DropdownButtonFormField<int>(
                   value: selectedFontWeight,
                   decoration: const InputDecoration(
-                    labelText: 'Font Weight',
+                    labelText: 'Font Weight *',
                     border: OutlineInputBorder(),
+                    helperText: 'Required',
                   ),
                   items: typography.fontWeights.entries.map((entry) {
                     return DropdownMenuItem(
@@ -991,12 +1030,12 @@ class _TypographyScreenState extends State<TypographyScreen> {
                     IconButton(
                       icon: const Icon(Icons.colorize),
                       onPressed: () async {
-                        final result = await Navigator.of(context).push<Map<String, dynamic>>(
+                        final result = await Navigator.of(dialogContext).push<Map<String, dynamic>>(
                           MaterialPageRoute(
                             builder: (_) => const ColorPickerScreen(),
                           ),
                         );
-                        if (result != null && result['color'] != null && mounted) {
+                        if (result != null && result['color'] != null) {
                           setDialogState(() {
                             final color = result['color'] as Color;
                             colorController.text = '#${color.value.toRadixString(16).substring(2).toUpperCase()}';
@@ -1030,39 +1069,60 @@ class _TypographyScreenState extends State<TypographyScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () => Navigator.of(dialogContext).pop(),
               child: const Text('Cancel'),
             ),
             ElevatedButton(
               onPressed: () {
-                if (nameController.text.isNotEmpty &&
-                    selectedFontSize != null &&
-                    selectedLineHeight != null) {
-                final updatedStyles = Map<String, models.TextStyle>.from(typography.textStyles);
-                updatedStyles[nameController.text] = models.TextStyle(
-                    fontFamily: selectedFontFamily ?? '',
-                    fontSize: selectedFontSize ?? '',
-                    fontWeight: selectedFontWeight,
-                    lineHeight: selectedLineHeight ?? '',
-                    color: colorController.text.isEmpty ? null : colorController.text,
-                    textDecoration: selectedTextDecoration,
-                  );
-
-                  final updatedTypography = models.Typography(
-                    fontFamily: typography.fontFamily,
-                    fontWeights: typography.fontWeights,
-                    fontSizes: typography.fontSizes,
-                    textStyles: updatedStyles,
-                  );
-                  provider.updateTypography(updatedTypography);
-                  Navigator.of(context).pop();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Text style "${nameController.text}" added!'),
-                      backgroundColor: Colors.green,
+                if (nameController.text.trim().isEmpty) {
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please enter a style name'),
+                      backgroundColor: Colors.red,
+                      duration: Duration(seconds: 2),
                     ),
                   );
+                  return;
                 }
+
+                if (selectedFontSize == null || selectedLineHeight == null) {
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please select a font size'),
+                      backgroundColor: Colors.red,
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                  return;
+                }
+
+                final updatedStyles = Map<String, models.TextStyle>.from(typography.textStyles);
+                updatedStyles[nameController.text.trim()] = models.TextStyle(
+                  fontFamily: selectedFontFamily ?? '',
+                  fontSize: selectedFontSize!,
+                  fontWeight: selectedFontWeight,
+                  lineHeight: selectedLineHeight!,
+                  color: colorController.text.isEmpty ? null : colorController.text,
+                  textDecoration: selectedTextDecoration,
+                );
+
+                final updatedTypography = models.Typography(
+                  fontFamily: typography.fontFamily,
+                  fontWeights: typography.fontWeights,
+                  fontSizes: typography.fontSizes,
+                  textStyles: updatedStyles,
+                );
+                
+                provider.updateTypography(updatedTypography);
+                Navigator.of(dialogContext).pop();
+                
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Text style "${nameController.text.trim()}" added!'),
+                    backgroundColor: Colors.green,
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
               },
               child: const Text('Add'),
             ),
