@@ -239,12 +239,12 @@ class _ColorsScreenState extends State<ColorsScreen> {
           _showEditColorDialog(context, name, colorData, category);
         },
         borderRadius: BorderRadius.circular(8),
-        child: Padding(
+          child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           child: Row(
             children: [
               Container(
-                width: 40,
+                width: 80,
                 height: 40,
                 decoration: BoxDecoration(
                   color: color,
