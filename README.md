@@ -24,8 +24,14 @@ A comprehensive Flutter application for creating, managing, and exporting design
 - ✅ **Roles**: Role-based theming
 
 ### Design Libraries
-- ✅ **Material Design**: Browse and import Material components, colors, icons, and typography
+- ✅ **Material Design**: Browse and import Material components, colors (with full palette support), icons, and typography
 - ✅ **Cupertino (iOS)**: Browse and import iOS system colors, icons, components, and typography
+
+### User Features
+- ✅ **Authentication**: Sign up with email/password, Google Sign-In, or continue as guest
+- ✅ **User Profile**: View profile, membership status, and project statistics
+- ✅ **Settings**: Account settings, app preferences, privacy, and support options
+- ✅ **Project Preview**: Visual preview of created projects on home screen
 
 ## 🚀 Getting Started
 
@@ -112,6 +118,14 @@ lib/
 2. Choose between Material Design or Cupertino (iOS)
 3. Browse colors, icons, components, or typography
 4. Click "Add" to import items into your design system
+5. **Material Color Palettes**: Import complete color palettes (Blue, Green, Red, Orange, Purple, Teal, Grey) with all shades (50-900)
+
+### Authentication Flow
+
+1. **Sign Up**: Create an account with email/password or Google Sign-In
+2. **After Signup**: You'll be redirected to the login screen with your credentials pre-filled
+3. **Login**: Sign in to access your projects and profile
+4. **Guest Mode**: Continue as guest to try the app without creating an account
 
 ### Managing Design Tokens
 
@@ -146,7 +160,7 @@ Navigate to specific sections from the dashboard:
 - [x] Gradients management
 - [x] Roles management
 - [x] Main navigation/dashboard UI
-- [x] Material Design library picker
+- [x] Material Design library picker with color palette import
 - [x] Cupertino (iOS) design library picker
 - [x] Project save/load functionality
 - [x] JSON export functionality
@@ -156,6 +170,9 @@ Navigate to specific sections from the dashboard:
 - [x] Preview functionality
 - [x] User profile management
 - [x] Project management (list, open, delete)
+- [x] Settings screen with account and app preferences
+- [x] Signup flow with automatic navigation to login
+- [x] Material Design color palette import functionality
 
 ## 📦 Dependencies
 
