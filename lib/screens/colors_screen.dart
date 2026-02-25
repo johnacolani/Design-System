@@ -80,14 +80,11 @@ class _ColorsScreenState extends State<ColorsScreen> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.home),
+          icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute(builder: (_) => const HomeScreen()),
-              (route) => false,
-            );
+            Navigator.of(context).pop();
           },
-          tooltip: 'Home',
+          tooltip: 'Back',
         ),
         title: const Text('Colors'),
         actions: [
@@ -244,8 +241,8 @@ class _ColorsScreenState extends State<ColorsScreen> {
           child: Row(
             children: [
               Container(
-                width: 80,
-                height: 40,
+                width: 120,
+                height: 50,
                 decoration: BoxDecoration(
                   color: color,
                   borderRadius: BorderRadius.circular(6),
