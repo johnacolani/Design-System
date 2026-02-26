@@ -6,6 +6,7 @@ import 'dart:io';
 import '../providers/design_system_provider.dart';
 import '../models/design_system.dart' as models;
 import '../services/project_service.dart';
+import '../utils/screen_body_padding.dart';
 
 class ExportScreen extends StatefulWidget {
   const ExportScreen({super.key});
@@ -24,8 +25,10 @@ class _ExportScreenState extends State<ExportScreen> {
       appBar: AppBar(
         title: const Text('Export Design System'),
       ),
-      body: Column(
-        children: [
+      body: ScreenBodyPadding(
+        verticalPadding: 0,
+        child: Column(
+          children: [
           Container(
             padding: const EdgeInsets.all(16),
             color: Colors.grey[100],
@@ -98,6 +101,7 @@ class _ExportScreenState extends State<ExportScreen> {
             ),
           ),
         ],
+        ),
       ),
     );
   }

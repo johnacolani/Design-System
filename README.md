@@ -117,11 +117,13 @@ lib/
 └── main.dart            # App entry point
 ```
 
-## 🎯 Complete Usage Guide
+## 🎯 User instructions and usage guides
 
-> **📖 For detailed, step-by-step instructions, see [COMPLETE_USAGE_GUIDE.md](COMPLETE_USAGE_GUIDE.md)**
+> **📖 [USER_INSTRUCTIONS.md](USER_INSTRUCTIONS.md)** — Single holistic guide: first launch, auth, creating projects, all token screens, design libraries, preview/export, projects, profile, and troubleshooting. Best starting point for using the app.
 
-The complete usage guide covers:
+> **📖 [COMPLETE_USAGE_GUIDE.md](COMPLETE_USAGE_GUIDE.md)** — Extended step-by-step usage guide.
+
+Both guides cover:
 - Getting started and authentication
 - Creating projects (5-step onboarding)
 - All design token management screens

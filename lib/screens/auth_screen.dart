@@ -1,8 +1,42 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform;
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import '../providers/user_provider.dart';
+import '../utils/platform_icons.dart';
 import '../widgets/app_logo.dart';
 import 'home_screen.dart';
+import 'welcome_screen.dart';
+
+/// Returns a user-friendly message for auth errors.
+String _authErrorMessage(Object e) {
+  if (e is firebase_auth.FirebaseAuthException) {
+    switch (e.code) {
+      case 'user-not-found':
+        return 'No account found with this email.';
+      case 'wrong-password':
+        return 'Incorrect password.';
+      case 'invalid-email':
+        return 'Please enter a valid email address.';
+      case 'user-disabled':
+        return 'This account has been disabled.';
+      case 'too-many-requests':
+        return 'Too many attempts. Please try again later.';
+      case 'invalid-credential':
+        return 'Invalid email or password.';
+      case 'invalid-login-credentials':
+        return 'Invalid email or password.';
+      case 'email-already-in-use':
+        return 'An account already exists with this email.';
+      case 'weak-password':
+        return 'Password is too weak. Use at least 6 characters.';
+      default:
+        return e.message ?? 'Sign in failed. Please try again.';
+    }
+  }
+  return e.toString();
+}
 
 class AuthScreen extends StatefulWidget {
   final bool isSignUp;
@@ -55,15 +89,26 @@ class _AuthScreenState extends State<AuthScreen> {
       final userProvider = Provider.of<UserProvider>(context, listen: false);
 
       if (_isLogin) {
-        await userProvider.login(
-          _emailController.text.trim(),
-          _passwordController.text,
-        );
-        
-        if (mounted && userProvider.isLoggedIn) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const HomeScreen()),
+        try {
+          await userProvider.login(
+            _emailController.text.trim(),
+            _passwordController.text,
           );
+
+          if (mounted && userProvider.isLoggedIn) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => const HomeScreen()),
+            );
+          } else if (mounted) {
+            // Login didn't throw but we're not logged in (e.g. Firestore load failed)
+            _showLoginError(context, 'Sign-in did not complete. Please try again.');
+          }
+        } catch (e, stackTrace) {
+          debugPrint('Login error: $e');
+          debugPrint(stackTrace.toString());
+          if (mounted) {
+            _showLoginError(context, _authErrorMessage(e));
+          }
         }
       } else {
         // Sign up - save email and password for login screen
@@ -106,11 +151,10 @@ class _AuthScreenState extends State<AuthScreen> {
           }
         } catch (e) {
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Sign up failed: ${e.toString()}'),
-                backgroundColor: Colors.red,
-              ),
+            _showLoginError(
+              context,
+              _authErrorMessage(e),
+              title: 'Sign up failed',
             );
           }
         }
@@ -118,60 +162,110 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Theme.of(context).colorScheme.primary,
-              Theme.of(context).colorScheme.secondary,
-            ],
+  /// Wide (split) layout on desktop platforms, or when viewport is wide (e.g. web).
+  static bool _useWideLayout(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.macOS:
+      case TargetPlatform.windows:
+      case TargetPlatform.linux:
+        return true;
+      default:
+        return width >= 700;
+    }
+  }
+
+  void _showLoginError(BuildContext context, String message, {String? title}) {
+    // Use a dialog so the error is impossible to miss (SnackBar can be hidden on desktop)
+    showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => AlertDialog(
+        title: Text(title ?? 'Sign in failed'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('OK'),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBrandingPanel(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            AppLogo(size: 120),
+            const SizedBox(height: 24),
+            Text(
+              'Design System Builder',
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Create and export design systems\nfor Flutter, Kotlin, and Swift',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Colors.white70,
+                  ),
+              textAlign: TextAlign.center,
+            ),
+            // Space for later: add more info here
+          ],
         ),
-        child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
-              child: Card(
-                elevation: 8,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
+      ),
+    );
+  }
+
+  static const double _formCardMaxWidth = 400;
+
+  Widget _buildFormCard(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: _formCardMaxWidth),
+          child: Card(
+            elevation: 8,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  _isLogin ? 'Welcome Back' : 'Create Account',
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                  textAlign: TextAlign.center,
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.all(32.0),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        AppLogo(
-                          size: 64,
-                        ),
-                        const SizedBox(height: 24),
-                        Text(
-                          _isLogin ? 'Welcome Back' : 'Create Account',
-                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          _isLogin
-                              ? 'Sign in to continue'
-                              : 'Start building your design systems',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: Colors.grey[600],
-                              ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 32),
-                        if (!_isLogin) ...[
+                const SizedBox(height: 8),
+                Text(
+                  _isLogin
+                      ? 'Sign in to continue'
+                      : 'Start building your design systems',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Colors.grey[600],
+                      ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 32),
+                if (!_isLogin) ...[
                           TextFormField(
                             controller: _nameController,
                             decoration: InputDecoration(
@@ -268,6 +362,81 @@ class _AuthScreenState extends State<AuthScreen> {
                           },
                         ),
                         const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(child: Divider(color: Colors.grey[300])),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              child: Text(
+                                'OR',
+                                style: TextStyle(color: Colors.grey[600]),
+                              ),
+                            ),
+                            Expanded(child: Divider(color: Colors.grey[300])),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Consumer<UserProvider>(
+                          builder: (context, userProvider, _) {
+                            return ElevatedButton.icon(
+                              onPressed: userProvider.isLoading
+                                  ? null
+                                  : () async {
+                                      try {
+                                        await userProvider.signInWithGoogle();
+                                        if (mounted && userProvider.isLoggedIn) {
+                                          Navigator.of(context).pushReplacement(
+                                            MaterialPageRoute(builder: (_) => const HomeScreen()),
+                                          );
+                                        } else if (mounted) {
+                                          _showLoginError(
+                                            context,
+                                            'Sign in was canceled or did not complete.',
+                                            title: 'Google Sign-In',
+                                          );
+                                        }
+                                      } catch (e) {
+                                        debugPrint('Google Sign-In error: $e');
+                                        if (mounted) {
+                                          _showLoginError(
+                                            context,
+                                            e.toString(),
+                                            title: 'Google Sign-In failed',
+                                          );
+                                        }
+                                      }
+                                    },
+                              icon: userProvider.isLoading
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                      ),
+                                    )
+                                  : const FaIcon(
+                                      FontAwesomeIcons.google,
+                                      size: 20,
+                                      color: Color(0xFF4285F4),
+                                    ),
+                              label: Text(
+                                userProvider.isLoading ? 'Signing in...' : 'Sign in with Google',
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                foregroundColor: Colors.black87,
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  side: BorderSide(color: Colors.grey[300]!),
+                                ),
+                                elevation: 1,
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 16),
                         TextButton(
                           onPressed: () {
                             setState(() {
@@ -282,30 +451,99 @@ class _AuthScreenState extends State<AuthScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        OutlinedButton.icon(
-                          onPressed: () {
-                            // Continue as guest
-                            Navigator.of(context).pushReplacement(
-                              MaterialPageRoute(builder: (_) => const HomeScreen()),
-                            );
-                          },
-                          icon: const Icon(Icons.person_outline),
-                          label: const Text('Continue as Guest'),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                        ),
-                      ],
+                OutlinedButton.icon(
+                  onPressed: () {
+                    // Continue as guest
+                    Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(builder: (_) => const HomeScreen()),
+                    );
+                  },
+                  icon: const Icon(Icons.person_outline),
+                  label: const Text('Continue as Guest'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                 ),
-              ),
+              ],
             ),
           ),
         ),
+        ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final useWideLayout = _useWideLayout(context);
+
+    return Scaffold(
+      body: Stack(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Theme.of(context).colorScheme.primary,
+                  Theme.of(context).colorScheme.secondary,
+                ],
+              ),
+            ),
+            child: SafeArea(
+              child: useWideLayout
+                  ? Row(
+                      children: [
+                        Expanded(
+                          flex: 1,
+                          child: _buildBrandingPanel(context),
+                        ),
+                        Expanded(
+                          flex: 1,
+                          child: Padding(
+                            padding: const EdgeInsets.only(right: 32),
+                            child: Center(child: _buildFormCard(context)),
+                          ),
+                        ),
+                      ],
+                    )
+                  : SingleChildScrollView(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _buildBrandingPanel(context),
+                            const SizedBox(height: 12),
+                            Center(child: _buildFormCard(context)),
+                          ],
+                        ),
+                      ),
+                    ),
+            ),
+          ),
+          Positioned(
+            top: 0,
+            left: 0,
+            child: SafeArea(
+              child: IconButton(
+                onPressed: () {
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+                  );
+                },
+                icon: Icon(platformBackIcon),
+                color: Colors.white,
+                tooltip: 'Back to landing page',
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

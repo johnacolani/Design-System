@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/design_system_provider.dart';
+import '../utils/screen_body_padding.dart';
 
 class VersionHistoryScreen extends StatelessWidget {
   const VersionHistoryScreen({super.key});
@@ -28,8 +29,10 @@ class VersionHistoryScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: versionHistory.isEmpty
-          ? Center(
+      body: ScreenBodyPadding(
+        verticalPadding: 0,
+        child: versionHistory.isEmpty
+            ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -52,7 +55,7 @@ class VersionHistoryScreen extends StatelessWidget {
                 ],
               ),
             )
-          : ListView.builder(
+            : ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: versionHistory.length,
               itemBuilder: (context, index) {
@@ -140,6 +143,7 @@ class VersionHistoryScreen extends StatelessWidget {
                 );
               },
             ),
+        ),
     );
   }
 

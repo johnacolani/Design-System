@@ -1,76 +1,77 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform;
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
 import '../widgets/app_logo.dart';
+import '../utils/platform_icons.dart';
 import '../utils/responsive.dart';
 import 'onboarding_screen.dart';
 import 'auth_screen.dart';
-import 'home_screen.dart';
+
+bool _useWideLayout(BuildContext context) {
+  final width = MediaQuery.sizeOf(context).width;
+  switch (defaultTargetPlatform) {
+    case TargetPlatform.macOS:
+    case TargetPlatform.windows:
+    case TargetPlatform.linux:
+      return true;
+    default:
+      return width >= 700;
+  }
+}
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
 
+  Widget _buildBrandingPanel(BuildContext context, Responsive responsive) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            AppLogo(size: 120),
+            const SizedBox(height: 32),
+            Text(
+              'Welcome to Design System Builder',
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    fontSize: 28,
+                  ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Create, customize, and export design systems\nfor Flutter, Kotlin, and Swift',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: Colors.white.withOpacity(0.9),
+                    fontSize: 18,
+                  ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final responsive = Responsive(context);
-    
-    return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Theme.of(context).colorScheme.primary,
-              Theme.of(context).colorScheme.secondary,
-            ],
-          ),
+    final useWideLayout = _useWideLayout(context);
+
+    const double cardMaxWidth = 400;
+    final optionsCard = ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: cardMaxWidth),
+      child: Card(
+        elevation: 8,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
         ),
-        child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.all(responsive.isMobile ? 24 : 32),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const SizedBox(height: 40),
-                  
-                  // App Logo
-                  AppLogo(size: responsive.isMobile ? 80 : 100),
-                  
-                  const SizedBox(height: 32),
-                  
-                  // Welcome Text
-                  Text(
-                    'Welcome to Design System Builder',
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          fontSize: responsive.isMobile ? 24 : 28,
-                        ),
-                    textAlign: TextAlign.center,
-                  ),
-                  
-                  const SizedBox(height: 16),
-                  
-                  Text(
-                    'Create, customize, and export design systems\nfor Flutter, Kotlin, and Swift',
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: Colors.white.withOpacity(0.9),
-                          fontSize: responsive.isMobile ? 16 : 18,
-                        ),
-                    textAlign: TextAlign.center,
-                  ),
-                  
-                  SizedBox(height: responsive.isMobile ? 48 : 64),
-                  
-                  // Options Card
-                  Card(
-                    elevation: 8,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    child: Padding(
+        child: Padding(
                       padding: EdgeInsets.all(responsive.isMobile ? 24 : 32),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -202,23 +203,10 @@ class WelcomeScreen extends StatelessWidget {
                                           valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                                         ),
                                       )
-                                    : Container(
-                                        width: 20,
-                                        height: 20,
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius: BorderRadius.circular(4),
-                                        ),
-                                        child: const Center(
-                                          child: Text(
-                                            'G',
-                                            style: TextStyle(
-                                              color: Colors.blue,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 16,
-                                            ),
-                                          ),
-                                        ),
+                                    : const FaIcon(
+                                        FontAwesomeIcons.google,
+                                        size: 20,
+                                        color: Color(0xFF4285F4),
                                       ),
                                 label: Text(userProvider.isLoading ? 'Signing in...' : 'Sign in with Google'),
                                 style: ElevatedButton.styleFrom(
@@ -266,14 +254,93 @@ class WelcomeScreen extends StatelessWidget {
                         ],
                       ),
                     ),
-                  ),
-                  
-                  const SizedBox(height: 40),
+      ),
+    );
+
+    return Scaffold(
+      body: Stack(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Theme.of(context).colorScheme.primary,
+                  Theme.of(context).colorScheme.secondary,
                 ],
               ),
             ),
+            child: SafeArea(
+              child: useWideLayout
+              ? Row(
+                  children: [
+                    Expanded(
+                      flex: 1,
+                      child: _buildBrandingPanel(context, responsive),
+                    ),
+                    Expanded(
+                      flex: 1,
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(20),
+                        child: Center(child: optionsCard),
+                      ),
+                    ),
+                  ],
+                )
+              : Center(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.all(responsive.isMobile ? 20 : 24),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const SizedBox(height: 24),
+                        AppLogo(size: responsive.isMobile ? 80 : 100),
+                        const SizedBox(height: 20),
+                        Text(
+                          'Welcome to Design System Builder',
+                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                fontSize: responsive.isMobile ? 24 : 28,
+                              ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Create, customize, and export design systems\nfor Flutter, Kotlin, and Swift',
+                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                color: Colors.white.withOpacity(0.9),
+                                fontSize: responsive.isMobile ? 16 : 18,
+                              ),
+                          textAlign: TextAlign.center,
+                        ),
+                        SizedBox(height: responsive.isMobile ? 28 : 36),
+                        optionsCard,
+                        const SizedBox(height: 24),
+                      ],
+                    ),
+                  ),
+                ),
+            ),
           ),
-        ),
+          Positioned(
+            top: 0,
+            left: 0,
+            child: SafeArea(
+              child: IconButton(
+                onPressed: () {
+                  if (Navigator.canPop(context)) {
+                    Navigator.pop(context);
+                  }
+                },
+                icon: Icon(platformBackIcon),
+                color: Colors.white,
+                tooltip: 'Back to landing page',
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

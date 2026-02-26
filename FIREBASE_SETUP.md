@@ -65,6 +65,43 @@ In the Firebase Console (https://console.firebase.google.com/), enable the follo
 2. Start in **Test Mode** (for development)
 3. Choose a location close to your users
 
+### Firestore Security Rules (fix "permission-denied")
+
+If you see **`[cloud_firestore/permission-denied]`** when signing in (e.g. with Google), your Firestore rules are blocking reads/writes. Update them:
+
+1. In Firebase Console go to **Firestore Database** → **Rules**.
+2. Replace the rules with the following (or merge with your existing rules):
+
+```
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    match /users/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    match /design_systems/{docId} {
+      allow read, write: if request.auth != null;
+    }
+    match /projects/{docId} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
+```
+
+3. Click **Publish**.
+
+This allows signed-in users to read/write only their own `users/{userId}` document (and their subcollections), which the app needs for login and profile data.
+
+**Deploy rules from this project:** From the project root, run:
+```bash
+firebase deploy --only firestore
+```
+(Requires [Firebase CLI](https://firebase.google.com/docs/cli) and `firebase login`. The project's `firebase.json` is already configured to use `firestore.rules`.)
+
 ### Storage
 
 1. Go to **Storage** → **Get Started**

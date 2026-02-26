@@ -24,10 +24,24 @@ class UserProvider extends ChangeNotifier {
   bool get isPremium => _currentUser?.isPremium ?? false;
   UserRole get userRole => _currentUser?.role ?? UserRole.free;
 
-  /// Initialize with guest user or load saved user
+  /// Initialize: start as guest, then restore session if Firebase has a saved user.
   void initialize() {
     _currentUser = User.guest();
     notifyListeners();
+    _restoreSession();
+  }
+
+  /// Restore logged-in user from Firebase Auth (persisted across app restarts).
+  Future<void> _restoreSession() async {
+    try {
+      final firebaseUser = firebase_auth.FirebaseAuth.instance.currentUser;
+      if (firebaseUser != null) {
+        await _loadUserFromFirebase(firebaseUser);
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Session restore failed (staying as guest): $e');
+    }
   }
 
   /// Login user with email and password

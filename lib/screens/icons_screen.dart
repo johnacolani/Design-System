@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/design_system_provider.dart';
 import '../models/design_system.dart' as models;
+import '../utils/screen_body_padding.dart';
 
 class IconsScreen extends StatefulWidget {
   const IconsScreen({super.key});
@@ -28,9 +29,11 @@ class _IconsScreenState extends State<IconsScreen> {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
+      body: ScreenBodyPadding(
+        verticalPadding: 0,
+        child: ListView(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          children: [
           Text(
             'Icon Sizes',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
@@ -78,6 +81,7 @@ class _IconsScreenState extends State<IconsScreen> {
               return _buildIconSizeCard(context, entry.key, entry.value);
             }),
         ],
+        ),
       ),
     );
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
 import '../models/user.dart';
+import '../utils/screen_body_padding.dart';
 import 'settings_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -33,9 +34,11 @@ class ProfileScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
+      body: ScreenBodyPadding(
+        verticalPadding: 0,
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
             // Profile header
             Container(
               padding: const EdgeInsets.all(24),
@@ -250,6 +253,7 @@ class ProfileScreen extends StatelessWidget {
               ),
             ),
           ],
+        ),
         ),
       ),
     );

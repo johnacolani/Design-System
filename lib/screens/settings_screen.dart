@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
+import '../utils/screen_body_padding.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -14,8 +15,10 @@ class SettingsScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Settings'),
       ),
-      body: ListView(
-        children: [
+      body: ScreenBodyPadding(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
           // Account Settings
           _buildSection(
             context,
@@ -211,6 +214,7 @@ class SettingsScreen extends StatelessWidget {
 
           const SizedBox(height: 24),
         ],
+        ),
       ),
     );
   }

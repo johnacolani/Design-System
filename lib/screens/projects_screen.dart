@@ -5,6 +5,7 @@ import '../providers/design_system_provider.dart';
 import '../services/project_service.dart';
 import 'onboarding_screen.dart';
 import 'dashboard_screen.dart';
+import '../utils/screen_body_padding.dart';
 
 class ProjectsScreen extends StatefulWidget {
   const ProjectsScreen({super.key});
@@ -78,11 +79,14 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _projects.isEmpty
-              ? _buildEmptyState()
-              : _buildProjectsList(),
+      body: ScreenBodyPadding(
+        verticalPadding: 0,
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : _projects.isEmpty
+                ? _buildEmptyState()
+                : _buildProjectsList(),
+      ),
     );
   }
 

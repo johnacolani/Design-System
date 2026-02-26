@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/design_system_provider.dart';
 import '../models/design_system.dart' as models;
+import '../utils/screen_body_padding.dart';
 
 class SemanticTokensScreen extends StatefulWidget {
   const SemanticTokensScreen({super.key});
@@ -83,8 +84,10 @@ class _SemanticTokensScreenState extends State<SemanticTokensScreen> with Single
           ),
         ],
       ),
-      body: Column(
-        children: [
+      body: ScreenBodyPadding(
+        verticalPadding: 0,
+        child: Column(
+          children: [
           Container(
             padding: const EdgeInsets.all(16),
             color: Colors.blue.shade50,
@@ -142,6 +145,7 @@ class _SemanticTokensScreenState extends State<SemanticTokensScreen> with Single
                   ),
           ),
         ],
+        ),
       ),
     );
   }

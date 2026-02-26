@@ -137,11 +137,16 @@ class DashboardScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(context.responsive.isMobile ? 16 : 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final width = constraints.maxWidth;
+          final horizontalPadding = (width * 0.15).clamp(24.0, 80.0);
+          final verticalPadding = context.responsive.isMobile ? 16.0 : 24.0;
+          return SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(horizontalPadding, verticalPadding, horizontalPadding, verticalPadding),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
             Card(
               color: Colors.blue.shade50,
               child: Padding(
@@ -396,6 +401,8 @@ class DashboardScreen extends StatelessWidget {
             ),
           ],
         ),
+      );
+        },
       ),
     );
   }
@@ -416,47 +423,90 @@ class DashboardScreen extends StatelessWidget {
     required Color color,
     required VoidCallback onTap,
   }) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  shape: BoxShape.circle,
+    return _HoverableFeatureCard(
+      icon: icon,
+      title: title,
+      description: description,
+      color: color,
+      onTap: onTap,
+    );
+  }
+}
+
+class _HoverableFeatureCard extends StatefulWidget {
+  final IconData icon;
+  final String title;
+  final String description;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _HoverableFeatureCard({
+    required this.icon,
+    required this.title,
+    required this.description,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  State<_HoverableFeatureCard> createState() => _HoverableFeatureCardState();
+}
+
+class _HoverableFeatureCardState extends State<_HoverableFeatureCard> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      cursor: SystemMouseCursors.click,
+      child: AnimatedScale(
+        scale: _isHovered ? 1.02 : 1.0,
+        duration: const Duration(milliseconds: 150),
+        child: Card(
+            elevation: _isHovered ? 6 : 2,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: InkWell(
+              onTap: widget.onTap,
+              borderRadius: BorderRadius.circular(12),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: widget.color.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(widget.icon, color: widget.color, size: 32),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      widget.title,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      widget.description,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Colors.grey[600],
+                          ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
                 ),
-                child: Icon(icon, color: color, size: 32),
               ),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                description,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.grey[600],
-                    ),
-                textAlign: TextAlign.center,
-              ),
-            ],
+            ),
           ),
         ),
-      ),
-    );
+      );
   }
 }

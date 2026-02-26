@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../providers/design_system_provider.dart';
 import '../models/design_system.dart' as models;
 import '../services/color_palette_service.dart';
+import '../utils/screen_body_padding.dart';
 import 'color_picker_screen.dart';
 import 'semantic_tokens_screen.dart';
 
@@ -131,8 +132,10 @@ class _ColorsScreenState extends State<ColorsScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [
+      body: ScreenBodyPadding(
+        verticalPadding: 0,
+        child: Column(
+          children: [
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             color: accentColor.withOpacity(0.1),
@@ -208,6 +211,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
                       ),
           ),
         ],
+        ),
       ),
     );
   }

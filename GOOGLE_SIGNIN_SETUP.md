@@ -81,6 +81,34 @@ Make sure Google Sign-In is enabled in Firebase Console:
 - **"invalid_client"**: Check that the client ID is correct
 - **"access_denied"**: Make sure Google Sign-In is enabled in Firebase Console
 
+## macOS: Keychain Error & Signing (Required for Google Sign-In)
+
+If you see this on macOS when using **Sign in with Google**:
+```
+[firebase_auth/keychain-error] An error occurred when accessing the keychain.
+```
+
+The app needs **Keychain Sharing** (already in the entitlements) and **development signing**. Do this once:
+
+### Enable signing so the app can build and use the keychain
+
+1. **Open the macOS app in Xcode**
+   ```bash
+   open macos/Runner.xcworkspace
+   ```
+2. In the left sidebar, select the **Runner** project (blue icon), then the **Runner** target.
+3. Open the **Signing & Capabilities** tab.
+4. Under **Signing**, check **Automatically manage signing**.
+5. Choose your **Team** (e.g. "Personal Team" for a free Apple ID, or your paid team).
+6. If Xcode asks to enable the Keychain Sharing capability, confirm.
+
+Then build and run from Xcode, or close Xcode and run:
+```bash
+flutter run -d macos
+```
+
+Google Sign-In should then complete and navigate to the home screen. Email/password sign-in works without this step.
+
 ## Need Help?
 
 If you're still having issues:

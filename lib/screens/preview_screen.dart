@@ -7,6 +7,7 @@ import 'package:printing/printing.dart';
 import 'package:file_picker/file_picker.dart';
 import '../providers/design_system_provider.dart';
 import '../models/design_system.dart' as models;
+import '../utils/screen_body_padding.dart';
 
 class PreviewScreen extends StatefulWidget {
   const PreviewScreen({super.key});
@@ -518,7 +519,9 @@ class _PreviewScreenState extends State<PreviewScreen> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
+      body: ScreenBodyPadding(
+        verticalPadding: 0,
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -603,6 +606,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
               ],
             ],
           ),
+        ),
         ),
 
     );

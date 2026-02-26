@@ -5,6 +5,7 @@ import '../models/design_system.dart' as models;
 import 'home_screen.dart';
 import 'dashboard_screen.dart';
 import 'color_picker_screen.dart';
+import '../utils/screen_body_padding.dart';
 
 class TypographyScreen extends StatefulWidget {
   const TypographyScreen({super.key});
@@ -46,13 +47,16 @@ class _TypographyScreenState extends State<TypographyScreen> {
             ],
           ),
         ),
-        body: TabBarView(
-          children: [
-            _buildFontFamilyTab(),
-            _buildFontWeightsTab(),
-            _buildFontSizesTab(),
-            _buildTextStylesTab(),
-          ],
+        body: ScreenBodyPadding(
+          verticalPadding: 0,
+          child: TabBarView(
+            children: [
+              _buildFontFamilyTab(),
+              _buildFontWeightsTab(),
+              _buildFontSizesTab(),
+              _buildTextStylesTab(),
+            ],
+          ),
         ),
       ),
     );

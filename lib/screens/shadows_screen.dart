@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'dart:math' as math;
 import '../providers/design_system_provider.dart';
 import '../models/design_system.dart' as models;
+import '../utils/screen_body_padding.dart';
 import 'color_picker_screen.dart';
 
 class ShadowsScreen extends StatefulWidget {
@@ -30,9 +31,11 @@ class _ShadowsScreenState extends State<ShadowsScreen> {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
+      body: ScreenBodyPadding(
+        verticalPadding: 0,
+        child: ListView(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          children: [
           Text(
             'Shadow Definitions',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
@@ -80,6 +83,7 @@ class _ShadowsScreenState extends State<ShadowsScreen> {
               return _buildShadowCard(context, entry.key, entry.value);
             }),
         ],
+        ),
       ),
     );
   }

@@ -20,6 +20,19 @@
 	<string>$(FLUTTER_BUILD_NAME)</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.47033728900-b5rmrek7q4tsh8n6aqivu2s6cjr7kdvv</string>
+			</array>
+			<key>CFBundleURLName</key>
+			<string>Google Sign-In</string>
+		</dict>
+	</array>
+	<key>GIDClientID</key>
+	<string>47033728900-b5rmrek7q4tsh8n6aqivu2s6cjr7kdvv.apps.googleusercontent.com</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
 	<key>NSHumanReadableCopyright</key>

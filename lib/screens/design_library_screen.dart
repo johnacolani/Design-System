@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import '../utils/screen_body_padding.dart';
 import 'material_picker_screen.dart';
 import 'cupertino_picker_screen.dart';
 
@@ -12,9 +13,11 @@ class DesignLibraryScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Design Library'),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(24),
-        children: [
+      body: ScreenBodyPadding(
+        verticalPadding: 24,
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
           Text(
             'Choose Design System',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
@@ -55,6 +58,7 @@ class DesignLibraryScreen extends StatelessWidget {
             },
           ),
         ],
+        ),
       ),
     );
   }

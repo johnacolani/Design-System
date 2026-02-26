@@ -8,7 +8,7 @@ import '../providers/user_provider.dart';
 import '../services/color_theory_service.dart';
 import '../services/color_palette_service.dart';
 import '../models/design_system.dart' as models;
-import '../widgets/app_logo.dart';
+import '../utils/platform_icons.dart';
 import 'color_picker_screen.dart';
 import 'dashboard_screen.dart';
 
@@ -352,7 +352,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: Icon(platformBackIcon),
           onPressed: _currentStep > 0 ? _previousStep : () => Navigator.of(context).pop(),
         ),
         title: Text('Step ${_currentStep + 1} of 5'),
@@ -382,6 +382,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Widget _buildStep1BasicInfo() {
+    final width = MediaQuery.sizeOf(context).width;
+    final horizontalPadding = (width * 0.20).clamp(24.0, double.infinity);
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -396,14 +398,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       child: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(32.0),
+            padding: EdgeInsets.fromLTRB(horizontalPadding, 40, horizontalPadding, 32),
             child: Form(
               key: _formKey,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  AppLogo(size: 80),
+                  Icon(Icons.palette, size: 56, color: Colors.blue.shade700),
                   const SizedBox(height: 24),
                   Text(
                     'Create Your Design System',
@@ -479,6 +481,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Widget _buildStep2AppInfo() {
+    final width = MediaQuery.sizeOf(context).width;
+    final horizontalPadding = (width * 0.20).clamp(24.0, double.infinity);
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -492,10 +496,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       ),
       child: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(32.0),
+          padding: EdgeInsets.fromLTRB(horizontalPadding, 40, horizontalPadding, 32),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Center(
+                child: Icon(Icons.apps, size: 56, color: Colors.blue.shade700),
+              ),
+              const SizedBox(height: 24),
               Text(
                 'Tell us about your app',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
@@ -633,6 +641,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Widget _buildStep3ColorScheme() {
+    final width = MediaQuery.sizeOf(context).width;
+    final horizontalPadding = (width * 0.20).clamp(24.0, double.infinity);
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -646,10 +656,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       ),
       child: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(32.0),
+          padding: EdgeInsets.fromLTRB(horizontalPadding, 40, horizontalPadding, 32),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Center(
+                child: Icon(Icons.color_lens, size: 56, color: Colors.blue.shade700),
+              ),
+              const SizedBox(height: 24),
               Text(
                 'Choose your color scheme',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
@@ -804,7 +818,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   Widget _buildStep4BaseColor() {
     final recommendedColor = _getRecommendedBaseColor();
-    
+    final width = MediaQuery.sizeOf(context).width;
+    final horizontalPadding = (width * 0.20).clamp(24.0, double.infinity);
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -818,10 +833,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       ),
       child: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(32.0),
+          padding: EdgeInsets.fromLTRB(horizontalPadding, 40, horizontalPadding, 32),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Center(
+                child: Icon(Icons.colorize, size: 56, color: _baseColor),
+              ),
+              const SizedBox(height: 24),
               Text(
                 'Pick your base color',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
@@ -1093,23 +1112,30 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Widget _buildStep5Preview() {
+    final width = MediaQuery.sizeOf(context).width;
+    final horizontalPadding = (width * 0.20).clamp(24.0, double.infinity);
+    final accentColor = _selectedPrimaryColor ?? _baseColor;
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            (_selectedPrimaryColor ?? _baseColor).withValues(alpha: 0.1),
-            (_selectedPrimaryColor ?? _baseColor).withValues(alpha: 0.05),
+            accentColor.withValues(alpha: 0.1),
+            accentColor.withValues(alpha: 0.05),
           ],
         ),
       ),
       child: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(32.0),
+          padding: EdgeInsets.fromLTRB(horizontalPadding, 40, horizontalPadding, 32),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Center(
+                child: Icon(Icons.preview, size: 56, color: accentColor),
+              ),
+              const SizedBox(height: 24),
               Text(
                 'Preview your color palette',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(

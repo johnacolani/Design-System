@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/design_system_provider.dart';
 import '../models/design_system.dart' as models;
+import '../utils/screen_body_padding.dart';
 
 class BorderRadiusScreen extends StatefulWidget {
   const BorderRadiusScreen({super.key});
@@ -28,9 +29,11 @@ class _BorderRadiusScreenState extends State<BorderRadiusScreen> {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
+      body: ScreenBodyPadding(
+        verticalPadding: 0,
+        child: ListView(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          children: [
           Text(
             'Border Radius Values',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
@@ -53,6 +56,7 @@ class _BorderRadiusScreenState extends State<BorderRadiusScreen> {
           _buildBorderRadiusCard(context, 'Extra Large', borderRadius.xl, 'Extra large rounded corners'),
           _buildBorderRadiusCard(context, 'Full', borderRadius.full, 'Fully rounded (circle)'),
         ],
+        ),
       ),
     );
   }

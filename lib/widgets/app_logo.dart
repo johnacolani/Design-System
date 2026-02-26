@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 
 class AppLogo extends StatelessWidget {
   final double size;
@@ -13,30 +12,18 @@ class AppLogo extends StatelessWidget {
     this.fit = BoxFit.contain,
   });
 
+  /// App icon used as logo (same as macOS app icon).
+  static const String appIconAsset =
+      'macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_512.png';
+
   @override
   Widget build(BuildContext context) {
-    // For web, use the web icon directly
-    if (kIsWeb) {
-      return Image.network(
-        '/icons/icon-512.png',
-        width: size,
-        height: size,
-        fit: fit,
-        errorBuilder: (context, error, stackTrace) {
-          // Fallback: Use Material icon
-          return _buildFallbackIcon(context);
-        },
-      );
-    }
-    
-    // For mobile/desktop, try assets first
     return Image.asset(
-      'assets/images/app_logo.png',
+      appIconAsset,
       width: size,
       height: size,
       fit: fit,
       errorBuilder: (context, error, stackTrace) {
-        // Fallback: Use Material icon
         return _buildFallbackIcon(context);
       },
     );

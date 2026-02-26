@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/design_system_provider.dart';
 import '../models/design_system.dart' as models;
+import '../utils/screen_body_padding.dart';
 
 class GradientsScreen extends StatefulWidget {
   const GradientsScreen({super.key});
@@ -28,9 +29,11 @@ class _GradientsScreenState extends State<GradientsScreen> {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
+      body: ScreenBodyPadding(
+        verticalPadding: 0,
+        child: ListView(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          children: [
           Text(
             'Gradient Definitions',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
@@ -78,6 +81,7 @@ class _GradientsScreenState extends State<GradientsScreen> {
               return _buildGradientCard(context, entry.key, entry.value);
             }),
         ],
+        ),
       ),
     );
   }
