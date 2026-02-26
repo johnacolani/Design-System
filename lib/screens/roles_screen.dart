@@ -79,7 +79,6 @@ class _RolesScreenState extends State<RolesScreen> {
               return _buildRoleCard(context, entry.key, entry.value);
             }),
         ],
-        ),
       ),
     );
   }
