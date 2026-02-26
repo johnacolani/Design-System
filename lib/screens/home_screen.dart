@@ -291,7 +291,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (designSystem.colors.primary.isNotEmpty) {
       final firstColor = designSystem.colors.primary.values.first;
       final colorValue = firstColor is Map
-          ? (firstColor as Map)['value']?.toString() ?? '#000000'
+          ? (firstColor)['value']?.toString() ?? '#000000'
           : firstColor.toString();
       primaryColor = _parseColor(colorValue);
     }
@@ -397,7 +397,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (designSystem.colors.primary.isNotEmpty) {
         final firstColor = designSystem.colors.primary.values.first;
         final colorValue = firstColor is Map
-            ? (firstColor as Map)['value']?.toString() ?? '#000000'
+            ? (firstColor)['value']?.toString() ?? '#000000'
             : firstColor.toString();
         primaryColor = _parseColor(colorValue);
       }
@@ -937,7 +937,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (designSystem.colors.primary.isNotEmpty) {
       final firstColor = designSystem.colors.primary.values.first;
       final colorValue = firstColor is Map
-          ? (firstColor as Map)['value']?.toString() ?? '#000000'
+          ? (firstColor)['value']?.toString() ?? '#000000'
           : firstColor.toString();
       primaryColor = _parseColor(colorValue);
     }

@@ -625,9 +625,9 @@ class _ColorsScreenState extends State<ColorsScreen> {
                               colorName,
                               description,
                               color,
-                              primaryToDark!,
-                              primaryToLight!,
-                              suggestions!,
+                              primaryToDark,
+                              primaryToLight,
+                              suggestions,
                               category,
                             );
                           }

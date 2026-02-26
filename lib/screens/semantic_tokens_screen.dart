@@ -479,12 +479,10 @@ class _SemanticTokensScreenState extends State<SemanticTokensScreen> with Single
         break;
       case 'shadow':
         // Add shadow tokens
-        if (designSystem.shadows.values != null) {
-          designSystem.shadows.values!.forEach((key, value) {
-            tokens.add('shadows.$key');
-          });
-        }
-        break;
+        designSystem.shadows.values!.forEach((key, value) {
+          tokens.add('shadows.$key');
+        });
+              break;
       case 'borderRadius':
         // Add border radius tokens
         tokens.add('borderRadius.none');
