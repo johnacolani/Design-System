@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:file_picker/file_picker.dart';
 import '../providers/design_system_provider.dart';
 import '../providers/user_provider.dart';
 import '../utils/responsive.dart';
+import '../services/project_service.dart';
+import '../models/design_system.dart' as models;
 import 'colors_screen.dart';
 import 'profile_screen.dart';
-import 'home_screen.dart';
 import 'typography_screen.dart';
 import 'spacing_screen.dart';
 import 'border_radius_screen.dart';
@@ -27,6 +29,32 @@ import 'motion_tokens_screen.dart';
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
 
+  Future<void> _handleSaveToComputer(BuildContext context, models.DesignSystem ds) async {
+    try {
+      String? outputFile = await FilePicker.platform.saveFile(
+        dialogTitle: 'Save Design System',
+        fileName: '${ds.name.replaceAll(' ', '_')}.ds.json',
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+      );
+
+      if (outputFile != null) {
+        await ProjectService.exportProject(ds, outputFile);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Design System saved to computer!'), backgroundColor: Colors.green),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error saving to computer: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<DesignSystemProvider>(context);
@@ -37,10 +65,7 @@ class DashboardScreen extends StatelessWidget {
         leading: IconButton(
           icon: const Icon(Icons.home),
           onPressed: () {
-            // Clear any snackbars before navigating
             ScaffoldMessenger.of(context).clearSnackBars();
-            // Navigate to projects screen instead of home screen
-            // This shows all projects rather than "Continue working" card
             Navigator.of(context).pushReplacement(
               MaterialPageRoute(builder: (_) => const ProjectsScreen()),
             );
@@ -82,27 +107,25 @@ class DashboardScreen extends StatelessWidget {
             },
           ),
           IconButton(
+            icon: const Icon(Icons.computer),
+            tooltip: 'Save to Computer',
+            onPressed: () => _handleSaveToComputer(context, designSystem),
+          ),
+          IconButton(
             icon: const Icon(Icons.save_outlined),
-            tooltip: 'Save Project',
+            tooltip: 'Save Progress',
             onPressed: () async {
               try {
-                final provider = Provider.of<DesignSystemProvider>(context, listen: false);
                 await provider.saveProject();
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Project saved successfully!'),
-                      backgroundColor: Colors.green,
-                    ),
+                    const SnackBar(content: Text('Progress saved successfully!'), backgroundColor: Colors.green),
                   );
                 }
               } catch (e) {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Failed to save: $e'),
-                      backgroundColor: Colors.red,
-                    ),
+                    SnackBar(content: Text('Failed to save: $e'), backgroundColor: Colors.red),
                   );
                 }
               }
@@ -405,14 +428,6 @@ class DashboardScreen extends StatelessWidget {
         },
       ),
     );
-  }
-
-  int _getCrossAxisCount(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-    if (width > 1200) return 4;
-    if (width > 800) return 3;
-    if (width > 600) return 2;
-    return 1;
   }
 
   Widget _buildFeatureCard(

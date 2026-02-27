@@ -186,29 +186,14 @@ class _ColorsScreenState extends State<ColorsScreen> {
                       ],
                     ),
                   )
-                : _selectedCategory == 'semantic'
-                    ? ListView.builder(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: currentCategory.length,
-                        itemBuilder: (context, index) {
-                          final entry = currentCategory.entries.elementAt(index);
-                          return _buildSemanticColorCard(context, entry.key, entry.value, _selectedCategory);
-                        },
-                      )
-                    : GridView.builder(
-                        padding: const EdgeInsets.all(16),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 16,
-                          mainAxisSpacing: 16,
-                          childAspectRatio: 4.0,
-                        ),
-                        itemCount: currentCategory.length,
-                        itemBuilder: (context, index) {
-                          final entry = currentCategory.entries.elementAt(index);
-                          return _buildColorCard(context, entry.key, entry.value, _selectedCategory);
-                        },
-                      ),
+                : ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: currentCategory.length,
+                    itemBuilder: (context, index) {
+                      final entry = currentCategory.entries.elementAt(index);
+                      return _buildColorRow(context, entry.key, entry.value, _selectedCategory);
+                    },
+                  ),
           ),
         ],
         ),
@@ -216,7 +201,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
     );
   }
 
-  Widget _buildSemanticColorCard(
+  Widget _buildColorRow(
     BuildContext context,
     String name,
     dynamic colorData,
@@ -245,12 +230,25 @@ class _ColorsScreenState extends State<ColorsScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           child: Row(
             children: [
+              SizedBox(
+                width: 80,
+                child: Text(
+                  _colorToHex(color),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Colors.grey[800],
+                        fontFamily: 'monospace',
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                ),
+              ),
+              const SizedBox(width: 12),
               Container(
                 width: 120,
-                height: 50,
+                height: 40,
                 decoration: BoxDecoration(
                   color: color,
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: BorderRadius.circular(4),
                   border: Border.all(color: Colors.grey.shade300, width: 1),
                 ),
               ),
@@ -266,15 +264,16 @@ class _ColorsScreenState extends State<ColorsScreen> {
                             fontWeight: FontWeight.w600,
                           ),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      _colorToHex(color),
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Colors.grey[600],
-                            fontFamily: 'monospace',
-                            fontSize: 11,
-                          ),
-                    ),
+                    if (description.isNotEmpty)
+                      Text(
+                        description,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Colors.grey[600],
+                              fontSize: 11,
+                            ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                   ],
                 ),
               ),
@@ -310,132 +309,6 @@ class _ColorsScreenState extends State<ColorsScreen> {
                   ),
                 ],
               ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildColorCard(
-    BuildContext context,
-    String name,
-    dynamic colorData,
-    String category,
-  ) {
-    Color color;
-    String description = '';
-
-    if (colorData is Map) {
-      final value = colorData['value'] as String? ?? '#000000';
-      color = _parseColor(value);
-      description = colorData['description'] as String? ?? '';
-    } else {
-      color = Colors.grey;
-    }
-
-    return Card(
-      elevation: 2,
-      child: InkWell(
-        onTap: () {
-          _showEditColorDialog(context, name, colorData, category);
-        },
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(6),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: double.infinity,
-                height: 20,
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: Colors.grey[300]!),
-                  boxShadow: [
-                    BoxShadow(
-                      color: color.withOpacity(0.3),
-                      blurRadius: 4,
-                      spreadRadius: 1,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 3),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      name,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 11,
-                          ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  PopupMenuButton<String>(
-                    icon: const Icon(Icons.more_vert, size: 16),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    onSelected: (value) {
-                      if (value == 'edit') {
-                        _showEditColorDialog(context, name, colorData, category);
-                      } else if (value == 'delete') {
-                        _deleteColor(context, name, category);
-                      }
-                    },
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(
-                        value: 'edit',
-                        child: Row(
-                          children: [
-                            Icon(Icons.edit, size: 18),
-                            SizedBox(width: 8),
-                            Text('Edit'),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'delete',
-                        child: Row(
-                          children: [
-                            Icon(Icons.delete, size: 18, color: Colors.red),
-                            SizedBox(width: 8),
-                            Text('Delete', style: TextStyle(color: Colors.red)),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 1),
-              Text(
-                _colorToHex(color),
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.grey[600],
-                      fontFamily: 'monospace',
-                      fontSize: 8,
-                    ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              if (description.isNotEmpty) ...[
-                const SizedBox(height: 1),
-                Text(
-                  description,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.grey[600],
-                        fontSize: 8,
-                      ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
             ],
           ),
         ),
