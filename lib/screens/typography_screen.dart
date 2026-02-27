@@ -4,7 +4,6 @@ import 'package:google_fonts/google_fonts.dart';
 import '../providers/design_system_provider.dart';
 import '../models/design_system.dart' as models;
 import 'dashboard_screen.dart';
-import 'color_picker_screen.dart';
 import '../utils/screen_body_padding.dart';
 
 class TypographyScreen extends StatefulWidget {

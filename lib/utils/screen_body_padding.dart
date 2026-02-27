@@ -21,13 +21,16 @@ class ScreenBodyPadding extends StatelessWidget {
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
     final horizontal = (width * 0.15).clamp(24.0, 80.0);
+    
+    // Default vertical padding doubled from 16 to 32
     final vertical = verticalPadding ?? 16.0;
+    
     return Padding(
       padding: EdgeInsets.fromLTRB(
         horizontal,
-        vertical > 0 ? vertical : 0,
+        vertical,
         horizontal,
-        vertical > 0 ? vertical : 0,
+        vertical * 2, // Doubled bottom padding specifically
       ),
       child: child,
     );
