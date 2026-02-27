@@ -138,7 +138,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
           children: [
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            color: accentColor.withOpacity(0.1),
+            color: accentColor.withValues(alpha: 0.1),
             child: Row(
               children: [
                 Container(
@@ -339,12 +339,12 @@ class _ColorsScreenState extends State<ColorsScreen> {
   }
 
   String _colorToHex(Color color) {
-    return '#${color.value.toRadixString(16).substring(2).toUpperCase()}';
+    return \u0027#${color.toARGB32().toRadixString(16).substring(2).toUpperCase()}\u0027;
   }
 
   Color _getContrastColor(Color color) {
-    // Calculate relative luminance
-    final luminance = (0.299 * color.red + 0.587 * color.green + 0.114 * color.blue) / 255;
+    // Calculate relative luminance using component accessors
+    final luminance \u003d (0.299 * color.r + 0.587 * color.g + 0.114 * color.b);
     return luminance > 0.5 ? Colors.black : Colors.white;
   }
 
@@ -359,13 +359,13 @@ class _ColorsScreenState extends State<ColorsScreen> {
     String initialName,
     String initialDescription,
   ) {
-    final nameController = TextEditingController(text: initialName);
-    final descriptionController = TextEditingController(text: initialDescription);
+    final nameController \u003d TextEditingController(text: initialName);
+    final descriptionController \u003d TextEditingController(text: initialDescription);
     
     showDialog(
       context: context,
       builder: (context) {
-        Color selectedColor = initialColor;
+        Color selectedColor \u003d initialColor;
         Map<String, String>? storedPrimaryToDark;
         Map<String, String>? storedPrimaryToLight;
         List<ColorSuggestion>? storedSuggestions;
@@ -373,13 +373,13 @@ class _ColorsScreenState extends State<ColorsScreen> {
         return StatefulBuilder(
           builder: (dialogContext, setDialogState) {
             return AlertDialog(
-          title: Text(category == 'semantic' ? 'Add Semantic Color' : 'Add Color'),
+          title: Text(category \u003d\u003d 'semantic' ? 'Add Semantic Color' : 'Add Color'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (category == 'semantic') ...[
+                if (category \u003d\u003d 'semantic') ...[
                   Container(
                     padding: const EdgeInsets.all(12),
                     margin: const EdgeInsets.only(bottom: 16),
@@ -420,7 +420,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
                             Navigator.of(context).pop(); // Close this dialog
                             Navigator.of(context).push(
                               MaterialPageRoute(
-                                builder: (_) => const SemanticTokensScreen(),
+                                builder: (_) \u003d\u003e const SemanticTokensScreen(),
                               ),
                             );
                           },
@@ -439,10 +439,10 @@ class _ColorsScreenState extends State<ColorsScreen> {
                 TextField(
                   controller: nameController,
                   decoration: InputDecoration(
-                    labelText: category == 'semantic' ? 'Semantic Color Name' : 'Color Name',
-                    hintText: category == 'semantic' ? 'e.g., success, error, warning' : 'e.g., primaryBlue',
+                    labelText: category \u003d\u003d 'semantic' ? 'Semantic Color Name' : 'Color Name',
+                    hintText: category \u003d\u003d 'semantic' ? 'e.g., success, error, warning' : 'e.g., primaryBlue',
                     border: const OutlineInputBorder(),
-                    helperText: category == 'semantic' 
+                    helperText: category \u003d\u003d 'semantic' 
                         ? 'Use meaningful names like "success", "error", "info"'
                         : null,
                   ),
@@ -461,19 +461,19 @@ class _ColorsScreenState extends State<ColorsScreen> {
                 ElevatedButton.icon(
                   onPressed: () async {
                     // Store values before navigating
-                    final name = nameController.text;
-                    final description = descriptionController.text;
+                    final name \u003d nameController.text;
+                    final description \u003d descriptionController.text;
                     
                     // Navigate to color picker WITHOUT closing dialog
-                    final result = await Navigator.of(dialogContext).push<Map<String, dynamic>>(
+                    final result \u003d await Navigator.of(dialogContext).push<Map<String, dynamic>>(
                       MaterialPageRoute(
-                        builder: (_) => ColorPickerScreen(
+                        builder: (_) \u003d\u003e ColorPickerScreen(
                           category: category,
                         ),
                       ),
                     );
                     
-                    if (result != null && mounted) {
+                    if (result !\u003d null \u0026\u0026 dialogContext.mounted) {
                       // Get the selected color
                       Color? pickedColor;
                       Map<String, String>? primaryToDark;
@@ -481,24 +481,24 @@ class _ColorsScreenState extends State<ColorsScreen> {
                       List<ColorSuggestion>? suggestions;
                       
                       // Check if multiple colors were selected
-                      if (result.containsKey('colors') && (result['colors'] as List).isNotEmpty) {
-                        final colors = result['colors'] as List<Color>;
-                        pickedColor = colors.first; // Use first color for display
-                        primaryToDark = result['primaryToDark'] as Map<String, String>;
-                        primaryToLight = result['primaryToLight'] as Map<String, String>;
-                        suggestions = result['suggestions'] as List<ColorSuggestion>;
+                      if (result.containsKey('colors') \u0026\u0026 (result['colors'] as List).isNotEmpty) {
+                        final colors \u003d result['colors'] as List<Color>;
+                        pickedColor \u003d colors.first; // Use first color for display
+                        primaryToDark \u003d result['primaryToDark'] as Map<String, String>;
+                        primaryToLight \u003d result['primaryToLight'] as Map<String, String>;
+                        suggestions \u003d result['suggestions'] as List<ColorSuggestion>;
                         
                         // If name is provided and multiple colors, add all directly
-                        if (name.isNotEmpty && colors.length > 1) {
+                        if (name.isNotEmpty \u0026\u0026 colors.length > 1) {
                           Navigator.of(dialogContext).pop(); // Close dialog
                           
                           // Add each color with auto-generated name
-                          for (int i = 0; i < colors.length; i++) {
-                            final color = colors[i];
-                            final colorName = '$name ${i + 1}';
+                          for (int i \u003d 0; i \u003c colors.length; i++) {
+                            final color \u003d colors[i];
+                            final colorName \u003d '$name ${i + 1}';
                             
                             _addColorWithScales(
-                              context,
+                              dialogContext,
                               colorName,
                               description,
                               color,
@@ -509,10 +509,10 @@ class _ColorsScreenState extends State<ColorsScreen> {
                             );
                           }
                           
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
+                          if (dialogContext.mounted) {
+                            ScaffoldMessenger.of(dialogContext).showSnackBar(
                               SnackBar(
-                                content: Text('Added ${colors.length} color${colors.length > 1 ? 's' : ''}'),
+                                content: Text('Added ${colors.length} color${colors.length > 1 ? \'s\' : \'\'}'),
                                 backgroundColor: Colors.green,
                               ),
                             );
@@ -521,27 +521,27 @@ class _ColorsScreenState extends State<ColorsScreen> {
                         }
                       } else if (result.containsKey('color')) {
                         // Single color
-                        pickedColor = result['color'] as Color;
-                        primaryToDark = result['primaryToDark'] as Map<String, String>;
-                        primaryToLight = result['primaryToLight'] as Map<String, String>;
-                        suggestions = result['suggestions'] as List<ColorSuggestion>;
+                        pickedColor \u003d result['color'] as Color;
+                        primaryToDark \u003d result['primaryToDark'] as Map<String, String>;
+                        primaryToLight \u003d result['primaryToLight'] as Map<String, String>;
+                        suggestions \u003d result['suggestions'] as List<ColorSuggestion>;
                       }
                       
-                      if (pickedColor != null) {
+                      if (pickedColor !\u003d null) {
                         // Update the dialog state to show selected color and store scales
                         setDialogState(() {
-                          selectedColor = pickedColor!;
-                          storedPrimaryToDark = primaryToDark;
-                          storedPrimaryToLight = primaryToLight;
-                          storedSuggestions = suggestions;
+                          selectedColor \u003d pickedColor!;
+                          storedPrimaryToDark \u003d primaryToDark;
+                          storedPrimaryToLight \u003d primaryToLight;
+                          storedSuggestions \u003d suggestions;
                         });
                       }
                     }
                   },
                   icon: const Icon(Icons.palette),
-                  label: Text(category == 'semantic' 
-                      ? 'Browse Palettes & Pick Semantic Color'
-                      : 'Browse Color Palettes & Get Suggestions'),
+                  label: Text(category \u003d\u003d 'semantic' 
+                      ? 'Browse Palettes \u0026 Pick Semantic Color'
+                      : 'Browse Color Palettes \u0026 Get Suggestions'),
                   style: ElevatedButton.styleFrom(
                     minimumSize: const Size(double.infinity, 48),
                   ),
@@ -550,7 +550,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
                 Row(
                   children: [
                     const Text('Or pick color:', style: TextStyle(fontWeight: FontWeight.w600)),
-                    if (category == 'semantic') ...[
+                    if (category \u003d\u003d 'semantic') ...[
                       const SizedBox(width: 8),
                       Tooltip(
                         message: 'Tap the color box below to open the color picker',
@@ -574,11 +574,11 @@ class _ColorsScreenState extends State<ColorsScreen> {
                           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                         ),
                         onChanged: (value) {
-                          if (value.isNotEmpty && value.startsWith('#')) {
+                          if (value.isNotEmpty \u0026\u0026 value.startsWith('#')) {
                             try {
-                              final color = _parseColor(value);
+                              final color \u003d _parseColor(value);
                               setDialogState(() {
-                                selectedColor = color;
+                                selectedColor \u003d color;
                               });
                             } catch (e) {
                               // Invalid color, ignore
@@ -586,11 +586,11 @@ class _ColorsScreenState extends State<ColorsScreen> {
                           }
                         },
                         onSubmitted: (value) {
-                          if (value.isNotEmpty && value.startsWith('#')) {
+                          if (value.isNotEmpty \u0026\u0026 value.startsWith('#')) {
                             try {
-                              final color = _parseColor(value);
+                              final color \u003d _parseColor(value);
                               setDialogState(() {
-                                selectedColor = color;
+                                selectedColor \u003d color;
                               });
                             } catch (e) {
                               // Invalid color, ignore
@@ -626,14 +626,14 @@ class _ColorsScreenState extends State<ColorsScreen> {
                 const SizedBox(height: 8),
                 GestureDetector(
                   onTap: () async {
-                    final result = await Navigator.of(context).push<Map<String, dynamic>>(
+                    final result \u003d await Navigator.of(context).push<Map<String, dynamic>>(
                       MaterialPageRoute(
-                        builder: (_) => const ColorPickerScreen(),
+                        builder: (_) \u003d\u003e const ColorPickerScreen(),
                       ),
                     );
-                    if (result != null && result['color'] != null && mounted) {
+                    if (result !\u003d null \u0026\u0026 result[\'color\'] !\u003d null \u0026\u0026 context.mounted) {
                       setDialogState(() {
-                        selectedColor = result['color'] as Color;
+                        selectedColor \u003d result[\'color\'] as Color;
                       });
                     }
                   },
@@ -652,17 +652,11 @@ class _ColorsScreenState extends State<ColorsScreen> {
                             children: [
                               const Icon(Icons.colorize, size: 48, color: Colors.white),
                               const SizedBox(height: 8),
-                              Text(
-                                'Tap to pick color',
+                              const Text(
+                                \'Tap to pick color\',
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
-                                  shadows: [
-                                    Shadow(
-                                      color: Colors.black.withValues(alpha: 0.5),
-                                      blurRadius: 4,
-                                    ),
-                                  ],
                                 ),
                               ),
                             ],
@@ -682,7 +676,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
-                                fontFamily: 'monospace',
+                                fontFamily: \'monospace\',
                                 fontSize: 12,
                               ),
                             ),
@@ -697,16 +691,16 @@ class _ColorsScreenState extends State<ColorsScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
+              onPressed: () \u003d\u003e Navigator.of(context).pop(),
+              child: const Text(\'Cancel\'),
             ),
             ElevatedButton(
               onPressed: () {
                 if (nameController.text.isNotEmpty) {
                   // Use stored scales if available (from color picker), otherwise generate new ones
-                  final primaryToDark = storedPrimaryToDark ?? ColorPaletteService.generatePrimaryToDark(selectedColor, steps: 10);
-                  final primaryToLight = storedPrimaryToLight ?? ColorPaletteService.generatePrimaryToLight(selectedColor, steps: 10);
-                  final suggestions = storedSuggestions ?? [];
+                  final primaryToDark \u003d storedPrimaryToDark ?? ColorPaletteService.generatePrimaryToDark(selectedColor, steps: 10);
+                  final primaryToLight \u003d storedPrimaryToLight ?? ColorPaletteService.generatePrimaryToLight(selectedColor, steps: 10);
+                  final suggestions \u003d storedSuggestions ?? [];
                   
                   _addColorWithScales(
                     context,
@@ -721,13 +715,13 @@ class _ColorsScreenState extends State<ColorsScreen> {
                   Navigator.of(dialogContext).pop();
                   
                   // Show helpful message for semantic colors
-                  if (category == 'semantic' && mounted) {
+                  if (category \u003d\u003d \'semantic\' \u0026\u0026 context.mounted) {
                     // Hide any existing snackbars first
                     ScaffoldMessenger.of(context).hideCurrentSnackBar();
                     
                     // Use a timer to ensure it dismisses even if user navigates
                     Future.delayed(const Duration(seconds: 4), () {
-                      if (mounted) {
+                      if (context.mounted) {
                         ScaffoldMessenger.of(context).hideCurrentSnackBar();
                       }
                     });
@@ -744,12 +738,12 @@ class _ColorsScreenState extends State<ColorsScreen> {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   const Text(
-                                    'Semantic color added!',
+                                    \'Semantic color added!\',
                                     style: TextStyle(fontWeight: FontWeight.bold),
                                   ),
                                   Text(
-                                    'Go to Semantic Tokens to map it to base colors',
-                                    style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.9)),
+                                    \'Go to Semantic Tokens to map it to base colors\',
+                                    style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.9)),
                                   ),
                                 ],
                               ),
@@ -760,13 +754,13 @@ class _ColorsScreenState extends State<ColorsScreen> {
                         duration: const Duration(seconds: 4),
                         behavior: SnackBarBehavior.floating,
                         action: SnackBarAction(
-                          label: 'Go to Tokens',
+                          label: \'Go to Tokens\',
                           textColor: Colors.white,
                           onPressed: () {
                             ScaffoldMessenger.of(context).hideCurrentSnackBar();
                             Navigator.of(context).push(
                               MaterialPageRoute(
-                                builder: (_) => const SemanticTokensScreen(),
+                                builder: (_) \u003d\u003e const SemanticTokensScreen(),
                               ),
                             );
                           },
@@ -776,7 +770,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
                   }
                 }
               },
-              child: const Text('Add'),
+              child: const Text(\'Add\'),
             ),
           ],
         );
@@ -792,22 +786,22 @@ class _ColorsScreenState extends State<ColorsScreen> {
     dynamic colorData,
     String category,
   ) {
-    final nameController = TextEditingController(text: name);
-    final descriptionController = TextEditingController(
-      text: colorData is Map ? (colorData['description'] as String? ?? '') : '',
+    final nameController \u003d TextEditingController(text: name);
+    final descriptionController \u003d TextEditingController(
+      text: colorData is Map ? (colorData[\'description\'] as String? ?? \'\') : \'\',
     );
-    Color selectedColor = Colors.blue;
+    Color selectedColor \u003d Colors.blue;
 
     if (colorData is Map) {
-      final value = colorData['value'] as String? ?? '#000000';
-      selectedColor = _parseColor(value);
+      final value \u003d colorData[\'value\'] as String? ?? \'#000000\';
+      selectedColor \u003d _parseColor(value);
     }
 
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Edit Color'),
+      builder: (context) \u003d\u003e StatefulBuilder(
+        builder: (context, setDialogState) \u003d\u003e AlertDialog(
+          title: const Text(\'Edit Color\'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -815,7 +809,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
                 TextField(
                   controller: nameController,
                   decoration: const InputDecoration(
-                    labelText: 'Color Name',
+                    labelText: \'Color Name\',
                     border: OutlineInputBorder(),
                   ),
                 ),
@@ -823,24 +817,24 @@ class _ColorsScreenState extends State<ColorsScreen> {
                 TextField(
                   controller: descriptionController,
                   decoration: const InputDecoration(
-                    labelText: 'Description (Optional)',
+                    labelText: \'Description (Optional)\',
                     border: OutlineInputBorder(),
                   ),
                   maxLines: 2,
                 ),
                 const SizedBox(height: 16),
-                const Text('Pick Color:', style: TextStyle(fontWeight: FontWeight.w600)),
+                const Text(\'Pick Color:\', style: TextStyle(fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
                 GestureDetector(
                   onTap: () async {
-                    final result = await Navigator.of(context).push<Map<String, dynamic>>(
+                    final result \u003d await Navigator.of(context).push<Map<String, dynamic>>(
                       MaterialPageRoute(
-                        builder: (_) => const ColorPickerScreen(),
+                        builder: (_) \u003d\u003e const ColorPickerScreen(),
                       ),
                     );
-                    if (result != null && result['color'] != null && mounted) {
+                    if (result !\u003d null \u0026\u0026 result[\'color\'] !\u003d null \u0026\u0026 context.mounted) {
                       setDialogState(() {
-                        selectedColor = result['color'] as Color;
+                        selectedColor \u003d result[\'color\'] as Color;
                       });
                     }
                   },
@@ -859,17 +853,11 @@ class _ColorsScreenState extends State<ColorsScreen> {
                             children: [
                               const Icon(Icons.colorize, size: 48, color: Colors.white),
                               const SizedBox(height: 8),
-                              Text(
-                                'Tap to pick color',
+                              const Text(
+                                \'Tap to pick color\',
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
-                                  shadows: [
-                                    Shadow(
-                                      color: Colors.black.withValues(alpha: 0.5),
-                                      blurRadius: 4,
-                                    ),
-                                  ],
                                 ),
                               ),
                             ],
@@ -889,7 +877,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
-                                fontFamily: 'monospace',
+                                fontFamily: \'monospace\',
                                 fontSize: 12,
                               ),
                             ),
@@ -904,8 +892,8 @@ class _ColorsScreenState extends State<ColorsScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
+              onPressed: () \u003d\u003e Navigator.of(context).pop(),
+              child: const Text(\'Cancel\'),
             ),
             ElevatedButton(
               onPressed: () {
@@ -921,7 +909,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
                   Navigator.of(context).pop();
                 }
               },
-              child: const Text('Save'),
+              child: const Text(\'Save\'),
             ),
           ],
         ),
@@ -939,45 +927,45 @@ class _ColorsScreenState extends State<ColorsScreen> {
     List<ColorSuggestion> suggestions,
     String category,
   ) {
-    if (!mounted) return;
+    if (!context.mounted) return;
     
-    final provider = Provider.of<DesignSystemProvider>(context, listen: false);
-    final colors = provider.designSystem.colors;
-    final colorHex = _colorToHex(color);
+    final provider \u003d Provider.of<DesignSystemProvider>(context, listen: false);
+    final colors \u003d provider.designSystem.colors;
+    final colorHex \u003d _colorToHex(color);
 
     // Build color data map with all scales
-    final colorData = <String, dynamic>{
-      'value': colorHex,
-      'type': 'color',
-      'description': description,
+    final colorData \u003d \u003cString, dynamic\u003e{
+      \'value\': colorHex,
+      \'type\': \'color\',
+      \'description\': description,
     };
 
-    Map<String, dynamic> updatedCategory = {};
+    Map<String, dynamic> updatedCategory \u003d {};
     
     // Add primary color
     switch (category) {
-      case 'primary':
-        updatedCategory = Map<String, dynamic>.from(colors.primary);
-        updatedCategory[name] = colorData;
+      case \'primary\':
+        updatedCategory \u003d Map<String, dynamic>.from(colors.primary);
+        updatedCategory[name] \u003d colorData;
         
         // Add dark scale variations
         primaryToDark.forEach((key, value) {
-          if (key != 'primary') {
-            updatedCategory['${name}_$key'] = {
-              'value': value,
-              'type': 'color',
-              'description': 'Dark variation $key of $name',
+          if (key !\u003d \'primary\') {
+            updatedCategory[\'${name}_$key\'] \u003d {
+              \'value\': value,
+              \'type\': \'color\',
+              \'description\': \'Dark variation $key of $name\',
             };
           }
         });
         
         // Add light scale variations
         primaryToLight.forEach((key, value) {
-          if (key != 'primary') {
-            updatedCategory['${name}_$key'] = {
-              'value': value,
-              'type': 'color',
-              'description': 'Light variation $key of $name',
+          if (key !\u003d \'primary\') {
+            updatedCategory[\'${name}_$key\'] \u003d {
+              \'value\': value,
+              \'type\': \'color\',
+              \'description\': \'Light variation $key of $name\',
             };
           }
         });
@@ -997,29 +985,29 @@ class _ColorsScreenState extends State<ColorsScreen> {
           roleSpecific: colors.roleSpecific,
         ));
         break;
-      case 'semantic':
-      case 'secondary':
-        updatedCategory = Map<String, dynamic>.from(colors.semantic);
-        updatedCategory[name] = colorData;
+      case \'semantic\':
+      case \'secondary\':
+        updatedCategory \u003d Map<String, dynamic>.from(colors.semantic);
+        updatedCategory[name] \u003d colorData;
         
         // Add dark scale variations
         primaryToDark.forEach((key, value) {
-          if (key != 'primary') {
-            updatedCategory['${name}_$key'] = {
-              'value': value,
-              'type': 'color',
-              'description': 'Dark variation $key of $name',
+          if (key !\u003d \'primary\') {
+            updatedCategory[\'${name}_$key\'] \u003d {
+              \'value\': value,
+              \'type\': \'color\',
+              \'description\': \'Dark variation $key of $name\',
             };
           }
         });
         
         // Add light scale variations (to white for secondary)
         primaryToLight.forEach((key, value) {
-          if (key != 'primary') {
-            updatedCategory['${name}_$key'] = {
-              'value': value,
-              'type': 'color',
-              'description': 'Light variation $key of $name',
+          if (key !\u003d \'primary\') {
+            updatedCategory[\'${name}_$key\'] \u003d {
+              \'value\': value,
+              \'type\': \'color\',
+              \'description\': \'Light variation $key of $name\',
             };
           }
         });
@@ -1045,10 +1033,10 @@ class _ColorsScreenState extends State<ColorsScreen> {
         return;
     }
 
-    if (mounted) {
+    if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Color "$name" added with ${primaryToDark.length + primaryToLight.length - 2} variations!'),
+          content: Text(\'Color "$name" added with ${primaryToDark.length + primaryToLight.length - 2} variations!\'),
           backgroundColor: Colors.green,
           duration: const Duration(seconds: 3),
         ),
@@ -1063,22 +1051,22 @@ class _ColorsScreenState extends State<ColorsScreen> {
     Color color,
     String description,
   ) {
-    if (!mounted) return;
-    final provider = Provider.of<DesignSystemProvider>(context, listen: false);
-    final colors = provider.designSystem.colors;
-    final colorHex = _colorToHex(color);
+    if (!context.mounted) return;
+    final provider \u003d Provider.of<DesignSystemProvider>(context, listen: false);
+    final colors \u003d provider.designSystem.colors;
+    final colorHex \u003d _colorToHex(color);
 
-    final colorData = {
-      'value': colorHex,
-      'type': 'color',
-      'description': description,
+    final colorData \u003d {
+      \'value\': colorHex,
+      \'type\': \'color\',
+      \'description\': description,
     };
 
-    Map<String, dynamic> updatedCategory = {};
+    Map<String, dynamic> updatedCategory \u003d {};
     switch (category) {
-      case 'primary':
-        updatedCategory = Map<String, dynamic>.from(colors.primary);
-        updatedCategory[name] = colorData;
+      case \'primary\':
+        updatedCategory \u003d Map<String, dynamic>.from(colors.primary);
+        updatedCategory[name] \u003d colorData;
         provider.updateColors(models.Colors(
           primary: updatedCategory,
           semantic: colors.semantic,
@@ -1094,9 +1082,9 @@ class _ColorsScreenState extends State<ColorsScreen> {
           roleSpecific: colors.roleSpecific,
         ));
         break;
-      case 'semantic':
-        updatedCategory = Map<String, dynamic>.from(colors.semantic);
-        updatedCategory[name] = colorData;
+      case \'semantic\':
+        updatedCategory \u003d Map<String, dynamic>.from(colors.semantic);
+        updatedCategory[name] \u003d colorData;
         provider.updateColors(models.Colors(
           primary: colors.primary,
           semantic: updatedCategory,
@@ -1112,13 +1100,12 @@ class _ColorsScreenState extends State<ColorsScreen> {
           roleSpecific: colors.roleSpecific,
         ));
         break;
-      // Add other categories similarly
     }
 
-    if (mounted) {
+    if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Color "$name" added successfully!'),
+          content: Text(\'Color "$name" added successfully!\'),
           backgroundColor: Colors.green,
         ),
       );
@@ -1133,25 +1120,25 @@ class _ColorsScreenState extends State<ColorsScreen> {
     Color color,
     String description,
   ) {
-    if (!mounted) return;
-    final provider = Provider.of<DesignSystemProvider>(context, listen: false);
-    final colors = provider.designSystem.colors;
-    final colorHex = _colorToHex(color);
+    if (!context.mounted) return;
+    final provider \u003d Provider.of<DesignSystemProvider>(context, listen: false);
+    final colors \u003d provider.designSystem.colors;
+    final colorHex \u003d _colorToHex(color);
 
-    final colorData = {
-      'value': colorHex,
-      'type': 'color',
-      'description': description,
+    final colorData \u003d {
+      \'value\': colorHex,
+      \'type\': \'color\',
+      \'description\': description,
     };
 
-    Map<String, dynamic> updatedCategory = {};
+    Map<String, dynamic> updatedCategory \u003d {};
     switch (category) {
-      case 'primary':
-        updatedCategory = Map<String, dynamic>.from(colors.primary);
-        if (oldName != newName) {
+      case \'primary\':
+        updatedCategory \u003d Map<String, dynamic>.from(colors.primary);
+        if (oldName !\u003d newName) {
           updatedCategory.remove(oldName);
         }
-        updatedCategory[newName] = colorData;
+        updatedCategory[newName] \u003d colorData;
         provider.updateColors(models.Colors(
           primary: updatedCategory,
           semantic: colors.semantic,
@@ -1167,12 +1154,12 @@ class _ColorsScreenState extends State<ColorsScreen> {
           roleSpecific: colors.roleSpecific,
         ));
         break;
-      case 'semantic':
-        updatedCategory = Map<String, dynamic>.from(colors.semantic);
-        if (oldName != newName) {
+      case \'semantic\':
+        updatedCategory \u003d Map<String, dynamic>.from(colors.semantic);
+        if (oldName !\u003d newName) {
           updatedCategory.remove(oldName);
         }
-        updatedCategory[newName] = colorData;
+        updatedCategory[newName] \u003d colorData;
         provider.updateColors(models.Colors(
           primary: colors.primary,
           semantic: updatedCategory,
@@ -1190,10 +1177,10 @@ class _ColorsScreenState extends State<ColorsScreen> {
         break;
     }
 
-    if (mounted) {
+    if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Color "$newName" updated successfully!'),
+          content: Text(\'Color "$newName" updated successfully!\'),
           backgroundColor: Colors.green,
         ),
       );
@@ -1201,29 +1188,29 @@ class _ColorsScreenState extends State<ColorsScreen> {
   }
 
   void _deleteColor(BuildContext context, String name, String category) {
-    if (!mounted) return;
+    if (!context.mounted) return;
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Delete Color'),
-        content: Text('Are you sure you want to delete "$name"?'),
+      builder: (dialogContext) \u003d\u003e AlertDialog(
+        title: const Text(\'Delete Color\'),
+        content: Text(\'Are you sure you want to delete "$name"?\'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Cancel'),
+            onPressed: () \u003d\u003e Navigator.of(dialogContext).pop(),
+            child: const Text(\'Cancel\'),
           ),
           ElevatedButton(
             onPressed: () {
-              if (!mounted) return;
+              if (!context.mounted) return;
               Navigator.of(dialogContext).pop();
               
-              final provider = Provider.of<DesignSystemProvider>(this.context, listen: false);
-              final colors = provider.designSystem.colors;
+              final provider \u003d Provider.of<DesignSystemProvider>(this.context, listen: false);
+              final colors \u003d provider.designSystem.colors;
 
-              Map<String, dynamic> updatedCategory = {};
+              Map<String, dynamic> updatedCategory \u003d {};
               switch (category) {
-                case 'primary':
-                  updatedCategory = Map<String, dynamic>.from(colors.primary);
+                case \'primary\':
+                  updatedCategory \u003d Map<String, dynamic>.from(colors.primary);
                   updatedCategory.remove(name);
                   provider.updateColors(models.Colors(
                     primary: updatedCategory,
@@ -1240,8 +1227,8 @@ class _ColorsScreenState extends State<ColorsScreen> {
                     roleSpecific: colors.roleSpecific,
                   ));
                   break;
-                case 'semantic':
-                  updatedCategory = Map<String, dynamic>.from(colors.semantic);
+                case \'semantic\':
+                  updatedCategory \u003d Map<String, dynamic>.from(colors.semantic);
                   updatedCategory.remove(name);
                   provider.updateColors(models.Colors(
                     primary: colors.primary,
@@ -1260,17 +1247,17 @@ class _ColorsScreenState extends State<ColorsScreen> {
                   break;
               }
 
-              if (mounted) {
+              if (context.mounted) {
                 ScaffoldMessenger.of(this.context).showSnackBar(
                   SnackBar(
-                    content: Text('Color "$name" deleted successfully!'),
+                    content: Text(\'Color "$name" deleted successfully!\'),
                     backgroundColor: Colors.green,
                   ),
                 );
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Delete'),
+            child: const Text(\'Delete\'),
           ),
         ],
       ),

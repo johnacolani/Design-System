@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'dart:async';
 import '../providers/design_system_provider.dart';
 import '../models/design_system.dart' as models;
 import 'dashboard_screen.dart';
@@ -14,14 +15,17 @@ class TypographyScreen extends StatefulWidget {
 }
 
 class _TypographyScreenState extends State<TypographyScreen> {
-  static const List<String> _commonFonts = [
-    'Roboto', 'Inter', 'Open Sans', 'Lato', 'Montserrat', 'Poppins', 
-    'Playfair Display', 'Merriweather', 'Oswald', 'Raleway', 'Ubuntu', 
-    'Nunito', 'Source Sans Pro', 'PT Sans', 'Lora', 'Quicksand', 
-    'Work Sans', 'Fira Sans', 'Inconsolata', 'Bebas Neue',
-  ];
-
+  // Use all available Google Fonts
+  late List<String> _googleFonts;
+  
   String? _previewPrimaryFont;
+  String _searchQuery = '';
+  
+  @override
+  void initState() {
+    super.initState();
+    _googleFonts = GoogleFonts.asMap().keys.toList();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -83,8 +87,13 @@ class _TypographyScreenState extends State<TypographyScreen> {
     final typography = provider.designSystem.typography;
     final currentPrimary = _previewPrimaryFont ?? typography.fontFamily.primary;
 
+    final filteredFonts = _googleFonts
+        .where((font) => font.toLowerCase().contains(_searchQuery.toLowerCase()))
+        .toList();
+
     return Column(
       children: [
+        // Preview Header
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(20),
@@ -131,13 +140,30 @@ class _TypographyScreenState extends State<TypographyScreen> {
             ],
           ),
         ),
+        
+        // Search Bar
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: TextField(
+            onChanged: (val) => setState(() => _searchQuery = val),
+            decoration: InputDecoration(
+              hintText: 'Search 1000+ Google Fonts...',
+              prefixIcon: const Icon(Icons.search),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+            ),
+          ),
+        ),
+
+        // Font List (Optimized with scroll detection or limiting initial view)
         Expanded(
           child: ListView.builder(
             padding: const EdgeInsets.all(16),
-            itemCount: _commonFonts.length,
+            itemCount: filteredFonts.length > 500 ? 500 : filteredFonts.length, // Limit for performance
             itemBuilder: (context, index) {
-              final font = _commonFonts[index];
+              final font = filteredFonts[index];
               final isSelected = currentPrimary == font;
+              
               return Card(
                 elevation: isSelected ? 2 : 0,
                 shape: RoundedRectangleBorder(
@@ -160,6 +186,8 @@ class _TypographyScreenState extends State<TypographyScreen> {
   Widget _buildFontWeightsTab() {
     final provider = Provider.of<DesignSystemProvider>(context);
     final typography = provider.designSystem.typography;
+    final currentFont = _previewPrimaryFont ?? typography.fontFamily.primary;
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -173,7 +201,7 @@ class _TypographyScreenState extends State<TypographyScreen> {
         const SizedBox(height: 16),
         ...typography.fontWeights.entries.map((entry) => Card(
           child: ListTile(
-            title: Text(entry.key, style: _getSafeFont(typography.fontFamily.primary, fontWeight: _intToWeight(entry.value))),
+            title: Text(entry.key, style: _getSafeFont(currentFont, fontWeight: _intToWeight(entry.value))),
             subtitle: Text('Weight Value: ${entry.value}'),
             trailing: PopupMenuButton<String>(
               onSelected: (val) {
@@ -194,6 +222,8 @@ class _TypographyScreenState extends State<TypographyScreen> {
   Widget _buildFontSizesTab() {
     final provider = Provider.of<DesignSystemProvider>(context);
     final typography = provider.designSystem.typography;
+    final currentFont = _previewPrimaryFont ?? typography.fontFamily.primary;
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -207,7 +237,7 @@ class _TypographyScreenState extends State<TypographyScreen> {
         const SizedBox(height: 16),
         ...typography.fontSizes.entries.map((entry) => Card(
           child: ListTile(
-            title: Text(entry.key, style: _getSafeFont(typography.fontFamily.primary, fontSize: _parseFontSize(entry.value.value))),
+            title: Text(entry.key, style: _getSafeFont(currentFont, fontSize: _parseFontSize(entry.value.value))),
             subtitle: Text('Size: ${entry.value.value} / Line Height: ${entry.value.lineHeight}'),
             trailing: PopupMenuButton<String>(
               onSelected: (val) {
@@ -228,6 +258,8 @@ class _TypographyScreenState extends State<TypographyScreen> {
   Widget _buildTextStylesTab() {
     final provider = Provider.of<DesignSystemProvider>(context);
     final typography = provider.designSystem.typography;
+    final currentFont = _previewPrimaryFont ?? typography.fontFamily.primary;
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -250,13 +282,42 @@ class _TypographyScreenState extends State<TypographyScreen> {
         ...typography.textStyles.entries.map((entry) => Card(
           child: ListTile(
             title: Text(entry.key, style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Text('Font: ${entry.value.fontFamily} • Size: ${entry.value.fontSize}'),
-            trailing: IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _deleteTextStyle(context, entry.key)),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Size: ${entry.value.fontSize} • Weight: ${entry.value.fontWeight}'),
+                const SizedBox(height: 8),
+                Text(
+                  'Sample Text',
+                  style: _getSafeFont(
+                    currentFont,
+                    fontSize: _parseFontSize(entry.value.fontSize),
+                    fontWeight: _intToWeight(entry.value.fontWeight),
+                    color: entry.value.color != null ? _parseColor(entry.value.color!) : null,
+                  ),
+                ),
+              ],
+            ),
+            trailing: PopupMenuButton<String>(
+              onSelected: (val) {
+                if (val == 'edit') _showEditTextStyleDialog(context, entry.key, entry.value);
+                if (val == 'delete') _deleteTextStyle(context, entry.key);
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(value: 'edit', child: Text('Edit')),
+                const PopupMenuItem(
+                  value: 'delete',
+                  child: Text('Delete', style: TextStyle(color: Colors.red)),
+                ),
+              ],
+            ),
           ),
         )),
       ],
     );
   }
+
+  // --- Helpers ---
 
   FontWeight _intToWeight(int w) => FontWeight.values[(w ~/ 100 - 1).clamp(0, 8)];
   double _parseFontSize(String s) => double.tryParse(s.replaceAll('px', '')) ?? 14.0;
@@ -267,13 +328,16 @@ class _TypographyScreenState extends State<TypographyScreen> {
     showDialog(context: context, builder: (ctx) => AlertDialog(
       title: const Text('Add Font Weight'),
       content: Column(mainAxisSize: MainAxisSize.min, children: [TextField(controller: name, decoration: const InputDecoration(labelText: 'Name (e.g. bold)')), TextField(controller: val, decoration: const InputDecoration(labelText: 'Value (100-900)'))]),
-      actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')), ElevatedButton(onPressed: () {
-        final p = Provider.of<DesignSystemProvider>(context, listen: false);
-        final t = p.designSystem.typography;
-        final updated = Map<String, int>.from(t.fontWeights)..[name.text] = int.parse(val.text);
-        p.updateTypography(models.Typography(fontFamily: t.fontFamily, fontWeights: updated, fontSizes: t.fontSizes, textStyles: t.textStyles));
-        Navigator.pop(ctx);
-      }, child: const Text('Add'))],
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+        ElevatedButton(onPressed: () {
+          final p = Provider.of<DesignSystemProvider>(context, listen: false);
+          final t = p.designSystem.typography;
+          final updated = Map<String, int>.from(t.fontWeights)..[name.text] = int.tryParse(val.text) ?? 400;
+          p.updateTypography(models.Typography(fontFamily: t.fontFamily, fontWeights: updated, fontSizes: t.fontSizes, textStyles: t.textStyles));
+          Navigator.pop(ctx);
+        }, child: const Text('Add')),
+      ],
     ));
   }
 
@@ -282,13 +346,16 @@ class _TypographyScreenState extends State<TypographyScreen> {
     showDialog(context: context, builder: (ctx) => AlertDialog(
       title: Text('Edit Weight: $key'),
       content: TextField(controller: valController, decoration: const InputDecoration(labelText: 'Value (100-900)')),
-      actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')), ElevatedButton(onPressed: () {
-        final p = Provider.of<DesignSystemProvider>(context, listen: false);
-        final t = p.designSystem.typography;
-        final updated = Map<String, int>.from(t.fontWeights)..[key] = int.parse(valController.text);
-        p.updateTypography(models.Typography(fontFamily: t.fontFamily, fontWeights: updated, fontSizes: t.fontSizes, textStyles: t.textStyles));
-        Navigator.pop(ctx);
-      }, child: const Text('Save'))],
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+        ElevatedButton(onPressed: () {
+          final p = Provider.of<DesignSystemProvider>(context, listen: false);
+          final t = p.designSystem.typography;
+          final updated = Map<String, int>.from(t.fontWeights)..[key] = int.tryParse(valController.text) ?? currentVal;
+          p.updateTypography(models.Typography(fontFamily: t.fontFamily, fontWeights: updated, fontSizes: t.fontSizes, textStyles: t.textStyles));
+          Navigator.pop(ctx);
+        }, child: const Text('Save')),
+      ],
     ));
   }
 
@@ -305,13 +372,16 @@ class _TypographyScreenState extends State<TypographyScreen> {
     showDialog(context: context, builder: (ctx) => AlertDialog(
       title: const Text('Add Font Size'),
       content: Column(mainAxisSize: MainAxisSize.min, children: [TextField(controller: name, decoration: const InputDecoration(labelText: 'Name (e.g. lg)')), TextField(controller: size, decoration: const InputDecoration(labelText: 'Size (px)'))]),
-      actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')), ElevatedButton(onPressed: () {
-        final p = Provider.of<DesignSystemProvider>(context, listen: false);
-        final t = p.designSystem.typography;
-        final updated = Map<String, models.FontSize>.from(t.fontSizes)..[name.text] = models.FontSize(value: '${size.text}px', lineHeight: '1.2');
-        p.updateTypography(models.Typography(fontFamily: t.fontFamily, fontWeights: t.fontWeights, fontSizes: updated, textStyles: t.textStyles));
-        Navigator.pop(ctx);
-      }, child: const Text('Add'))],
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+        ElevatedButton(onPressed: () {
+          final p = Provider.of<DesignSystemProvider>(context, listen: false);
+          final t = p.designSystem.typography;
+          final updated = Map<String, models.FontSize>.from(t.fontSizes)..[name.text] = models.FontSize(value: '${size.text}px', lineHeight: '1.2');
+          p.updateTypography(models.Typography(fontFamily: t.fontFamily, fontWeights: t.fontWeights, fontSizes: updated, textStyles: t.textStyles));
+          Navigator.pop(ctx);
+        }, child: const Text('Add')),
+      ],
     ));
   }
 
@@ -320,13 +390,16 @@ class _TypographyScreenState extends State<TypographyScreen> {
     showDialog(context: context, builder: (ctx) => AlertDialog(
       title: Text('Edit Size: $key'),
       content: TextField(controller: sizeController, decoration: const InputDecoration(labelText: 'Size (px)')),
-      actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')), ElevatedButton(onPressed: () {
-        final p = Provider.of<DesignSystemProvider>(context, listen: false);
-        final t = p.designSystem.typography;
-        final updated = Map<String, models.FontSize>.from(t.fontSizes)..[key] = models.FontSize(value: '${sizeController.text}px', lineHeight: current.lineHeight);
-        p.updateTypography(models.Typography(fontFamily: t.fontFamily, fontWeights: t.fontWeights, fontSizes: updated, textStyles: t.textStyles));
-        Navigator.pop(ctx);
-      }, child: const Text('Save'))],
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+        ElevatedButton(onPressed: () {
+          final p = Provider.of<DesignSystemProvider>(context, listen: false);
+          final t = p.designSystem.typography;
+          final updated = Map<String, models.FontSize>.from(t.fontSizes)..[key] = models.FontSize(value: '${sizeController.text}px', lineHeight: current.lineHeight);
+          p.updateTypography(models.Typography(fontFamily: t.fontFamily, fontWeights: t.fontWeights, fontSizes: updated, textStyles: t.textStyles));
+          Navigator.pop(ctx);
+        }, child: const Text('Save')),
+      ],
     ));
   }
 
@@ -342,13 +415,16 @@ class _TypographyScreenState extends State<TypographyScreen> {
     showDialog(context: context, builder: (ctx) => AlertDialog(
       title: const Text('Add Text Style'),
       content: TextField(controller: name, decoration: const InputDecoration(labelText: 'Style Name')),
-      actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')), ElevatedButton(onPressed: () {
-        final p = Provider.of<DesignSystemProvider>(context, listen: false);
-        final t = p.designSystem.typography;
-        final updated = Map<String, models.TextStyle>.from(t.textStyles)..[name.text] = models.TextStyle(fontFamily: t.fontFamily.primary, fontSize: '16px', fontWeight: 400, lineHeight: '24px');
-        p.updateTypography(models.Typography(fontFamily: t.fontFamily, fontWeights: t.fontWeights, fontSizes: t.fontSizes, textStyles: updated));
-        Navigator.pop(ctx);
-      }, child: const Text('Add'))],
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+        ElevatedButton(onPressed: () {
+          final p = Provider.of<DesignSystemProvider>(context, listen: false);
+          final t = p.designSystem.typography;
+          final updated = Map<String, models.TextStyle>.from(t.textStyles)..[name.text] = models.TextStyle(fontFamily: t.fontFamily.primary, fontSize: '16px', fontWeight: 400, lineHeight: '24px');
+          p.updateTypography(models.Typography(fontFamily: t.fontFamily, fontWeights: t.fontWeights, fontSizes: t.fontSizes, textStyles: updated));
+          Navigator.pop(ctx);
+        }, child: const Text('Add')),
+      ],
     ));
   }
 
@@ -360,12 +436,22 @@ class _TypographyScreenState extends State<TypographyScreen> {
   }
 
   void _showMaterialPicker(BuildContext context) {
-    final styles = {'Display Large': const TextStyle(fontSize: 57, fontWeight: FontWeight.w400), 'Headline Medium': const TextStyle(fontSize: 28, fontWeight: FontWeight.w400), 'Title Small': const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)};
+    final styles = {
+      'Display Large': const TextStyle(fontSize: 57, fontWeight: FontWeight.w400),
+      'Headline Medium': const TextStyle(fontSize: 28, fontWeight: FontWeight.w400),
+      'Title Small': const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+      'Body Medium': const TextStyle(fontSize: 14, fontWeight: FontWeight.w400),
+    };
     _showPresetDialog(context, 'Material Styles', styles);
   }
 
   void _showCupertinoPicker(BuildContext context) {
-    final styles = {'Large Title': const TextStyle(fontSize: 34, fontWeight: FontWeight.w400), 'Title 1': const TextStyle(fontSize: 28, fontWeight: FontWeight.w400), 'Headline': const TextStyle(fontSize: 17, fontWeight: FontWeight.w600), 'Footnote': const TextStyle(fontSize: 13, fontWeight: FontWeight.w400)};
+    final styles = {
+      'Large Title': const TextStyle(fontSize: 34, fontWeight: FontWeight.w400),
+      'Title 1': const TextStyle(fontSize: 28, fontWeight: FontWeight.w400),
+      'Headline': const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+      'Footnote': const TextStyle(fontSize: 13, fontWeight: FontWeight.w400),
+    };
     _showPresetDialog(context, 'Cupertino Styles', styles);
   }
 
@@ -393,5 +479,19 @@ class _TypographyScreenState extends State<TypographyScreen> {
         }, child: const Text('Add Style')),
       ],
     )));
+  }
+
+  void _showEditTextStyleDialog(BuildContext context, String key, models.TextStyle style) {
+    // Basic implementation for now to satisfy button tap
+  }
+
+  Color? _parseColor(String colorHex) {
+    try {
+      String hex = colorHex.replaceAll('#', '');
+      if (hex.length == 6) hex = 'FF$hex';
+      return Color(int.parse(hex, radix: 16));
+    } catch (e) {
+      return null;
+    }
   }
 }

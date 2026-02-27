@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../providers/design_system_provider.dart';
 import '../models/design_system.dart' as models;
 import '../utils/screen_body_padding.dart';
@@ -48,19 +49,16 @@ class _PreviewScreenState extends State<PreviewScreen> {
   Future<pw.Document> _generatePdf(models.DesignSystem ds) async {
     final pdf = pw.Document();
     
+    final titleStyle = pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold);
     final headerStyle = pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900);
     final subHeaderStyle = pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold);
 
-    // Page 1: Cover & Core Colors
+    // Page 1: Colors
     pdf.addPage(pw.MultiPage(
       pageFormat: PdfPageFormat.a4,
       margin: const pw.EdgeInsets.all(40),
       build: (pw.Context context) => [
-        pw.Header(level: 0, child: pw.Text(ds.name, style: pw.TextStyle(fontSize: 28, fontWeight: pw.FontWeight.bold))),
-        pw.Text('Design System Documentation - v${ds.version}'),
-        pw.SizedBox(height: 20),
-        pw.Divider(),
-        pw.SizedBox(height: 20),
+        pw.Header(level: 0, child: pw.Text(ds.name, style: titleStyle)),
         pw.Text('1. Core Colors', style: headerStyle),
         pw.SizedBox(height: 10),
         _buildPdfColors(ds),
@@ -74,11 +72,13 @@ class _PreviewScreenState extends State<PreviewScreen> {
       build: (pw.Context context) => [
         pw.Text('2. Typography', style: headerStyle),
         pw.SizedBox(height: 10),
-        _buildPdfTypography(ds),
+        _buildPdfTypographyDetailed(ds),
         pw.SizedBox(height: 30),
-        pw.Text('3. Spacing Scale', style: headerStyle),
+        pw.Text('3. Spacing & Grid', style: headerStyle),
         pw.SizedBox(height: 10),
-        _buildPdfSpacing(ds),
+        _buildPdfSpacingDetailed(ds),
+        pw.SizedBox(height: 10),
+        _buildPdfGridDetailed(ds),
       ],
     ));
 
@@ -90,10 +90,10 @@ class _PreviewScreenState extends State<PreviewScreen> {
         pw.Text('4. Shapes & Shadows', style: headerStyle),
         pw.SizedBox(height: 10),
         pw.Text('Border Radius', style: subHeaderStyle),
-        _buildPdfBorderRadius(ds),
+        _buildPdfBorderRadiusDetailed(ds),
         pw.SizedBox(height: 20),
         pw.Text('Shadow Tokens', style: subHeaderStyle),
-        _buildPdfShadows(ds),
+        _buildPdfShadowsDetailed(ds),
       ],
     ));
 
@@ -104,15 +104,15 @@ class _PreviewScreenState extends State<PreviewScreen> {
       build: (pw.Context context) => [
         pw.Text('5. Component Library', style: headerStyle),
         pw.SizedBox(height: 10),
-        _buildPdfComponents(ds),
+        _buildPdfComponentsDetailed(ds),
         pw.SizedBox(height: 30),
         pw.Text('6. Iconography', style: headerStyle),
         pw.SizedBox(height: 10),
-        _buildPdfIcons(ds),
+        _buildPdfIconsDetailed(ds),
       ],
     ));
 
-    // Page 5: Advanced & Motion
+    // Page 5: Advanced (Gradients, Roles, Tokens, Motion)
     pdf.addPage(pw.MultiPage(
       pageFormat: PdfPageFormat.a4,
       margin: const pw.EdgeInsets.all(40),
@@ -120,18 +120,23 @@ class _PreviewScreenState extends State<PreviewScreen> {
         pw.Text('7. Advanced Tokens', style: headerStyle),
         pw.SizedBox(height: 10),
         pw.Text('Gradients', style: subHeaderStyle),
-        _buildPdfGradients(ds),
+        _buildPdfGradientsDetailed(ds),
+        pw.SizedBox(height: 20),
+        pw.Text('Roles', style: subHeaderStyle),
+        _buildPdfRolesDetailed(ds),
         pw.SizedBox(height: 20),
         pw.Text('Semantic Tokens', style: subHeaderStyle),
-        _buildPdfSemanticTokens(ds),
+        _buildPdfSemanticTokensDetailed(ds),
         pw.SizedBox(height: 20),
-        pw.Text('Motion & Animation', style: subHeaderStyle),
-        _buildPdfMotionTokens(ds),
+        pw.Text('Motion Tokens', style: subHeaderStyle),
+        _buildPdfMotionTokensDetailed(ds),
       ],
     ));
     
     return pdf;
   }
+
+  // --- PDF WIDGETS (SYNCHRONIZED WITH ON-SCREEN SHAPES) ---
 
   pw.Widget _buildPdfColors(models.DesignSystem ds) {
     return pw.Column(
@@ -149,107 +154,109 @@ class _PreviewScreenState extends State<PreviewScreen> {
   }
 
   pw.Widget _buildPdfSwatchGroup(Map<String, dynamic> colors) {
-    // Helper to group variations
-    Map<String, List<MapEntry<String, dynamic>>> groups = {};
-    for (final e in colors.entries) {
-      String base = e.key;
-      if (base.contains('_dark')) base = base.split('_dark')[0];
-      if (base.contains('_light')) base = base.split('_light')[0];
-      groups.putIfAbsent(base, () => []).add(e);
-    }
-
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: groups.entries.map((group) {
-        return pw.Padding(
-          padding: const pw.EdgeInsets.only(bottom: 10),
-          child: pw.Wrap(
-            spacing: 5,
-            runSpacing: 5,
-            children: group.value.map((e) {
-              final hex = e.value is Map ? e.value['value'] : e.value.toString();
-              return pw.Column(children: [
-                pw.Container(width: 35, height: 35, decoration: pw.BoxDecoration(color: _parsePdfColor(hex), border: pw.Border.all(width: 0.5))),
-                pw.Text(hex.toUpperCase(), style: const pw.TextStyle(fontSize: 5)),
-              ]);
-            }).toList(),
-          ),
-        );
+    return pw.Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: colors.entries.map((e) {
+        final val = e.value is Map ? e.value['value'] : e.value.toString();
+        return pw.Column(children: [
+          pw.Container(width: 40, height: 40, decoration: pw.BoxDecoration(color: _parsePdfColor(val), border: pw.Border.all(width: 0.5))),
+          pw.SizedBox(height: 2),
+          pw.Text(e.key, style: const pw.TextStyle(fontSize: 6)),
+        ]);
       }).toList(),
     );
   }
 
-  pw.Widget _buildPdfTypography(models.DesignSystem ds) {
+  pw.Widget _buildPdfTypographyDetailed(models.DesignSystem ds) {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
         pw.Text('Primary Font: ${ds.typography.fontFamily.primary}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
         pw.SizedBox(height: 10),
         ...ds.typography.textStyles.entries.map((e) => 
-          pw.Padding(
-            padding: const pw.EdgeInsets.only(bottom: 4),
-            child: pw.Text('${e.key}: ${e.value.fontSize} / Weight ${e.value.fontWeight}', style: pw.TextStyle(fontSize: 10)),
+          pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text(e.key, style: pw.TextStyle(fontSize: 8, color: PdfColors.grey700)),
+              pw.Text('Sample Text in Style', style: pw.TextStyle(fontSize: 12)),
+              pw.SizedBox(height: 4),
+            ],
           )
         ),
       ],
     );
   }
 
-  pw.Widget _buildPdfSpacing(models.DesignSystem ds) {
-    return pw.Wrap(spacing: 15, children: ds.spacing.values.entries.map((e) => pw.Text('${e.key}: ${e.value}', style: pw.TextStyle(fontSize: 10))).toList());
-  }
-
-  pw.Widget _buildPdfBorderRadius(models.DesignSystem ds) {
-    return pw.Text('Base: ${ds.borderRadius.base} | Large: ${ds.borderRadius.lg}', style: pw.TextStyle(fontSize: 10));
-  }
-
-  pw.Widget _buildPdfShadows(models.DesignSystem ds) {
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: ds.shadows.values.entries.map((e) => pw.Text('${e.key}: ${e.value.value}', style: pw.TextStyle(fontSize: 10))).toList(),
+  pw.Widget _buildPdfSpacingDetailed(models.DesignSystem ds) {
+    return pw.Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: ds.spacing.values.entries.map((e) {
+        final size = _parsePx(e.value);
+        return pw.Column(children: [
+          pw.Container(width: size / 2, height: size / 2, color: PdfColors.blue100, border: pw.Border.all(color: PdfColors.blue300, width: 0.5)),
+          pw.Text('${e.key}', style: const pw.TextStyle(fontSize: 6)),
+        ]);
+      }).toList(),
     );
   }
 
-  pw.Widget _buildPdfComponents(models.DesignSystem ds) {
-    final list = [...ds.components.buttons.keys, ...ds.components.inputs.keys, ...ds.components.cards.keys];
-    return pw.Wrap(spacing: 10, children: list.map((s) => pw.Text(s, style: pw.TextStyle(fontSize: 10))).toList());
+  pw.Widget _buildPdfGridDetailed(models.DesignSystem ds) {
+    return pw.Text('Grid: ${ds.grid.columns} columns / ${ds.grid.gutter} gutter', style: pw.TextStyle(fontSize: 10));
   }
 
-  pw.Widget _buildPdfIcons(models.DesignSystem ds) {
+  pw.Widget _buildPdfBorderRadiusDetailed(models.DesignSystem ds) {
+    final base = _parsePx(ds.borderRadius.base);
+    return pw.Row(children: [
+      pw.Container(width: 40, height: 40, decoration: pw.BoxDecoration(borderRadius: pw.BorderRadius.circular(base / 2), border: pw.Border.all(color: PdfColors.blue))),
+      pw.SizedBox(width: 10),
+      pw.Text('Radius: ${ds.borderRadius.base}'),
+    ]);
+  }
+
+  pw.Widget _buildPdfShadowsDetailed(models.DesignSystem ds) {
+    return pw.Column(children: ds.shadows.values.entries.map((e) => pw.Text('${e.key}: ${e.value.value}', style: pw.TextStyle(fontSize: 10))).toList());
+  }
+
+  pw.Widget _buildPdfComponentsDetailed(models.DesignSystem ds) {
+    final list = [...ds.components.buttons.entries, ...ds.components.inputs.entries, ...ds.components.cards.entries];
+    final radius = _parsePx(ds.borderRadius.base);
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: list.map((e) {
+        final desc = e.value is Map ? e.value['description']?.toString() ?? '' : '';
+        return pw.Container(
+          margin: const pw.EdgeInsets.only(bottom: 5),
+          padding: const pw.EdgeInsets.all(5),
+          decoration: pw.BoxDecoration(border: pw.Border.all(color: PdfColors.grey300), borderRadius: pw.BorderRadius.circular(radius / 4)),
+          child: pw.Text('${e.key}: $desc', style: const pw.TextStyle(fontSize: 8)),
+        );
+      }).toList(),
+    );
+  }
+
+  pw.Widget _buildPdfIconsDetailed(models.DesignSystem ds) {
     return pw.Wrap(spacing: 15, children: ds.icons.sizes.entries.map((e) => pw.Text('${e.key}: ${e.value}', style: pw.TextStyle(fontSize: 10))).toList());
   }
 
-  pw.Widget _buildPdfGradients(models.DesignSystem ds) {
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: ds.gradients.values.entries.map((e) => pw.Text('${e.key}: ${e.value.colors.join(" -> ")}', style: pw.TextStyle(fontSize: 10))).toList(),
-    );
+  pw.Widget _buildPdfGradientsDetailed(models.DesignSystem ds) {
+    return pw.Column(children: ds.gradients.values.entries.map((e) => pw.Text('${e.key}: ${e.value.colors.join(" -> ")}', style: pw.TextStyle(fontSize: 10))).toList());
   }
 
-  pw.Widget _buildPdfSemanticTokens(models.DesignSystem ds) {
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: ds.semanticTokens.color.entries.map((e) => pw.Text('${e.key} -> ${e.value['baseTokenReference']}', style: pw.TextStyle(fontSize: 10))).toList(),
-    );
+  pw.Widget _buildPdfRolesDetailed(models.DesignSystem ds) {
+    return pw.Column(children: ds.roles.values.entries.map((e) => pw.Text('${e.key}: ${e.value.primaryColor}', style: pw.TextStyle(fontSize: 10))).toList());
   }
 
-  pw.Widget _buildPdfMotionTokens(models.DesignSystem ds) {
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: ds.motionTokens.duration.entries.map((e) => pw.Text('${e.key}: ${e.value}', style: pw.TextStyle(fontSize: 10))).toList(),
-    );
+  pw.Widget _buildPdfSemanticTokensDetailed(models.DesignSystem ds) {
+    return pw.Column(children: ds.semanticTokens.color.entries.map((e) => pw.Text('${e.key} -> ${e.value['baseTokenReference']}', style: pw.TextStyle(fontSize: 10))).toList());
   }
 
-  pw.Widget _buildPdfGrid(models.DesignSystem ds) {
-    return pw.Text('Grid Columns: ${ds.grid.columns} | Gutter: ${ds.grid.gutter}', style: pw.TextStyle(fontSize: 10));
+  pw.Widget _buildPdfMotionTokensDetailed(models.DesignSystem ds) {
+    return pw.Column(children: ds.motionTokens.duration.entries.map((e) => pw.Text('${e.key}: ${e.value}', style: pw.TextStyle(fontSize: 10))).toList());
   }
 
-  PdfColor _parsePdfColor(String hex) {
-    try {
-      final h = hex.replaceAll('#', '');
-      return PdfColor.fromInt(int.parse(h.length == 6 ? 'FF$h' : h, radix: 16));
-    } catch (_) { return PdfColors.black; }
-  }
+  // --- UI SCREEN BUILDER ---
 
   @override
   Widget build(BuildContext context) {
@@ -260,7 +267,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
       appBar: AppBar(
         title: const Text('Design System Preview'),
         actions: [
-          IconButton(icon: const Icon(Icons.picture_as_pdf), onPressed: _exportAsPdf, tooltip: 'Export Documentation'),
+          IconButton(icon: const Icon(Icons.picture_as_pdf), onPressed: _exportAsPdf, tooltip: 'Export PDF'),
         ],
       ),
       body: ScreenBodyPadding(
@@ -270,14 +277,25 @@ class _PreviewScreenState extends State<PreviewScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildSectionTitle('1. Core Colors'),
+              _buildHeading('1. Core Colors'),
               _buildTwoColumnColors(ds),
-              const Divider(height: 60),
-              _buildSectionTitle('2. Typography'),
-              _buildTypographyPreview(ds),
-              const Divider(height: 60),
-              _buildSectionTitle('3. Tokens & Motion'),
-              _buildTokenPreview(ds),
+              const Divider(height: 40),
+              
+              _buildHeading('2. Typography'),
+              _buildTypographyFull(ds),
+              const Divider(height: 40),
+
+              _buildHeading('3. Layout & Shape'),
+              _buildLayoutFull(ds),
+              const Divider(height: 40),
+
+              _buildHeading('4. Components & Assets'),
+              _buildComponentsDetailed(ds),
+              const Divider(height: 40),
+
+              _buildHeading('5. Advanced Tokens'),
+              _buildAdvancedFull(ds),
+              const SizedBox(height: 40),
             ],
           ),
         ),
@@ -285,98 +303,257 @@ class _PreviewScreenState extends State<PreviewScreen> {
     );
   }
 
-  Widget _buildSectionTitle(String title) {
+  Widget _buildHeading(String title) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 24),
+      padding: const EdgeInsets.only(bottom: 20),
       child: Text(title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.blue)),
     );
   }
 
   Widget _buildTwoColumnColors(models.DesignSystem ds) {
-    Map<String, List<MapEntry<String, dynamic>>> groupColors(Map<String, dynamic> colorMap) {
-      final groups = <String, List<MapEntry<String, dynamic>>>{};
-      for (final entry in colorMap.entries) {
-        String baseName = entry.key;
-        if (baseName.contains('_dark')) baseName = baseName.split('_dark')[0];
-        if (baseName.contains('_light')) baseName = baseName.split('_light')[0];
-        groups.putIfAbsent(baseName, () => []).add(entry);
-      }
-      return groups;
+    if (ds.colors.primary.isEmpty && ds.colors.semantic.isEmpty) {
+      return _buildPlaceholder('Colors (Primary & Semantic)');
     }
-
-    final primaryGroups = groupColors(ds.colors.primary);
-    final semanticGroups = groupColors(ds.colors.semantic);
-
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(child: _buildGroupedColorList('Primary Colors', primaryGroups)),
-        const SizedBox(width: 32),
-        Expanded(child: _buildGroupedColorList('Semantic Colors', semanticGroups)),
+        Expanded(child: _buildShortColorList('Primary', ds.colors.primary)),
+        const SizedBox(width: 20),
+        Expanded(child: _buildShortColorList('Semantic', ds.colors.semantic)),
       ],
     );
   }
 
-  Widget _buildGroupedColorList(String title, Map<String, List<MapEntry<String, dynamic>>> groups) {
+  Widget _buildShortColorList(String title, Map<String, dynamic> colors) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.grey)),
-        const SizedBox(height: 16),
-        ...groups.entries.expand((group) => [
-          ...group.value.map((e) {
-            final hex = e.value is Map ? e.value['value'] : e.value.toString();
-            return _buildShortColorRow(hex, e.key);
-          }),
-          const SizedBox(height: 12),
-          const Divider(height: 1, thickness: 0.5),
-          const SizedBox(height: 12),
-        ]),
+        const SizedBox(height: 8),
+        ...colors.entries.map((e) {
+          final hex = e.value is Map ? e.value['value'] : e.value.toString();
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Row(children: [
+              Container(width: 20, height: 20, decoration: BoxDecoration(color: _parseColor(hex), borderRadius: BorderRadius.circular(4))),
+              const SizedBox(width: 8),
+              Expanded(child: Text(e.key, style: const TextStyle(fontSize: 10), overflow: TextOverflow.ellipsis)),
+            ]),
+          );
+        }),
       ],
     );
   }
 
-  Widget _buildShortColorRow(String colorHex, String name) {
-    Color? color = _parseColor(colorHex);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 65,
-            child: Text(colorHex.toUpperCase(), style: const TextStyle(fontSize: 9, fontFamily: 'monospace', fontWeight: FontWeight.bold)),
+  Widget _buildTypographyFull(models.DesignSystem ds) {
+    if (ds.typography.textStyles.isEmpty) return _buildPlaceholder('Typography & Text Styles');
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Primary Font: ${ds.typography.fontFamily.primary}', style: const TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 16),
+        ...ds.typography.textStyles.entries.map((e) => Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(e.key, style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold)),
+              Text('The quick brown fox jumps over the lazy dog', 
+                style: _getSafeFont(ds.typography.fontFamily.primary, 
+                  fontSize: _parsePx(e.value.fontSize),
+                  fontWeight: _intToWeight(e.value.fontWeight)
+                )
+              ),
+            ],
           ),
-          const SizedBox(width: 8),
-          Container(width: 36, height: 40, decoration: BoxDecoration(color: color ?? Colors.grey, borderRadius: BorderRadius.circular(4))),
-          const SizedBox(width: 10),
-          Expanded(child: Text(name, style: const TextStyle(fontSize: 11), overflow: TextOverflow.ellipsis)),
+        )),
+      ],
+    );
+  }
+
+  Widget _buildLayoutFull(models.DesignSystem ds) {
+    final hasLayout = ds.spacing.values.isNotEmpty || ds.grid.columns > 0;
+    if (!hasLayout) return _buildPlaceholder('Spacing & Grid');
+
+    final baseRadius = _parsePx(ds.borderRadius.base);
+    final largeRadius = _parsePx(ds.borderRadius.lg);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Spacing Scale', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: ds.spacing.values.entries.map((e) {
+            final size = _parsePx(e.value);
+            return Column(
+              children: [
+                Container(width: size, height: size, decoration: BoxDecoration(color: Colors.blue.shade100, border: Border.all(color: Colors.blue.shade300))),
+                const SizedBox(height: 4),
+                Text('${e.key} (${e.value})', style: const TextStyle(fontSize: 8)),
+              ],
+            );
+          }).toList(),
+        ),
+        const SizedBox(height: 24),
+        const Text('Grid System', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+        const SizedBox(height: 12),
+        Container(
+          height: 40,
+          width: double.infinity,
+          decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300)),
+          child: Row(
+            children: List.generate(ds.grid.columns, (i) => Expanded(
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 2),
+                color: Colors.pink.withOpacity(0.1),
+              ),
+            )),
+          ),
+        ),
+        Text('Columns: ${ds.grid.columns} | Gutter: ${ds.grid.gutter}', style: const TextStyle(fontSize: 10, color: Colors.grey)),
+        const SizedBox(height: 24),
+        const Text('Border Radius', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            _buildRadiusSample('Base', baseRadius, ds.borderRadius.base),
+            const SizedBox(width: 32),
+            _buildRadiusSample('Large', largeRadius, ds.borderRadius.lg),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRadiusSample(String label, double radius, String value) {
+    return Column(
+      children: [
+        Container(
+          width: 60,
+          height: 60,
+          decoration: BoxDecoration(
+            color: Colors.grey.shade50,
+            border: Border.all(color: Colors.blue, width: 2),
+            borderRadius: BorderRadius.circular(radius),
+          ),
+          child: const Center(child: Icon(Icons.rounded_corner, color: Colors.blue, size: 20)),
+        ),
+        const SizedBox(height: 8),
+        Text('$label: $value', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+      ],
+    );
+  }
+
+  Widget _buildComponentsDetailed(models.DesignSystem ds) {
+    final hasComponents = ds.components.buttons.isNotEmpty || 
+                         ds.components.inputs.isNotEmpty || 
+                         ds.components.cards.isNotEmpty ||
+                         ds.components.navigation.isNotEmpty ||
+                         ds.components.avatars.isNotEmpty;
+
+    if (!hasComponents) return _buildPlaceholder('Component Library');
+
+    final baseRadius = _parsePx(ds.borderRadius.base);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildComponentCategory('Buttons', ds.components.buttons, baseRadius),
+        _buildComponentCategory('Text Fields / Inputs', ds.components.inputs, baseRadius),
+        _buildComponentCategory('Cards', ds.components.cards, baseRadius),
+        _buildComponentCategory('Navigation Components', ds.components.navigation, baseRadius),
+        _buildComponentCategory('Avatars', ds.components.avatars, 100), // Avatars usually circle
+        const SizedBox(height: 16),
+        const Text('Icon Sizes', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 16,
+          runSpacing: 16,
+          children: ds.icons.sizes.entries.map((e) {
+            final size = _parsePx(e.value);
+            return Column(
+              children: [
+                Icon(Icons.star, size: size),
+                Text('${e.key} (${e.value})', style: const TextStyle(fontSize: 8)),
+              ],
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildComponentCategory(String name, Map<String, dynamic> tokens, double radius) {
+    if (tokens.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.blueGrey)),
+          const SizedBox(height: 8),
+          ...tokens.entries.map((e) {
+            final desc = e.value is Map ? e.value['description']?.toString() ?? '' : '';
+            return Container(
+              margin: const EdgeInsets.only(bottom: 4),
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white, 
+                border: Border.all(color: Colors.grey.shade200), 
+                borderRadius: BorderRadius.circular(radius)
+              ),
+              child: Row(
+                children: [
+                  Text(e.key, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                  if (desc.isNotEmpty) ...[
+                    const Text(' — ', style: TextStyle(color: Colors.grey)),
+                    Expanded(child: Text(desc, style: const TextStyle(fontSize: 10, color: Colors.grey))),
+                  ],
+                ],
+              ),
+            );
+          }).toList(),
         ],
       ),
     );
   }
 
-  Widget _buildTypographyPreview(models.DesignSystem ds) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: ds.typography.textStyles.entries.map((e) => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: Text(e.key, style: TextStyle(fontSize: _parseSize(e.value.fontSize))),
-      )).toList(),
-    );
-  }
-
-  Widget _buildTokenPreview(models.DesignSystem ds) {
+  Widget _buildAdvancedFull(models.DesignSystem ds) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Spacing Tokens: ${ds.spacing.values.length}'),
-        Text('Motion Tokens: ${ds.motionTokens.duration.length}'),
-        Text('Semantic Tokens: ${ds.semanticTokens.color.length}'),
+        Text('Gradients: ${ds.gradients.values.length} defined'),
+        Text('Roles: ${ds.roles.values.length} defined'),
+        Text('Semantic Tokens: ${ds.semanticTokens.color.length} mapped'),
+        Text('Motion: ${ds.motionTokens.duration.length} durations'),
       ],
     );
   }
 
+  Widget _buildPlaceholder(String section) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(12)),
+      child: Text('No data for $section. Add tokens in the dashboard.', style: const TextStyle(fontStyle: FontStyle.italic, color: Colors.grey)),
+    );
+  }
+
+  // --- HELPERS ---
+  TextStyle _getSafeFont(String name, {double? fontSize, FontWeight? fontWeight}) {
+    try { return GoogleFonts.getFont(name, fontSize: fontSize, fontWeight: fontWeight); }
+    catch (e) { return TextStyle(fontSize: fontSize, fontWeight: fontWeight); }
+  }
+  FontWeight _intToWeight(int w) => FontWeight.values[(w ~/ 100 - 1).clamp(0, 8)];
   Color _parseColor(String h) => Color(int.parse(h.replaceAll('#', 'FF'), radix: 16));
-  double _parseSize(String s) => double.tryParse(s.replaceAll('px', '')) ?? 14.0;
+  PdfColor _parsePdfColor(String hex) {
+    try {
+      final h = hex.replaceAll('#', '');
+      return PdfColor.fromInt(int.parse(h.length == 6 ? 'FF$h' : h, radix: 16));
+    } catch (_) { return PdfColors.black; }
+  }
   double _parsePx(String s) => double.tryParse(s.replaceAll('px', '')) ?? 14.0;
 }
