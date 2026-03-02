@@ -398,7 +398,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       child: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(horizontalPadding, 40, horizontalPadding, 32),
+            padding: EdgeInsets.fromLTRB(
+              horizontalPadding,
+              40,
+              horizontalPadding,
+              32 + 140, // Extra bottom padding: space below buttons + room for SnackBar
+            ),
             child: Form(
               key: _formKey,
               child: Column(
@@ -496,7 +501,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       ),
       child: SafeArea(
         child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(horizontalPadding, 40, horizontalPadding, 32),
+          padding: EdgeInsets.fromLTRB(
+            horizontalPadding,
+            40,
+            horizontalPadding,
+            // Extra bottom padding: distance below buttons + room for SnackBar
+            32 + 140,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -656,7 +667,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       ),
       child: SafeArea(
         child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(horizontalPadding, 40, horizontalPadding, 32),
+          padding: EdgeInsets.fromLTRB(
+            horizontalPadding,
+            40,
+            horizontalPadding,
+            // Extra bottom padding: distance below buttons + room for SnackBar
+            32 + 140,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -833,7 +850,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       ),
       child: SafeArea(
         child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(horizontalPadding, 40, horizontalPadding, 32),
+          padding: EdgeInsets.fromLTRB(
+            horizontalPadding,
+            40,
+            horizontalPadding,
+            32 + 140, // Extra bottom padding: space below buttons + room for SnackBar
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1128,7 +1150,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       ),
       child: SafeArea(
         child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(horizontalPadding, 40, horizontalPadding, 32),
+          padding: EdgeInsets.fromLTRB(
+            horizontalPadding,
+            40,
+            horizontalPadding,
+            32 + 140, // Extra bottom padding: space below buttons + room for SnackBar
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
