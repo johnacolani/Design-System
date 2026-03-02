@@ -17,6 +17,7 @@ class ColorsScreen extends StatefulWidget {
 
 class _ColorsScreenState extends State<ColorsScreen> {
   String _selectedCategory = 'primary';
+  Color? _editDialogSelectedColor;
 
   @override
   Widget build(BuildContext context) {
@@ -532,7 +533,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
                           if (pickedColor != null) {
                             // Update the dialog state to show selected color and store scales
                             setDialogState(() {
-                              selectedColor = pickedColor;
+                              selectedColor = pickedColor!;
                               storedPrimaryToDark = primaryToDark;
                               storedPrimaryToLight = primaryToLight;
                               storedSuggestions = suggestions;
@@ -629,8 +630,8 @@ class _ColorsScreenState extends State<ColorsScreen> {
                     GestureDetector(
                       onTap: () async {
                         final result = await Navigator.of(stContext).push<Map<String, dynamic>>(
-                          const MaterialPageRoute(
-                            builder: (_) => ColorPickerScreen(),
+                          MaterialPageRoute(
+                            builder: (_) => const ColorPickerScreen(),
                           ),
                         );
                         if (result != null && result['color'] != null && stContext.mounted) {
@@ -788,6 +789,9 @@ class _ColorsScreenState extends State<ColorsScreen> {
     dynamic colorData,
     String category,
   ) {
+    _editDialogSelectedColor = colorData is Map && colorData['color'] != null
+        ? colorData['color'] as Color
+        : Colors.grey;
     showDialog(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
@@ -821,29 +825,20 @@ class _ColorsScreenState extends State<ColorsScreen> {
                 GestureDetector(
                   onTap: () async {
                     final result = await Navigator.of(stContext).push<Map<String, dynamic>>(
-                      const MaterialPageRoute(
-                        builder: (_) => ColorPickerScreen(),
+                      MaterialPageRoute(
+                        builder: (_) => const ColorPickerScreen(),
                       ),
                     );
                     if (result != null && result['color'] != null && stContext.mounted) {
                       setDialogState(() {
-                        // Retrieve the controller instance from the widget tree and update its text
-                        final nameController = (stContext.findRenderObject()?.attachedOwner?.debugBuilding || stContext.findRenderObject()?.attachedOwner?.debugBuilding == false)
-                            ? ((stContext.widget as AlertDialog).content as SingleChildScrollView).child as Column
-                            .children[0] as TextField).controller; // This is highly fragile and discouraged.
-                        
-                        // Instead, pass the controllers into the StatefulBuilder as state.
-                        // For simplicity in this fix, we'll directly set selectedColor and expect a rebuild.
-                        setDialogState(() {
-                          selectedColor = result['color'] as Color;
-                        });
+                        _editDialogSelectedColor = result['color'] as Color;
                       });
                     }
                   },
                   child: Container(
                     height: 200,
                     decoration: BoxDecoration(
-                      color: selectedColor,
+                      color: _editDialogSelectedColor ?? Colors.grey,
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: Colors.grey[300]!, width: 2),
                     ),
@@ -875,7 +870,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
-                              _colorToHex(selectedColor),
+                              _colorToHex(_editDialogSelectedColor ?? Colors.grey),
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
@@ -899,21 +894,18 @@ class _ColorsScreenState extends State<ColorsScreen> {
             ),
             ElevatedButton(
               onPressed: () {
-                // To safely access controllers, they should be declared within the StatefulBuilder.
-                // For this example, we re-initialize them, but in a real app,
-                // you'd typically lift them to the state of the StatefulBuilder.
-                final newNameController = TextEditingController(text: name); // Dummy for current logic
+                final newNameController = TextEditingController(text: name);
                 final newDescriptionController = TextEditingController(
                   text: colorData is Map ? (colorData['description'] as String? ?? '') : '',
-                ); // Dummy for current logic
+                );
 
                 if (newNameController.text.isNotEmpty) {
                   _updateColor(
                     stContext,
                     category,
-                    name, // oldName
-                    newNameController.text, // newName
-                    selectedColor,
+                    name,
+                    newNameController.text,
+                    _editDialogSelectedColor ?? Colors.grey,
                     newDescriptionController.text,
                   );
                   Navigator.of(stContext).pop();

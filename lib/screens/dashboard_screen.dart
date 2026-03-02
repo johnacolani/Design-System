@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart' hide Container;
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
 import '../providers/design_system_provider.dart';
