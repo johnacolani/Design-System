@@ -195,8 +195,15 @@ class _PreviewScreenState extends State<PreviewScreen> {
       children: ds.spacing.values.entries.map((e) {
         final size = _parsePx(e.value);
         return pw.Column(children: [
-          pw.Container(width: size / 2, height: size / 2, color: PdfColors.blue100, border: pw.Border.all(color: PdfColors.blue300, width: 0.5)),
-          pw.Text('${e.key}', style: const pw.TextStyle(fontSize: 6)),
+          pw.Container(
+            width: size / 2,
+            height: size / 2,
+            decoration: pw.BoxDecoration(
+              color: PdfColors.blue100,
+              border: pw.Border.all(color: PdfColors.blue300, width: 0.5),
+            ),
+          ),
+          pw.Text(e.key, style: const pw.TextStyle(fontSize: 6)),
         ]);
       }).toList(),
     );
@@ -515,7 +522,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
                 ],
               ),
             );
-          }).toList(),
+          }),
         ],
       ),
     );

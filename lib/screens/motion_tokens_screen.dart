@@ -104,7 +104,7 @@ class _MotionTokensScreenState extends State<MotionTokensScreen> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'No ${_selectedCategory} tokens defined',
+                          'No $_selectedCategory tokens defined',
                           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                 color: Colors.grey[600],
                               ),

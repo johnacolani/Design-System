@@ -116,18 +116,18 @@ class ContrastCheckerService {
   static ContrastInfo getContrastInfo(Color foreground, Color background) {
     final ratio = calculateContrastRatio(foreground, background);
     final wcagAA = meetsWCAGAA(foreground, background);
-    final wcagAA_Large = meetsWCAGAA_Large(foreground, background);
+    final wcagaaLarge = meetsWCAGAA_Large(foreground, background);
     final wcagAAA = meetsWCAGAAA(foreground, background);
-    final wcagAAA_Large = meetsWCAGAAA_Large(foreground, background);
+    final wcagaaaLarge = meetsWCAGAAA_Large(foreground, background);
     final level = getWCAGLevel(foreground, background);
     final score = getAccessibilityScore(foreground, background);
     
     return ContrastInfo(
       ratio: ratio,
       wcagAA: wcagAA,
-      wcagAA_Large: wcagAA_Large,
+      wcagAA_Large: wcagaaLarge,
       wcagAAA: wcagAAA,
-      wcagAAA_Large: wcagAAA_Large,
+      wcagAAA_Large: wcagaaaLarge,
       level: level,
       score: score,
       readable: isReadable(foreground, background),

@@ -330,7 +330,7 @@ class _MaterialColorsTabState extends State<MaterialColorsTab> {
               
               // Add primary color from palette
               final primaryHex = '#${palette.primary.value.toRadixString(16).substring(2).toUpperCase()}';
-              paletteMap['$categoryName'] = {
+              paletteMap[categoryName] = {
                 'value': primaryHex,
                 'type': 'color',
                 'description': '${palette.name} primary color',

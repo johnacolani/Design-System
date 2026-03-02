@@ -256,7 +256,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         updatedPrimary[colorName] = {
           'value': colorHex,
           'type': 'color',
-          'description': '${_colorSchemeType} color ${i + 1}',
+          'description': '$_colorSchemeType color ${i + 1}',
         };
         
         // Add dark scale variations

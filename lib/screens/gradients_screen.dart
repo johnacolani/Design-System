@@ -245,7 +245,7 @@ class _GradientsScreenState extends State<GradientsScreen> {
                 const SizedBox(height: 16),
                 const Text('Direction:'),
                 DropdownButtonFormField<String>(
-                  value: selectedDirection,
+                  initialValue: selectedDirection,
                   decoration: const InputDecoration(
                     border: OutlineInputBorder(),
                   ),
@@ -408,7 +408,7 @@ class _GradientsScreenState extends State<GradientsScreen> {
                 const SizedBox(height: 16),
                 const Text('Direction:'),
                 DropdownButtonFormField<String>(
-                  value: selectedDirection,
+                  initialValue: selectedDirection,
                   decoration: const InputDecoration(
                     border: OutlineInputBorder(),
                   ),

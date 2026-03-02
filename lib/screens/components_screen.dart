@@ -97,7 +97,7 @@ class _ComponentsScreenState extends State<ComponentsScreen> {
                     Icon(icon, size: 64, color: Colors.grey[400]),
                     const SizedBox(height: 16),
                     Text(
-                      'No ${category} defined',
+                      'No $category defined',
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                             color: Colors.grey[600],
                           ),

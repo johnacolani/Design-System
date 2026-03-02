@@ -119,7 +119,7 @@ class _SemanticTokensScreenState extends State<SemanticTokensScreen> with Single
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'No semantic tokens for ${_selectedCategory}',
+                          'No semantic tokens for $_selectedCategory',
                           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                 color: Colors.grey[600],
                               ),
@@ -483,7 +483,7 @@ class _SemanticTokensScreenState extends State<SemanticTokensScreen> with Single
         break;
       case 'shadow':
         // Add shadow tokens
-        designSystem.shadows.values!.forEach((key, value) {
+        designSystem.shadows.values.forEach((key, value) {
           tokens.add('shadows.$key');
         });
               break;

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:convert';
 
 class ColorPaletteService {
   /// Generate color scale from a base color (light to dark)
