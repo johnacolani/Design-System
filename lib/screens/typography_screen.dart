@@ -410,21 +410,105 @@ class _TypographyScreenState extends State<TypographyScreen> {
   }
 
   void _showAddTextStyleDialog(BuildContext context) {
+    final provider = Provider.of<DesignSystemProvider>(context, listen: false);
+    final t = provider.designSystem.typography;
     final name = TextEditingController();
-    showDialog(context: context, builder: (ctx) => AlertDialog(
-      title: const Text('Add Text Style'),
-      content: TextField(controller: name, decoration: const InputDecoration(labelText: 'Style Name')),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-        ElevatedButton(onPressed: () {
-          final p = Provider.of<DesignSystemProvider>(context, listen: false);
-          final t = p.designSystem.typography;
-          final updated = Map<String, models.TextStyle>.from(t.textStyles)..[name.text] = models.TextStyle(fontFamily: t.fontFamily.primary, fontSize: '16px', fontWeight: 400, lineHeight: '24px');
-          p.updateTypography(models.Typography(fontFamily: t.fontFamily, fontWeights: t.fontWeights, fontSizes: t.fontSizes, textStyles: updated));
-          Navigator.pop(ctx);
-        }, child: const Text('Add')),
-      ],
-    ));
+    String selectedFont = t.fontFamily.primary;
+    String selectedWeightKey = t.fontWeights.isNotEmpty ? t.fontWeights.keys.first : 'regular';
+    String selectedSizeKey = t.fontSizes.isNotEmpty ? t.fontSizes.keys.first : 'base';
+
+    final weightKeys = t.fontWeights.keys.toList();
+    final sizeKeys = t.fontSizes.keys.toList();
+    if (weightKeys.isEmpty) weightKeys.add('regular');
+    if (sizeKeys.isEmpty) sizeKeys.add('base');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('Add Text Style'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextField(
+                  controller: name,
+                  decoration: const InputDecoration(labelText: 'Style Name (e.g. Heading 1, Body)'),
+                ),
+                const SizedBox(height: 16),
+                const Text('Font', style: TextStyle(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 4),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.font_download),
+                  label: Text(selectedFont),
+                  onPressed: () => _showFontPickerForStyle(
+                    context,
+                    currentFont: selectedFont,
+                    primaryFont: t.fontFamily.primary,
+                    fallbackFont: t.fontFamily.fallback,
+                    onSelected: (font) => setDialogState(() => selectedFont = font),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    alignment: Alignment.centerLeft,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text('Weight', style: TextStyle(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 4),
+                DropdownButtonFormField<String>(
+                  value: selectedWeightKey,
+                  decoration: const InputDecoration(border: OutlineInputBorder()),
+                  items: weightKeys.map((k) => DropdownMenuItem(value: k, child: Text('$k (${t.fontWeights[k] ?? 400})'))).toList(),
+                  onChanged: (v) => setDialogState(() => selectedWeightKey = v ?? selectedWeightKey),
+                ),
+                const SizedBox(height: 16),
+                const Text('Size', style: TextStyle(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 4),
+                DropdownButtonFormField<String>(
+                  value: selectedSizeKey,
+                  decoration: const InputDecoration(border: OutlineInputBorder()),
+                  items: sizeKeys.map((k) {
+                    final sz = t.fontSizes[k];
+                    return DropdownMenuItem(value: k, child: Text(sz != null ? '$k (${sz.value}, ${sz.lineHeight})' : k));
+                  }).toList(),
+                  onChanged: (v) => setDialogState(() => selectedSizeKey = v ?? selectedSizeKey),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: () {
+                if (name.text.trim().isEmpty) return;
+                final weight = t.fontWeights[selectedWeightKey] ?? 400;
+                final sizeToken = t.fontSizes[selectedSizeKey];
+                final fontSize = sizeToken?.value ?? '16px';
+                final lineHeight = sizeToken?.lineHeight ?? '1.5';
+                final updated = Map<String, models.TextStyle>.from(t.textStyles)
+                  ..[name.text.trim()] = models.TextStyle(
+                    fontFamily: selectedFont,
+                    fontSize: fontSize,
+                    fontWeight: weight,
+                    lineHeight: lineHeight,
+                  );
+                provider.updateTypography(models.Typography(
+                  fontFamily: t.fontFamily,
+                  fontWeights: t.fontWeights,
+                  fontSizes: t.fontSizes,
+                  textStyles: updated,
+                ));
+                Navigator.pop(ctx);
+                setState(() {});
+              },
+              child: const Text('Add'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _deleteTextStyle(BuildContext context, String k) {
@@ -432,6 +516,98 @@ class _TypographyScreenState extends State<TypographyScreen> {
     final t = p.designSystem.typography;
     final updated = Map<String, models.TextStyle>.from(t.textStyles)..remove(k);
     p.updateTypography(models.Typography(fontFamily: t.fontFamily, fontWeights: t.fontWeights, fontSizes: t.fontSizes, textStyles: updated));
+  }
+
+  void _showFontPickerForStyle(
+    BuildContext context, {
+    required String currentFont,
+    required String primaryFont,
+    required String fallbackFont,
+    required void Function(String font) onSelected,
+  }) {
+    String searchQuery = '';
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) {
+          final filteredFonts = _googleFonts
+              .where((f) => f.toLowerCase().contains(searchQuery.toLowerCase()))
+              .toList();
+          return AlertDialog(
+          title: const Text('Choose font'),
+          content: SizedBox(
+            width: 320,
+            height: 420,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'From Font Family (your chosen font)',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blue),
+                ),
+                const SizedBox(height: 8),
+                ListTile(
+                  title: Text(primaryFont, style: _getSafeFont(primaryFont, fontSize: 16)),
+                  subtitle: const Text('Primary – selected in Font Family tab'),
+                  selected: currentFont == primaryFont,
+                  onTap: () {
+                    onSelected(primaryFont);
+                    Navigator.pop(ctx);
+                  },
+                ),
+                ListTile(
+                  title: Text(fallbackFont, style: const TextStyle(fontSize: 16)),
+                  subtitle: const Text('Fallback'),
+                  selected: currentFont == fallbackFont,
+                  onTap: () {
+                    onSelected(fallbackFont);
+                    Navigator.pop(ctx);
+                  },
+                ),
+                const Divider(height: 24),
+                const Text(
+                  'Or pick from all fonts',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  decoration: const InputDecoration(
+                    hintText: 'Search fonts...',
+                    prefixIcon: Icon(Icons.search),
+                    isDense: true,
+                    border: OutlineInputBorder(),
+                  ),
+                  onChanged: (v) => setState(() => searchQuery = v),
+                ),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: filteredFonts.length > 200 ? 200 : filteredFonts.length,
+                    itemBuilder: (c, i) {
+                      final font = filteredFonts[i];
+                      return ListTile(
+                        dense: true,
+                        title: Text(font, style: _getSafeFont(font, fontSize: 14)),
+                        selected: currentFont == font,
+                        onTap: () {
+                          onSelected(font);
+                          Navigator.pop(ctx);
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ],
+        );
+        },
+      ),
+    );
   }
 
   void _showMaterialPicker(BuildContext context) {
@@ -481,7 +657,127 @@ class _TypographyScreenState extends State<TypographyScreen> {
   }
 
   void _showEditTextStyleDialog(BuildContext context, String key, models.TextStyle style) {
-    // Basic implementation for now to satisfy button tap
+    final provider = Provider.of<DesignSystemProvider>(context, listen: false);
+    final t = provider.designSystem.typography;
+    final nameController = TextEditingController(text: key);
+    String selectedFont = (style.fontFamily == t.fontFamily.fallback) ? t.fontFamily.fallback : t.fontFamily.primary;
+    String selectedWeightKey = 'regular';
+    for (final e in t.fontWeights.entries) {
+      if (e.value == style.fontWeight) {
+        selectedWeightKey = e.key;
+        break;
+      }
+    }
+    if (!t.fontWeights.containsKey(selectedWeightKey) && t.fontWeights.isNotEmpty) {
+      selectedWeightKey = t.fontWeights.keys.first;
+    }
+    String selectedSizeKey = 'base';
+    for (final e in t.fontSizes.entries) {
+      if (e.value.value == style.fontSize) {
+        selectedSizeKey = e.key;
+        break;
+      }
+    }
+    if (!t.fontSizes.containsKey(selectedSizeKey) && t.fontSizes.isNotEmpty) {
+      selectedSizeKey = t.fontSizes.keys.first;
+    }
+
+    final weightKeys = t.fontWeights.keys.toList();
+    final sizeKeys = t.fontSizes.keys.toList();
+    if (weightKeys.isEmpty) weightKeys.add('regular');
+    if (sizeKeys.isEmpty) sizeKeys.add('base');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('Edit Text Style'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(labelText: 'Style Name'),
+                ),
+                const SizedBox(height: 16),
+                const Text('Font', style: TextStyle(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 4),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.font_download),
+                  label: Text(selectedFont),
+                  onPressed: () => _showFontPickerForStyle(
+                    context,
+                    currentFont: selectedFont,
+                    primaryFont: t.fontFamily.primary,
+                    fallbackFont: t.fontFamily.fallback,
+                    onSelected: (font) => setDialogState(() => selectedFont = font),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    alignment: Alignment.centerLeft,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text('Weight', style: TextStyle(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 4),
+                DropdownButtonFormField<String>(
+                  value: selectedWeightKey,
+                  decoration: const InputDecoration(border: OutlineInputBorder()),
+                  items: weightKeys.map((k) => DropdownMenuItem(value: k, child: Text('$k (${t.fontWeights[k] ?? 400})'))).toList(),
+                  onChanged: (v) => setDialogState(() => selectedWeightKey = v ?? selectedWeightKey),
+                ),
+                const SizedBox(height: 16),
+                const Text('Size', style: TextStyle(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 4),
+                DropdownButtonFormField<String>(
+                  value: selectedSizeKey,
+                  decoration: const InputDecoration(border: OutlineInputBorder()),
+                  items: sizeKeys.map((k) {
+                    final sz = t.fontSizes[k];
+                    return DropdownMenuItem(value: k, child: Text(sz != null ? '$k (${sz.value}, ${sz.lineHeight})' : k));
+                  }).toList(),
+                  onChanged: (v) => setDialogState(() => selectedSizeKey = v ?? selectedSizeKey),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: () {
+                final newName = nameController.text.trim();
+                if (newName.isEmpty) return;
+                final weight = t.fontWeights[selectedWeightKey] ?? style.fontWeight;
+                final sizeToken = t.fontSizes[selectedSizeKey];
+                final fontSize = sizeToken?.value ?? style.fontSize;
+                final lineHeight = sizeToken?.lineHeight ?? style.lineHeight;
+                final updated = Map<String, models.TextStyle>.from(t.textStyles);
+                updated.remove(key);
+                updated[newName] = models.TextStyle(
+                  fontFamily: selectedFont,
+                  fontSize: fontSize,
+                  fontWeight: weight,
+                  lineHeight: lineHeight,
+                  color: style.color,
+                  textDecoration: style.textDecoration,
+                );
+                provider.updateTypography(models.Typography(
+                  fontFamily: t.fontFamily,
+                  fontWeights: t.fontWeights,
+                  fontSizes: t.fontSizes,
+                  textStyles: updated,
+                ));
+                Navigator.pop(ctx);
+                setState(() {});
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Color? _parseColor(String colorHex) {

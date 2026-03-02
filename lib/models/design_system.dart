@@ -194,7 +194,16 @@ class Typography {
           'semibold': 600,
           'bold': 700,
         },
-        fontSizes: {},
+        fontSizes: {
+          'xs': FontSize(value: '12px', lineHeight: '1.25'),
+          'sm': FontSize(value: '14px', lineHeight: '1.35'),
+          'base': FontSize(value: '16px', lineHeight: '1.5'),
+          'md': FontSize(value: '18px', lineHeight: '1.5'),
+          'lg': FontSize(value: '20px', lineHeight: '1.4'),
+          'xl': FontSize(value: '24px', lineHeight: '1.35'),
+          '2xl': FontSize(value: '30px', lineHeight: '1.3'),
+          '3xl': FontSize(value: '36px', lineHeight: '1.25'),
+        },
         textStyles: {},
       );
 }
