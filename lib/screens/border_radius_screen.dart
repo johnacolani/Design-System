@@ -22,10 +22,14 @@ class _BorderRadiusScreenState extends State<BorderRadiusScreen> {
         title: const Text('Border Radius'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.add),
+            onPressed: () => _showEditBorderRadiusDialog(context),
+            tooltip: 'Add / Edit radius values',
+          ),
+          IconButton(
             icon: const Icon(Icons.edit),
-            onPressed: () {
-              _showEditBorderRadiusDialog(context);
-            },
+            onPressed: () => _showEditBorderRadiusDialog(context),
+            tooltip: 'Edit all values',
           ),
         ],
       ),
@@ -34,96 +38,61 @@ class _BorderRadiusScreenState extends State<BorderRadiusScreen> {
         child: ListView(
           padding: const EdgeInsets.symmetric(vertical: 16),
           children: [
-          Text(
-            'Border Radius Values',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Define corner radius values for consistent rounded corners',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.grey[600],
-                ),
-          ),
-          const SizedBox(height: 24),
-          _buildBorderRadiusCard(context, 'None', borderRadius.none, 'No rounding'),
-          _buildBorderRadiusCard(context, 'Small', borderRadius.sm, 'Small rounded corners'),
-          _buildBorderRadiusCard(context, 'Base', borderRadius.base, 'Default rounded corners'),
-          _buildBorderRadiusCard(context, 'Medium', borderRadius.md, 'Medium rounded corners'),
-          _buildBorderRadiusCard(context, 'Large', borderRadius.lg, 'Large rounded corners'),
-          _buildBorderRadiusCard(context, 'Extra Large', borderRadius.xl, 'Extra large rounded corners'),
-          _buildBorderRadiusCard(context, 'Full', borderRadius.full, 'Fully rounded (circle)'),
-        ],
+            Text(
+              'Pick any token to edit',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Define corner radius values for consistent rounded corners. Use Add or Edit to change values.',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Colors.grey[600],
+                  ),
+            ),
+            const SizedBox(height: 16),
+            _buildRadiusRow(context, 'None', borderRadius.none),
+            _buildRadiusRow(context, 'Small', borderRadius.sm),
+            _buildRadiusRow(context, 'Base', borderRadius.base),
+            _buildRadiusRow(context, 'Medium', borderRadius.md),
+            _buildRadiusRow(context, 'Large', borderRadius.lg),
+            _buildRadiusRow(context, 'Extra Large', borderRadius.xl),
+            _buildRadiusRow(context, 'Full', borderRadius.full),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildBorderRadiusCard(
-    BuildContext context,
-    String name,
-    String value,
-    String description,
-  ) {
+  Widget _buildRadiusRow(BuildContext context, String name, String value) {
     final radiusValue = _parseRadius(value);
+    final radius = radiusValue >= 9999 ? 9999.0 : radiusValue;
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: Colors.blue.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(radiusValue),
-                border: Border.all(color: Colors.blue, width: 2),
-              ),
-              child: Center(
-                child: Text(
-                  name[0],
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue,
-                  ),
-                ),
-              ),
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        leading: Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: Colors.blue.withOpacity(0.12),
+            borderRadius: radius >= 9999 ? BorderRadius.circular(24) : BorderRadius.circular(radius),
+            border: Border.all(color: Colors.blue, width: 2),
+          ),
+          child: Center(
+            child: Text(
+              name[0],
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blue),
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    value,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.grey[600],
-                          fontFamily: 'monospace',
-                        ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    description,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.grey[600],
-                        ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+          ),
+        ),
+        title: Text(name, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
+        subtitle: Text(value, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[600], fontFamily: 'monospace')),
+        trailing: IconButton(
+          icon: const Icon(Icons.edit_outlined),
+          onPressed: () => _showEditBorderRadiusDialog(context),
+          tooltip: 'Edit all radius values',
         ),
       ),
     );
@@ -141,7 +110,8 @@ class _BorderRadiusScreenState extends State<BorderRadiusScreen> {
   }
 
   void _showEditBorderRadiusDialog(BuildContext context) {
-    final provider = Provider.of<DesignSystemProvider>(context);
+    final screenContext = context;
+    final provider = Provider.of<DesignSystemProvider>(context, listen: false);
     final borderRadius = provider.designSystem.borderRadius;
 
     final noneController = TextEditingController(text: borderRadius.none);
@@ -154,7 +124,7 @@ class _BorderRadiusScreenState extends State<BorderRadiusScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Edit Border Radius Values'),
         content: SingleChildScrollView(
           child: Column(
@@ -220,19 +190,19 @@ class _BorderRadiusScreenState extends State<BorderRadiusScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(dialogContext).pop(),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () {
               final updatedBorderRadius = models.BorderRadius(
-                none: noneController.text,
-                sm: smController.text,
-                base: baseController.text,
-                md: mdController.text,
-                lg: lgController.text,
-                xl: xlController.text,
-                full: fullController.text,
+                none: noneController.text.trim().isEmpty ? borderRadius.none : noneController.text.trim(),
+                sm: smController.text.trim().isEmpty ? borderRadius.sm : smController.text.trim(),
+                base: baseController.text.trim().isEmpty ? borderRadius.base : baseController.text.trim(),
+                md: mdController.text.trim().isEmpty ? borderRadius.md : mdController.text.trim(),
+                lg: lgController.text.trim().isEmpty ? borderRadius.lg : lgController.text.trim(),
+                xl: xlController.text.trim().isEmpty ? borderRadius.xl : xlController.text.trim(),
+                full: fullController.text.trim().isEmpty ? borderRadius.full : fullController.text.trim(),
               );
 
               provider.updateDesignSystem(models.DesignSystem(
@@ -257,13 +227,15 @@ class _BorderRadiusScreenState extends State<BorderRadiusScreen> {
                 versionHistory: provider.designSystem.versionHistory,
               ));
 
-              Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Border radius updated!'),
-                  backgroundColor: Colors.green,
-                ),
-              );
+              Navigator.of(screenContext).pop();
+              if (screenContext.mounted) {
+                ScaffoldMessenger.of(screenContext).showSnackBar(
+                  const SnackBar(
+                    content: Text('Border radius updated!'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              }
             },
             child: const Text('Save'),
           ),

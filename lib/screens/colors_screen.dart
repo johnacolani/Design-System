@@ -190,14 +190,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
                         ],
                       ),
                     )
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: currentCategory.length,
-                      itemBuilder: (context, index) {
-                        final entry = currentCategory.entries.elementAt(index);
-                        return _buildColorRow(context, entry.key, entry.value, _selectedCategory);
-                      },
-                    ),
+                  : _buildColorsGroupedByType(context, currentCategory),
             ),
           ],
         ),
@@ -224,7 +217,11 @@ class _ColorsScreenState extends State<ColorsScreen> {
 
     return Card(
       elevation: 1,
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(color: Colors.grey.shade300!),
+      ),
       child: InkWell(
         onTap: () {
           _showEditColorDialog(context, name, colorData, category);
@@ -316,6 +313,137 @@ class _ColorsScreenState extends State<ColorsScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  static const List<String> _colorGroupOrder = ['success', 'error', 'warning', 'info', 'primary', 'secondary'];
+
+  Map<String, List<MapEntry<String, dynamic>>> _groupColorsByPrefix(Map<String, dynamic> category) {
+    final map = <String, List<MapEntry<String, dynamic>>>{};
+    for (final e in category.entries) {
+      final prefix = e.key.contains('_') ? e.key.split('_').first : e.key;
+      final key = prefix.toLowerCase();
+      map.putIfAbsent(key, () => []).add(e);
+    }
+    for (final list in map.values) {
+      list.sort((a, b) => _naturalCompare(a.key, b.key));
+    }
+    return map;
+  }
+
+  /// Compare strings with numeric parts as numbers (e.g. dark1, dark2, dark10).
+  int _naturalCompare(String a, String b) {
+    final aParts = _splitForNaturalSort(a);
+    final bParts = _splitForNaturalSort(b);
+    for (var i = 0; i < aParts.length && i < bParts.length; i++) {
+      final ap = aParts[i];
+      final bp = bParts[i];
+      final aNum = int.tryParse(ap);
+      final bNum = int.tryParse(bp);
+      if (aNum != null && bNum != null) {
+        final c = aNum.compareTo(bNum);
+        if (c != 0) return c;
+      } else {
+        final c = ap.compareTo(bp);
+        if (c != 0) return c;
+      }
+    }
+    return aParts.length.compareTo(bParts.length);
+  }
+
+  List<String> _splitForNaturalSort(String s) {
+    final list = <String>[];
+    var i = 0;
+    while (i < s.length) {
+      if (RegExp(r'[0-9]').hasMatch(s[i])) {
+        var j = i;
+        while (j < s.length && RegExp(r'[0-9]').hasMatch(s[j])) j++;
+        list.add(s.substring(i, j));
+        i = j;
+      } else {
+        var j = i;
+        while (j < s.length && !RegExp(r'[0-9]').hasMatch(s[j])) j++;
+        list.add(s.substring(i, j));
+        i = j;
+      }
+    }
+    return list;
+  }
+
+  Widget _buildColorsGroupedByType(BuildContext context, Map<String, dynamic> category) {
+    final groups = _groupColorsByPrefix(category);
+    final orderedKeys = <String>[];
+    for (final k in _colorGroupOrder) {
+      if (groups.containsKey(k)) orderedKeys.add(k);
+    }
+    for (final k in groups.keys) {
+      if (!orderedKeys.contains(k)) orderedKeys.add(k);
+    }
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        for (var i = 0; i < orderedKeys.length; i += 2) ...[
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _buildColorGroupColumn(
+                  context,
+                  _capitalize(orderedKeys[i]),
+                  groups[orderedKeys[i]]!,
+                  _selectedCategory,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: (i + 1) < orderedKeys.length
+                    ? _buildColorGroupColumn(
+                        context,
+                        _capitalize(orderedKeys[i + 1]),
+                        groups[orderedKeys[i + 1]]!,
+                        _selectedCategory,
+                      )
+                    : const SizedBox.shrink(),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+        ],
+      ],
+    );
+  }
+
+  String _capitalize(String s) {
+    if (s.isEmpty) return s;
+    return s[0].toUpperCase() + s.substring(1).toLowerCase();
+  }
+
+  Widget _buildColorGroupColumn(
+    BuildContext context,
+    String title,
+    List<MapEntry<String, dynamic>> entries,
+    String category,
+  ) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade300!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(7)),
+              border: Border(bottom: BorderSide(color: Colors.grey.shade300!)),
+            ),
+            child: Text(title, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
+          ),
+          ...entries.map((e) => _buildColorRow(context, e.key, e.value, category)),
+        ],
       ),
     );
   }

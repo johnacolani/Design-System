@@ -13,6 +13,23 @@ class ShadowsScreen extends StatefulWidget {
 }
 
 class _ShadowsScreenState extends State<ShadowsScreen> {
+  /// Recommended shadow tokens for elevation and components (used in add/edit and Preview).
+  static const List<({String name, String description})> recommendedShadows = [
+    (name: 'sm', description: 'Subtle elevation (1–2px), small lift'),
+    (name: 'md', description: 'Medium elevation, cards and panels'),
+    (name: 'lg', description: 'Large elevation, dropdowns and popovers'),
+    (name: 'xl', description: 'Extra large, modals and overlays'),
+    (name: 'card', description: 'Default card shadow'),
+    (name: 'button', description: 'Button hover / raised state'),
+    (name: 'dropdown', description: 'Dropdown and popover menus'),
+    (name: 'modal', description: 'Modal / dialog overlay'),
+    (name: 'tooltip', description: 'Tooltip popup'),
+    (name: 'input-focus', description: 'Input focus ring shadow'),
+    (name: 'app-bar', description: 'App bar elevation'),
+    (name: 'fab', description: 'Floating action button'),
+    (name: 'sheet', description: 'Bottom sheet / drawer'),
+  ];
+
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<DesignSystemProvider>(context);
@@ -35,54 +52,102 @@ class _ShadowsScreenState extends State<ShadowsScreen> {
         child: ListView(
           padding: const EdgeInsets.symmetric(vertical: 16),
           children: [
-          Text(
-            'Shadow Definitions',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Define shadow values for elevation and depth',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.grey[600],
-                ),
-          ),
-          const SizedBox(height: 24),
-          if (shadows.values.isEmpty)
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Center(
-                  child: Column(
-                    children: [
-                      Icon(Icons.auto_awesome_outlined, size: 64, color: Colors.grey[400]),
-                      const SizedBox(height: 16),
-                      Text(
-                        'No shadows defined',
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                              color: Colors.grey[600],
-                            ),
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          _showAddShadowDialog(context);
-                        },
-                        icon: const Icon(Icons.add),
-                        label: const Text('Add Shadow'),
-                      ),
-                    ],
+            Text(
+              'Recommended for components & elevation',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Add these tokens to your design system for consistent shadows across UI.',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Colors.grey[600],
+                  ),
+            ),
+            const SizedBox(height: 16),
+            ...recommendedShadows.map((rec) => _buildRecommendedRow(context, rec.name, rec.description, shadows.values.containsKey(rec.name), shadows.values[rec.name])),
+            const SizedBox(height: 32),
+            Text(
+              'Shadow Definitions',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Define shadow values for elevation and depth',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Colors.grey[600],
+                  ),
+            ),
+            const SizedBox(height: 24),
+            if (shadows.values.isEmpty)
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Center(
+                    child: Column(
+                      children: [
+                        Icon(Icons.auto_awesome_outlined, size: 64, color: Colors.grey[400]),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No shadows defined',
+                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                color: Colors.grey[600],
+                              ),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            _showAddShadowDialog(context);
+                          },
+                          icon: const Icon(Icons.add),
+                          label: const Text('Add Shadow'),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            )
-          else
-            ...shadows.values.entries.map((entry) {
-              return _buildShadowCard(context, entry.key, entry.value);
-            }),
-        ],
+              )
+            else
+              ...shadows.values.entries.map((entry) {
+                return _buildShadowCard(context, entry.key, entry.value);
+              }),
+          ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildRecommendedRow(
+    BuildContext context,
+    String name,
+    String description,
+    bool isAdded,
+    models.ShadowValue? existingValue,
+  ) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        leading: Icon(
+          isAdded ? Icons.check_circle : Icons.add_circle_outline,
+          color: isAdded ? Colors.green : Colors.grey,
+          size: 28,
+        ),
+        title: Text(name, style: const TextStyle(fontWeight: FontWeight.w600)),
+        subtitle: Text(description, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+        trailing: isAdded
+            ? TextButton(
+                onPressed: () {
+                  if (existingValue != null) _showEditShadowDialog(context, name, existingValue);
+                },
+                child: const Text('Edit'),
+              )
+            : FilledButton.tonal(
+                onPressed: () => _showAddShadowDialog(context, initialName: name, initialDescription: description),
+                child: const Text('Add'),
+              ),
       ),
     );
   }
@@ -172,9 +237,9 @@ class _ShadowsScreenState extends State<ShadowsScreen> {
     );
   }
 
-  void _showAddShadowDialog(BuildContext context) {
-    final nameController = TextEditingController();
-    final descriptionController = TextEditingController();
+  void _showAddShadowDialog(BuildContext context, {String? initialName, String? initialDescription}) {
+    final nameController = TextEditingController(text: initialName ?? '');
+    final descriptionController = TextEditingController(text: initialDescription ?? '');
     
     // Shadow parameters with defaults
     double offsetX = 0.0;

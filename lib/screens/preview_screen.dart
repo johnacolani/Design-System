@@ -1,3 +1,4 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:pdf/pdf.dart';
@@ -296,11 +297,19 @@ class _PreviewScreenState extends State<PreviewScreen> {
               _buildLayoutFull(ds),
               const Divider(height: 40),
 
-              _buildHeading('4. Components & Assets'),
+              _buildHeading('4. Shadows'),
+              _buildShadowsSection(ds),
+              const Divider(height: 40),
+
+              _buildHeading('5. Visual Effects'),
+              _buildEffectsSection(ds),
+              const Divider(height: 40),
+
+              _buildHeading('6. Components & Assets'),
               _buildComponentsDetailed(ds),
               const Divider(height: 40),
 
-              _buildHeading('5. Advanced Tokens'),
+              _buildHeading('7. Advanced Tokens'),
               _buildAdvancedFull(ds),
               const SizedBox(height: 40),
             ],
@@ -312,83 +321,428 @@ class _PreviewScreenState extends State<PreviewScreen> {
 
   Widget _buildHeading(String title) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
-      child: Text(title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.blue)),
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blue)),
     );
   }
+
+  Widget _buildSectionCard(String sectionTitle, Widget child) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 24),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200!),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(sectionTitle, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87)),
+          const SizedBox(height: 16),
+          child,
+        ],
+      ),
+    );
+  }
+
+  String _toHex(String raw) {
+    String h = raw.toString().replaceAll('#', '').trim().toUpperCase();
+    if (h.length == 6) return '#$h';
+    return raw.toString();
+  }
+
+  /// Preferred order for color groups (e.g. success left, error right, then warning row).
+  static const List<String> _colorGroupOrder = ['success', 'error', 'warning', 'info', 'primary', 'secondary'];
 
   Widget _buildTwoColumnColors(models.DesignSystem ds) {
     if (ds.colors.primary.isEmpty && ds.colors.semantic.isEmpty) {
       return _buildPlaceholder('Colors (Primary & Semantic)');
     }
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(child: _buildShortColorList('Primary', ds.colors.primary)),
-        const SizedBox(width: 20),
-        Expanded(child: _buildShortColorList('Semantic', ds.colors.semantic)),
-      ],
-    );
-  }
-
-  Widget _buildShortColorList(String title, Map<String, dynamic> colors) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.grey)),
-        const SizedBox(height: 8),
-        ...colors.entries.map((e) {
-          final hex = e.value is Map ? e.value['value'] : e.value.toString();
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 4),
-            child: Row(children: [
-              Container(width: 20, height: 20, decoration: BoxDecoration(color: _parseColor(hex), borderRadius: BorderRadius.circular(4))),
-              const SizedBox(width: 8),
-              Expanded(child: Text(e.key, style: const TextStyle(fontSize: 10), overflow: TextOverflow.ellipsis)),
-            ]),
-          );
-        }),
-      ],
-    );
-  }
-
-  Widget _buildTypographyFull(models.DesignSystem ds) {
-    if (ds.typography.textStyles.isEmpty) return _buildPlaceholder('Typography & Text Styles');
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Primary Font: ${ds.typography.fontFamily.primary}', style: const TextStyle(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 16),
-        ...ds.typography.textStyles.entries.map((e) => Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: Column(
+    final allEntries = <(String name, String hex)>[];
+    for (final e in ds.colors.primary.entries) {
+      final val = e.value;
+      if (val is Map && val['value'] != null) allEntries.add((e.key, val['value'].toString()));
+      else if (val is! Map) allEntries.add((e.key, val.toString()));
+    }
+    for (final e in ds.colors.semantic.entries) {
+      final val = e.value;
+      if (val is Map && val['value'] != null) allEntries.add((e.key, val['value'].toString()));
+      else if (val is! Map) allEntries.add((e.key, val.toString()));
+    }
+    final groups = _groupColorsByPrefix(allEntries);
+    final orderedGroups = <String>[];
+    for (final k in _colorGroupOrder) {
+      if (groups.containsKey(k)) orderedGroups.add(k);
+    }
+    for (final k in groups.keys) {
+      if (!orderedGroups.contains(k)) orderedGroups.add(k);
+    }
+    final rows = <Widget>[];
+    for (var i = 0; i < orderedGroups.length; i += 2) {
+      final leftKey = orderedGroups[i];
+      final rightKey = (i + 1) < orderedGroups.length ? orderedGroups[i + 1] : null;
+      rows.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(e.key, style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold)),
-              Text('The quick brown fox jumps over the lazy dog', 
-                style: _getSafeFont(ds.typography.fontFamily.primary, 
-                  fontSize: _parsePx(e.value.fontSize),
-                  fontWeight: _intToWeight(e.value.fontWeight)
-                )
+              Expanded(
+                child: _buildColorGroupColumn(_capitalize(leftKey), groups[leftKey]!),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: rightKey != null
+                    ? _buildColorGroupColumn(_capitalize(rightKey), groups[rightKey]!)
+                    : const SizedBox.shrink(),
               ),
             ],
           ),
-        )),
-      ],
+        ),
+      );
+    }
+    return _buildSectionCard('Colors', Column(crossAxisAlignment: CrossAxisAlignment.start, children: rows));
+  }
+
+  String _capitalize(String s) {
+    if (s.isEmpty) return s;
+    return s[0].toUpperCase() + s.substring(1).toLowerCase();
+  }
+
+  Map<String, List<(String name, String hex)>> _groupColorsByPrefix(List<(String name, String hex)> entries) {
+    final map = <String, List<(String name, String hex)>>{};
+    for (final e in entries) {
+      final prefix = e.$1.contains('_') ? e.$1.split('_').first : e.$1;
+      final key = prefix.toLowerCase();
+      map.putIfAbsent(key, () => []).add(e);
+    }
+    for (final list in map.values) {
+      list.sort((a, b) => _naturalCompare(a.$1, b.$1));
+    }
+    return map;
+  }
+
+  /// Compare strings with numeric parts as numbers (e.g. dark1, dark2, dark10).
+  int _naturalCompare(String a, String b) {
+    final aParts = _splitForNaturalSort(a);
+    final bParts = _splitForNaturalSort(b);
+    for (var i = 0; i < aParts.length && i < bParts.length; i++) {
+      final ap = aParts[i];
+      final bp = bParts[i];
+      final aNum = int.tryParse(ap);
+      final bNum = int.tryParse(bp);
+      if (aNum != null && bNum != null) {
+        final c = aNum.compareTo(bNum);
+        if (c != 0) return c;
+      } else {
+        final c = ap.compareTo(bp);
+        if (c != 0) return c;
+      }
+    }
+    return aParts.length.compareTo(bParts.length);
+  }
+
+  List<String> _splitForNaturalSort(String s) {
+    final list = <String>[];
+    var i = 0;
+    while (i < s.length) {
+      if (RegExp(r'[0-9]').hasMatch(s[i])) {
+        var j = i;
+        while (j < s.length && RegExp(r'[0-9]').hasMatch(s[j])) j++;
+        list.add(s.substring(i, j));
+        i = j;
+      } else {
+        var j = i;
+        while (j < s.length && !RegExp(r'[0-9]').hasMatch(s[j])) j++;
+        list.add(s.substring(i, j));
+        i = j;
+      }
+    }
+    return list;
+  }
+
+  Widget _buildColorGroupColumn(String title, List<(String name, String hex)> entries) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade200!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(7)),
+              border: Border(bottom: BorderSide(color: Colors.grey.shade200!)),
+            ),
+            child: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black87)),
+          ),
+          ...entries.asMap().entries.map((e) => _buildColorRow(e.value.$1, e.value.$2, showBorder: e.key < entries.length - 1)),
+        ],
+      ),
     );
+  }
+
+  Widget _buildColorRow(String tokenName, String hexRaw, {bool showBorder = true}) {
+    final hex = _toHex(hexRaw);
+    final color = _parseColor(hex);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        border: showBorder ? Border(bottom: BorderSide(color: Colors.grey.shade200!)) : null,
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 76,
+            child: Text(hex, style: TextStyle(fontFamily: 'monospace', fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey.shade800)),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            width: 48,
+            height: 28,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(color: Colors.grey.shade300!),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(tokenName, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<(String name, String hex)> _colorEntries(Map<String, dynamic> colors) {
+    final list = <(String, String)>[];
+    for (final e in colors.entries) {
+      final val = e.value;
+      if (val is Map && val['value'] != null) {
+        list.add((e.key, val['value'].toString()));
+      } else if (val is! Map) {
+        list.add((e.key, val.toString()));
+      }
+    }
+    return list;
+  }
+
+
+  Widget _buildTypographyFull(models.DesignSystem ds) {
+    final t = ds.typography;
+    final hasAny = t.fontWeights.isNotEmpty || t.fontSizes.isNotEmpty || t.textStyles.isNotEmpty;
+    if (!hasAny) return _buildPlaceholder('Typography (add Font Family, Weights, Sizes or Styles)');
+    final primaryFont = t.fontFamily.primary;
+
+    return _buildSectionCard('Typography', Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 1. Font Family
+        _buildTypographySubheading('Font Family'),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.grey.shade200!),
+          ),
+          child: Row(
+            children: [
+              _buildTypographyLabel('Primary'),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(primaryFont, style: _getSafeFont(primaryFont, fontSize: 16)),
+              ),
+            ],
+          ),
+        ),
+        if (t.fontFamily.fallback.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey.shade200!),
+            ),
+            child: Row(
+              children: [
+                _buildTypographyLabel('Fallback'),
+                const SizedBox(width: 16),
+                Expanded(child: Text(t.fontFamily.fallback, style: const TextStyle(fontSize: 16))),
+              ],
+            ),
+          ),
+        ],
+        if (t.fontWeights.isNotEmpty) ...[
+          const SizedBox(height: 24),
+          _buildTypographySubheading('Weights'),
+          const SizedBox(height: 8),
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey.shade200!),
+            ),
+            child: Column(
+              children: _buildTypographyWeightRows(primaryFont, t.fontWeights),
+            ),
+          ),
+        ],
+        if (t.fontSizes.isNotEmpty) ...[
+          const SizedBox(height: 24),
+          _buildTypographySubheading('Sizes'),
+          const SizedBox(height: 8),
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey.shade200!),
+            ),
+            child: Column(
+              children: _buildTypographySizeRows(primaryFont, t.fontSizes),
+            ),
+          ),
+        ],
+        if (t.textStyles.isNotEmpty) ...[
+          const SizedBox(height: 24),
+          _buildTypographySubheading('Styles'),
+          const SizedBox(height: 8),
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey.shade200!),
+            ),
+            child: Column(
+              children: () {
+                final entries = t.textStyles.entries.toList();
+                return List.generate(entries.length, (i) {
+                  final e = entries[i];
+                  final showBorder = i < entries.length - 1;
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    decoration: BoxDecoration(
+                      border: showBorder ? Border(bottom: BorderSide(color: Colors.grey.shade200!)) : null,
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(
+                          width: 140,
+                          child: Text(e.key, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                        ),
+                        Expanded(
+                          child: Text(
+                            'The quick brown fox jumps over the lazy dog',
+                            style: _getSafeFont(e.value.fontFamily, fontSize: _parsePx(e.value.fontSize), fontWeight: _intToWeight(e.value.fontWeight)),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Text(
+                          '${e.value.fontSize} · ${e.value.fontWeight}',
+                          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                        ),
+                      ],
+                    ),
+                  );
+                });
+              }(),
+            ),
+          ),
+        ],
+      ],
+    ));
+  }
+
+  Widget _buildTypographySubheading(String title) {
+    return Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black87));
+  }
+
+  Widget _buildTypographyLabel(String label) {
+    return SizedBox(width: 80, child: Text(label, style: TextStyle(fontSize: 13, color: Colors.grey.shade600)));
+  }
+
+  List<Widget> _buildTypographyWeightRows(String fontFamily, Map<String, int> weights) {
+    final entries = weights.entries.toList();
+    return List.generate(entries.length, (i) {
+      final e = entries[i];
+      final showBorder = i < entries.length - 1;
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          border: showBorder ? Border(bottom: BorderSide(color: Colors.grey.shade200!)) : null,
+        ),
+        child: Row(
+          children: [
+            SizedBox(width: 100, child: Text(e.key, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600))),
+            const SizedBox(width: 16),
+            SizedBox(width: 48, child: Text('${e.value}', style: TextStyle(fontSize: 12, color: Colors.grey.shade600))),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                'Sample weight ${e.key}',
+                style: _getSafeFont(fontFamily, fontSize: 16, fontWeight: _intToWeight(e.value)),
+              ),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+
+  List<Widget> _buildTypographySizeRows(String fontFamily, Map<String, models.FontSize> sizes) {
+    final entries = sizes.entries.toList();
+    return List.generate(entries.length, (i) {
+      final e = entries[i];
+      final showBorder = i < entries.length - 1;
+      final sizePx = _parsePx(e.value.value);
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          border: showBorder ? Border(bottom: BorderSide(color: Colors.grey.shade200!)) : null,
+        ),
+        child: Row(
+          children: [
+            SizedBox(width: 80, child: Text(e.key, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600))),
+            const SizedBox(width: 16),
+            SizedBox(width: 56, child: Text(e.value.value, style: TextStyle(fontSize: 12, color: Colors.grey.shade600))),
+            const SizedBox(width: 8),
+            SizedBox(width: 48, child: Text('LH ${e.value.lineHeight}', style: TextStyle(fontSize: 11, color: Colors.grey.shade500))),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                'Sample at ${e.value.value}',
+                style: _getSafeFont(fontFamily, fontSize: sizePx),
+              ),
+            ),
+          ],
+        ),
+      );
+    });
   }
 
   Widget _buildLayoutFull(models.DesignSystem ds) {
     final hasLayout = ds.spacing.values.isNotEmpty || ds.grid.columns > 0;
     if (!hasLayout) return _buildPlaceholder('Spacing & Grid');
 
-    final baseRadius = _parsePx(ds.borderRadius.base);
-    final largeRadius = _parsePx(ds.borderRadius.lg);
+    final radiusEntries = [
+      ('None', ds.borderRadius.none),
+      ('Small', ds.borderRadius.sm),
+      ('Base', ds.borderRadius.base),
+      ('Medium', ds.borderRadius.md),
+      ('Large', ds.borderRadius.lg),
+      ('Extra Large', ds.borderRadius.xl),
+      ('Full', ds.borderRadius.full),
+    ];
 
-    return Column(
+    return _buildSectionCard('Layout & Shape', Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Spacing Scale', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+        const Text('Spacing Scale', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
         const SizedBox(height: 12),
         Wrap(
           spacing: 12,
@@ -397,42 +751,46 @@ class _PreviewScreenState extends State<PreviewScreen> {
             final size = _parsePx(e.value);
             return Column(
               children: [
-                Container(width: size, height: size, decoration: BoxDecoration(color: Colors.blue.shade100, border: Border.all(color: Colors.blue.shade300))),
+                Container(width: size, height: size, decoration: BoxDecoration(color: Colors.blue.shade100, border: Border.all(color: Colors.blue.shade300), borderRadius: BorderRadius.circular(4))),
                 const SizedBox(height: 4),
-                Text('${e.key} (${e.value})', style: const TextStyle(fontSize: 8)),
+                Text('${e.key} (${e.value})', style: TextStyle(fontSize: 11, color: Colors.grey.shade700)),
               ],
             );
           }).toList(),
         ),
         const SizedBox(height: 24),
-        const Text('Grid System', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+        const Text('Grid System', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
         const SizedBox(height: 12),
         Container(
-          height: 40,
+          height: 48,
           width: double.infinity,
-          decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300)),
+          decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(8)),
           child: Row(
             children: List.generate(ds.grid.columns, (i) => Expanded(
               child: Container(
                 margin: const EdgeInsets.symmetric(horizontal: 2),
-                color: Colors.pink.withOpacity(0.1),
+                decoration: BoxDecoration(color: Colors.pink.withOpacity(0.12), borderRadius: BorderRadius.circular(4)),
               ),
             )),
           ),
         ),
-        Text('Columns: ${ds.grid.columns} | Gutter: ${ds.grid.gutter}', style: const TextStyle(fontSize: 10, color: Colors.grey)),
+        const SizedBox(height: 6),
+        Text('Columns: ${ds.grid.columns} · Gutter: ${ds.grid.gutter}', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
         const SizedBox(height: 24),
-        const Text('Border Radius', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+        const Text('Border Radius', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
         const SizedBox(height: 12),
-        Row(
-          children: [
-            _buildRadiusSample('Base', baseRadius, ds.borderRadius.base),
-            const SizedBox(width: 32),
-            _buildRadiusSample('Large', largeRadius, ds.borderRadius.lg),
-          ],
+        Wrap(
+          spacing: 20,
+          runSpacing: 20,
+          children: radiusEntries.map((e) => _buildRadiusSample(e.$1, _parseRadius(e.$2), e.$2)).toList(),
         ),
       ],
-    );
+    ));
+  }
+
+  double _parseRadius(String value) {
+    if (value == '9999px' || value.toLowerCase() == 'full') return 9999;
+    return _parsePx(value);
   }
 
   Widget _buildRadiusSample(String label, double radius, String value) {
@@ -454,9 +812,431 @@ class _PreviewScreenState extends State<PreviewScreen> {
     );
   }
 
+  Widget _buildShadowsSection(models.DesignSystem ds) {
+    if (ds.shadows.values.isEmpty) {
+      return _buildSectionCard('Shadows', Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: Text(
+          'No shadows in design system. Add tokens in the Shadows screen (elevation and component shadows).',
+          style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+        ),
+      ));
+    }
+    return _buildSectionCard('Shadows', Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: () {
+        final entries = ds.shadows.values.entries.toList();
+        return List.generate(entries.length, (i) {
+          final e = entries[i];
+          final showBorder = i < entries.length - 1;
+          final boxShadow = _parseShadowToBoxShadow(e.value.value);
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            decoration: BoxDecoration(
+              border: showBorder ? Border(bottom: BorderSide(color: Colors.grey.shade200!)) : null,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 120,
+                      child: Text(e.key, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                    ),
+                    Expanded(
+                      child: _buildShadowContextPreview(e.key, boxShadow),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  e.value.value,
+                  style: TextStyle(fontSize: 11, fontFamily: 'monospace', color: Colors.grey.shade700),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          );
+        });
+      }(),
+    ));
+  }
+
+  Widget _buildShadowContextPreview(String tokenName, BoxShadow boxShadow) {
+    final shadow = [boxShadow];
+    final name = tokenName.toLowerCase();
+    // Card: content card with shadow
+    if (name == 'card') {
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200!),
+          boxShadow: shadow,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(height: 8, width: 60, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(4))),
+            const SizedBox(height: 8),
+            Container(height: 6, width: double.infinity, decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(2))),
+            const SizedBox(height: 4),
+            Container(height: 6, width: 120, decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(2))),
+          ],
+        ),
+      );
+    }
+    // FAB: floating action button
+    if (name == 'fab') {
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: Material(
+          color: Colors.blue,
+          borderRadius: BorderRadius.circular(16),
+          elevation: 0,
+          shadowColor: Colors.transparent,
+          child: Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: shadow,
+            ),
+            child: const Icon(Icons.add, color: Colors.white, size: 28),
+          ),
+        ),
+      );
+    }
+    // Button
+    if (name == 'button') {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.blue,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: shadow,
+        ),
+        child: const Text('Button', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500)),
+      );
+    }
+    // Dropdown / popover
+    if (name == 'dropdown') {
+      return Container(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.grey.shade200!),
+          boxShadow: shadow,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _dropdownItem('Option A'),
+            _dropdownItem('Option B'),
+            _dropdownItem('Option C'),
+          ],
+        ),
+      );
+    }
+    // Modal / dialog
+    if (name == 'modal') {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200!),
+          boxShadow: shadow,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Dialog title', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.grey.shade800)),
+            const SizedBox(height: 8),
+            Text('Content goes here.', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(onPressed: () {}, child: const Text('Cancel')),
+                const SizedBox(width: 8),
+                FilledButton(onPressed: () {}, child: const Text('OK')),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
+    // Tooltip
+    if (name == 'tooltip') {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade800,
+          borderRadius: BorderRadius.circular(6),
+          boxShadow: shadow,
+        ),
+        child: const Text('Tooltip text', style: TextStyle(color: Colors.white, fontSize: 12)),
+      );
+    }
+    // App bar
+    if (name == 'app-bar') {
+      return Container(
+        height: 48,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border(bottom: BorderSide(color: Colors.grey.shade200!)),
+          boxShadow: shadow,
+        ),
+        alignment: Alignment.centerLeft,
+        child: Text('App bar', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.grey.shade800)),
+      );
+    }
+    // Input focus
+    if (name == 'input-focus') {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.blue, width: 2),
+          boxShadow: shadow,
+        ),
+        child: Text('Input field', style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
+      );
+    }
+    // Sheet / drawer
+    if (name == 'sheet') {
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+          border: Border.all(color: Colors.grey.shade200!),
+          boxShadow: shadow,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(child: Container(width: 32, height: 4, decoration: BoxDecoration(color: Colors.grey.shade400, borderRadius: BorderRadius.circular(2)))),
+            const SizedBox(height: 12),
+            Text('Sheet content', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.grey.shade800)),
+          ],
+        ),
+      );
+    }
+    // Elevation scale (sm, md, lg, xl) or unknown: simple raised surface
+    return Container(
+      width: 80,
+      height: 56,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade300!),
+        boxShadow: shadow,
+      ),
+      child: const Center(child: Icon(Icons.square, color: Colors.grey, size: 24)),
+    );
+  }
+
+  Widget _dropdownItem(String label) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      child: Row(
+        children: [
+          Icon(Icons.check_box_outline_blank, size: 18, color: Colors.grey.shade600),
+          const SizedBox(width: 8),
+          Text(label, style: TextStyle(fontSize: 13, color: Colors.grey.shade800)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEffectsSection(models.DesignSystem ds) {
+    final effects = ds.effects;
+    final hasAny = effects.glassMorphism != null || effects.darkOverlay != null;
+    if (!hasAny) {
+      return _buildSectionCard('Visual Effects', Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: Text(
+          'No effects in design system. Add Glass Morphism or Dark Overlay in the Effects screen.',
+          style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+        ),
+      ));
+    }
+    return _buildSectionCard('Visual Effects', Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (effects.glassMorphism != null) ...[
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text('Glass Morphism', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.grey.shade800)),
+          ),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: SizedBox(
+              height: 120,
+              width: double.infinity,
+              child: _buildEffectPreview('glassMorphism', effects.glassMorphism!),
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
+        if (effects.darkOverlay != null) ...[
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text('Dark Overlay', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.grey.shade800)),
+          ),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: SizedBox(
+              height: 120,
+              width: double.infinity,
+              child: _buildEffectPreview('darkOverlay', effects.darkOverlay!),
+            ),
+          ),
+        ],
+      ],
+    ));
+  }
+
+  Widget _buildEffectPreview(String effectKey, Map<String, dynamic> effectData) {
+    if (effectKey == 'glassMorphism') {
+      final bg = _parseRgbaForEffect(effectData['background']?.toString() ?? 'rgba(255,255,255,0.1)');
+      final blurSigma = _parseBlurForEffect(effectData['backdrop']?.toString() ?? 'blur(10px)');
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Colors.blue.shade200, Colors.purple.shade200],
+              ),
+            ),
+          ),
+          Center(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: BackdropFilter(
+                filter: ui.ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
+                child: Container(
+                  width: 160,
+                  height: 72,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: bg,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white.withOpacity(0.3), width: 1),
+                  ),
+                  child: const Center(
+                    child: Text('Glass panel', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+    if (effectKey == 'darkOverlay') {
+      final overlayColor = _parseRgbaForEffect(effectData['background']?.toString() ?? 'rgba(26,26,46,0.8)');
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          Container(
+            color: Colors.grey[100],
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.image_outlined, size: 48, color: Colors.grey[400]),
+                  const SizedBox(height: 8),
+                  Text('Content behind', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                ],
+              ),
+            ),
+          ),
+          Container(
+            color: overlayColor,
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.9),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text('Overlay on top', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+    return Container(color: Colors.grey[200], child: const Center(child: Text('Preview')));
+  }
+
+  double _parseBlurForEffect(String value) {
+    final match = RegExp(r'blur\s*\(\s*(\d+(?:\.\d+)?)\s*px\s*\)', caseSensitive: false).firstMatch(value);
+    if (match != null) {
+      final n = double.tryParse(match.group(1)!);
+      if (n != null) return n.clamp(0.0, 50.0);
+    }
+    return 10.0;
+  }
+
+  Color _parseRgbaForEffect(String value) {
+    final match = RegExp(r'rgba?\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+)\s*)?\)').firstMatch(value);
+    if (match != null) {
+      final r = int.parse(match.group(1)!).clamp(0, 255);
+      final g = int.parse(match.group(2)!).clamp(0, 255);
+      final b = int.parse(match.group(3)!).clamp(0, 255);
+      final a = match.group(4) != null ? double.tryParse(match.group(4)!) ?? 1.0 : 1.0;
+      return Color.fromRGBO(r, g, b, a.clamp(0.0, 1.0));
+    }
+    return Colors.black26;
+  }
+
+  BoxShadow _parseShadowToBoxShadow(String shadowValue) {
+    try {
+      final parts = shadowValue.trim().split(RegExp(r'\s+'));
+      if (parts.length >= 3) {
+        final offsetX = double.tryParse(parts[0].replaceAll('px', '')) ?? 0.0;
+        final offsetY = double.tryParse(parts[1].replaceAll('px', '')) ?? 0.0;
+        final blurRadius = double.tryParse(parts[2].replaceAll('px', '')) ?? 0.0;
+        double spreadRadius = 0.0;
+        Color color = Colors.black;
+        double opacity = 0.1;
+        if (parts.length >= 4) spreadRadius = double.tryParse(parts[3].replaceAll('px', '')) ?? 0.0;
+        for (int i = 0; i < parts.length; i++) {
+          if (parts[i].startsWith('rgba')) {
+            final match = RegExp(r'rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)').firstMatch(parts[i]);
+            if (match != null) {
+              color = Color.fromRGBO(int.parse(match.group(1)!), int.parse(match.group(2)!), int.parse(match.group(3)!), match.group(4) != null ? double.parse(match.group(4)!) : 1.0);
+              opacity = match.group(4) != null ? double.parse(match.group(4)!) : 0.1;
+            }
+            break;
+          }
+        }
+        return BoxShadow(offset: Offset(offsetX, offsetY), blurRadius: blurRadius, spreadRadius: spreadRadius, color: color.withOpacity(opacity));
+      }
+    } catch (_) {}
+    return BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4, offset: const Offset(0, 2));
+  }
+
   Widget _buildComponentsDetailed(models.DesignSystem ds) {
-    final hasComponents = ds.components.buttons.isNotEmpty || 
-                         ds.components.inputs.isNotEmpty || 
+    final hasComponents = ds.components.buttons.isNotEmpty ||
+                         ds.components.inputs.isNotEmpty ||
                          ds.components.cards.isNotEmpty ||
                          ds.components.navigation.isNotEmpty ||
                          ds.components.avatars.isNotEmpty;
@@ -465,16 +1245,16 @@ class _PreviewScreenState extends State<PreviewScreen> {
 
     final baseRadius = _parsePx(ds.borderRadius.base);
 
-    return Column(
+    return _buildSectionCard('Components & Assets', Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildComponentCategory('Buttons', ds.components.buttons, baseRadius),
         _buildComponentCategory('Text Fields / Inputs', ds.components.inputs, baseRadius),
         _buildComponentCategory('Cards', ds.components.cards, baseRadius),
-        _buildComponentCategory('Navigation Components', ds.components.navigation, baseRadius),
-        _buildComponentCategory('Avatars', ds.components.avatars, 100), // Avatars usually circle
+        _buildComponentCategory('Navigation', ds.components.navigation, baseRadius),
+        _buildComponentCategory('Avatars', ds.components.avatars, 100),
         const SizedBox(height: 16),
-        const Text('Icon Sizes', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+        const Text('Icon Sizes', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
         const SizedBox(height: 8),
         Wrap(
           spacing: 16,
@@ -483,14 +1263,15 @@ class _PreviewScreenState extends State<PreviewScreen> {
             final size = _parsePx(e.value);
             return Column(
               children: [
-                Icon(Icons.star, size: size),
-                Text('${e.key} (${e.value})', style: const TextStyle(fontSize: 8)),
+                Icon(Icons.star, size: size, color: Colors.grey.shade700),
+                const SizedBox(height: 4),
+                Text('${e.key} (${e.value})', style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
               ],
             );
           }).toList(),
         ),
       ],
-    );
+    ));
   }
 
   Widget _buildComponentCategory(String name, Map<String, dynamic> tokens, double radius) {
@@ -529,13 +1310,35 @@ class _PreviewScreenState extends State<PreviewScreen> {
   }
 
   Widget _buildAdvancedFull(models.DesignSystem ds) {
+    final hasAdvanced = ds.gradients.values.isNotEmpty || ds.roles.values.isNotEmpty ||
+        ds.semanticTokens.color.isNotEmpty || ds.motionTokens.duration.isNotEmpty;
+    if (!hasAdvanced) return _buildPlaceholder('Advanced Tokens');
+
+    return _buildSectionCard('Advanced Tokens', Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (ds.gradients.values.isNotEmpty) _buildTokenList('Gradients', ds.gradients.values.entries.map((e) => '${e.key}').toList()),
+        if (ds.gradients.values.isNotEmpty && (ds.roles.values.isNotEmpty || ds.semanticTokens.color.isNotEmpty || ds.motionTokens.duration.isNotEmpty)) const SizedBox(height: 16),
+        if (ds.roles.values.isNotEmpty) _buildTokenList('Roles', ds.roles.values.entries.map((e) => '${e.key}').toList()),
+        if (ds.roles.values.isNotEmpty && (ds.semanticTokens.color.isNotEmpty || ds.motionTokens.duration.isNotEmpty)) const SizedBox(height: 16),
+        if (ds.semanticTokens.color.isNotEmpty) _buildTokenList('Semantic Tokens', ds.semanticTokens.color.keys.toList()),
+        if (ds.semanticTokens.color.isNotEmpty && ds.motionTokens.duration.isNotEmpty) const SizedBox(height: 16),
+        if (ds.motionTokens.duration.isNotEmpty) _buildTokenList('Motion', ds.motionTokens.duration.keys.toList()),
+      ],
+    ));
+  }
+
+  Widget _buildTokenList(String title, List<String> items) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Gradients: ${ds.gradients.values.length} defined'),
-        Text('Roles: ${ds.roles.values.length} defined'),
-        Text('Semantic Tokens: ${ds.semanticTokens.color.length} mapped'),
-        Text('Motion: ${ds.motionTokens.duration.length} durations'),
+        Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 6,
+          children: items.map((s) => Chip(label: Text(s, style: const TextStyle(fontSize: 12)), padding: EdgeInsets.zero, materialTapTargetSize: MaterialTapTargetSize.shrinkWrap)).toList(),
+        ),
       ],
     );
   }
