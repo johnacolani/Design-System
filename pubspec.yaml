@@ -48,6 +48,18 @@ dependencies:
   # Typography
   google_fonts: ^6.2.1
 
+  # Docs (markdown)
+  flutter_markdown: ^0.7.4+1
+
+  # Lottie animations (LottieFiles)
+  lottie: ^3.3.0
+
+  # Charts for UI Lab
+  fl_chart: ^0.69.0
+
+  # Zip for package generator
+  archive: ^4.0.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -69,6 +81,7 @@ flutter:
   # Assets
   assets:
     - lib/data/color_palettes.json
+    - assets/docs/
     - macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_512.png
 
   # To add assets to your application, add an assets section, like this:

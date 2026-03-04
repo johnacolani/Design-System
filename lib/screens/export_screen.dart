@@ -1,12 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:convert';
 import 'dart:io';
 import '../providers/design_system_provider.dart';
+import '../providers/billing_provider.dart';
+import '../services/feature_gate_service.dart';
 import '../models/design_system.dart' as models;
 import '../services/project_service.dart';
+import '../services/token_engine.dart';
+import '../services/package_generator_service.dart';
 import '../utils/screen_body_padding.dart';
+import '../widgets/billing/locked_badge.dart';
+import '../widgets/billing/upgrade_modal.dart';
+import 'upgrade_screen.dart';
 
 class ExportScreen extends StatefulWidget {
   const ExportScreen({super.key});
@@ -21,11 +29,26 @@ class _ExportScreenState extends State<ExportScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final billingProvider = Provider.of<BillingProvider>(context);
+    final gate = const FeatureGateService();
+    final canExport = gate.canExport(billingProvider.plan);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Export Design System'),
+        actions: [
+          if (!canExport)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: LockedBadge(
+                requiredPlan: 'Pro',
+                onTap: () => _showUpgradeModal(context),
+              ),
+            ),
+        ],
       ),
-      body: ScreenBodyPadding(
+      body: canExport
+          ? ScreenBodyPadding(
         verticalPadding: 0,
         child: Column(
           children: [
@@ -37,20 +60,26 @@ class _ExportScreenState extends State<ExportScreen> {
                 const Text('Export Format: '),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: SegmentedButton<String>(
-                    segments: const [
-                      ButtonSegment(value: 'json', label: Text('JSON')),
-                      ButtonSegment(value: 'flutter', label: Text('Flutter')),
-                      ButtonSegment(value: 'kotlin', label: Text('Kotlin')),
-                      ButtonSegment(value: 'swift', label: Text('Swift')),
-                    ],
-                    selected: {_selectedFormat},
-                    onSelectionChanged: (Set<String> newSelection) {
-                      setState(() {
-                        _selectedFormat = newSelection.first;
-                        _generateExport();
-                      });
-                    },
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: SegmentedButton<String>(
+                      segments: const [
+                        ButtonSegment(value: 'tokens', label: Text('Tokens')),
+                        ButtonSegment(value: 'json', label: Text('JSON')),
+                        ButtonSegment(value: 'flutter', label: Text('Flutter')),
+                        ButtonSegment(value: 'kotlin', label: Text('Kotlin')),
+                        ButtonSegment(value: 'swift', label: Text('Swift')),
+                        ButtonSegment(value: 'react', label: Text('React')),
+                        ButtonSegment(value: 'css', label: Text('CSS')),
+                      ],
+                      selected: {_selectedFormat},
+                      onSelectionChanged: (Set<String> newSelection) {
+                        setState(() {
+                          _selectedFormat = newSelection.first;
+                          _generateExport();
+                        });
+                      },
+                    ),
                   ),
                 ),
               ],
@@ -82,25 +111,78 @@ class _ExportScreenState extends State<ExportScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
+                OutlinedButton.icon(
+                  onPressed: () => _downloadPackage(context),
+                  icon: const Icon(Icons.folder_zip),
+                  label: const Text('Download package'),
+                ),
+                const SizedBox(width: 8),
                 TextButton.icon(
-                  onPressed: () {
-                    _copyToClipboard(context);
-                  },
+                  onPressed: () => _copyToClipboard(context),
                   icon: const Icon(Icons.copy),
                   label: const Text('Copy'),
                 ),
                 const SizedBox(width: 8),
                 ElevatedButton.icon(
-                  onPressed: () {
-                    _saveToFile(context);
-                  },
+                  onPressed: () => _saveToFile(context),
                   icon: const Icon(Icons.save),
                   label: const Text('Save'),
                 ),
               ],
             ),
           ),
+          _buildFigmaComingSoon(context),
         ],
+        ),
+      )
+          : _buildGatedExportBody(context),
+    );
+  }
+
+  void _showUpgradeModal(BuildContext context) {
+    UpgradeModal.show(
+      context,
+      featureName: 'Export code',
+      requiredPlan: 'Pro',
+      description: 'Export to Flutter, React, Swift, Kotlin, and CSS is available on the Pro plan.',
+      onUpgrade: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const UpgradeScreen(selectedPlan: 'pro')),
+        );
+      },
+    );
+  }
+
+  Widget _buildGatedExportBody(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.lock_outline, size: 64, color: Theme.of(context).colorScheme.outline),
+            const SizedBox(height: 16),
+            Text(
+              'Export is a Pro feature',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Upgrade to Pro to export your design system to Flutter, React, Swift, Kotlin, and CSS.',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            FilledButton.icon(
+              onPressed: () => _showUpgradeModal(context),
+              icon: const Icon(Icons.arrow_upward),
+              label: const Text('Upgrade to Pro'),
+            ),
+          ],
         ),
       ),
     );
@@ -112,6 +194,9 @@ class _ExportScreenState extends State<ExportScreen> {
 
     setState(() {
       switch (_selectedFormat) {
+        case 'tokens':
+          _exportedCode = TokenEngine.exportTokensAsJson(designSystem);
+          break;
         case 'json':
           _exportedCode = _exportToJson(designSystem);
           break;
@@ -124,6 +209,14 @@ class _ExportScreenState extends State<ExportScreen> {
         case 'swift':
           _exportedCode = _exportToSwift(designSystem);
           break;
+        case 'react':
+          _exportedCode = _exportToReact(designSystem);
+          break;
+        case 'css':
+          _exportedCode = _exportToCss(designSystem);
+          break;
+        default:
+          _exportedCode = TokenEngine.exportTokensAsJson(designSystem);
       }
     });
   }
@@ -274,17 +367,51 @@ class _ExportScreenState extends State<ExportScreen> {
   }
 
   String _exportToSwift(models.DesignSystem designSystem) {
+    final tokens = TokenEngine.buildTokenMap(designSystem);
     final buffer = StringBuffer();
-    buffer.writeln('// Swift/iOS Theme Export');
-    buffer.writeln('// Generated from Design System Builder');
-    buffer.writeln('//');
+    buffer.writeln('// Swift/SwiftUI — generated from design tokens');
     buffer.writeln('import UIKit');
     buffer.writeln('');
-    buffer.writeln('struct DesignSystemColors {');
-    buffer.writeln('  // Primary Colors');
-    designSystem.colors.primary.forEach((key, value) {
-      buffer.writeln('  static let primary$key = ${_parseColorToSwift(value)}');
-    });
+    buffer.writeln('enum DesignSystemTokens {');
+    for (final e in tokens.entries) {
+      if (e.value is! Map && e.value != null) {
+        final val = e.value.toString().replaceAll("'", "\\'");
+        buffer.writeln("  static let ${e.key.replaceAll('.', '_')} = \"$val\"");
+      }
+    }
+    buffer.writeln('}');
+    return buffer.toString();
+  }
+
+  String _exportToReact(models.DesignSystem designSystem) {
+    final tokens = TokenEngine.buildTokenMap(designSystem);
+    final buffer = StringBuffer();
+    buffer.writeln('// React/JS/TS — design tokens (single source of truth)');
+    buffer.writeln('export const tokens = {');
+    for (final e in tokens.entries) {
+      if (e.value is! Map && e.value != null) {
+        final key = e.key.replaceAll('.', '_');
+        final val = e.value is num ? e.value : '"${e.value.toString().replaceAll('"', '\\"')}"';
+        buffer.writeln("  $key: $val,");
+      }
+    }
+    buffer.writeln('} as const;');
+    buffer.writeln('');
+    buffer.writeln('export type TokenKey = keyof typeof tokens;');
+    return buffer.toString();
+  }
+
+  String _exportToCss(models.DesignSystem designSystem) {
+    final tokens = TokenEngine.buildTokenMap(designSystem);
+    final buffer = StringBuffer();
+    buffer.writeln('/* CSS variables — generated from design tokens */');
+    buffer.writeln(':root {');
+    for (final e in tokens.entries) {
+      if (e.value is! Map && e.value != null) {
+        final key = '--${e.key.replaceAll('.', '-')}';
+        buffer.writeln('  $key: ${e.value};');
+      }
+    }
     buffer.writeln('}');
     return buffer.toString();
   }
@@ -320,14 +447,86 @@ class _ExportScreenState extends State<ExportScreen> {
 
   void _copyToClipboard(BuildContext context) async {
     if (_exportedCode.isNotEmpty) {
-      // Note: Clipboard functionality requires additional setup
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Copy functionality: Select text and copy manually'),
-          backgroundColor: Colors.blue,
-        ),
-      );
+      await Clipboard.setData(ClipboardData(text: _exportedCode));
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Copied to clipboard'), behavior: SnackBarBehavior.floating),
+        );
+      }
     }
+  }
+
+  Future<void> _downloadPackage(BuildContext context) async {
+    try {
+      final provider = Provider.of<DesignSystemProvider>(context, listen: false);
+      final ds = provider.designSystem;
+      final zipBytes = PackageGeneratorService.buildPackage(ds);
+      final name = _sanitizeFileName(ds.name);
+      final path = await FilePicker.platform.saveFile(
+        dialogTitle: 'Save design system package',
+        fileName: '${name}_design_system.zip',
+        type: FileType.custom,
+        allowedExtensions: ['zip'],
+      );
+      if (path != null) {
+        final file = File(path);
+        await file.writeAsBytes(zipBytes);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Package saved. Unzip to get tokens/, theme/, components/, documentation/'),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to create package: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Widget _buildFigmaComingSoon(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.blue.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.blue.shade200),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.design_services, color: Colors.blue.shade700, size: 32),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Figma Token Sync (coming soon)',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue.shade900,
+                      ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Import tokens from Figma, sync changes, and export back. Many designers work in Figma—this will make the platform even more powerful.',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.blue.shade800),
+                ),
+              ],
+            ),
+          ),
+          Chip(label: const Text('Future'), backgroundColor: Colors.blue.shade100),
+        ],
+      ),
+    );
   }
 
   void _saveToFile(BuildContext context) async {
@@ -344,19 +543,17 @@ class _ExportScreenState extends State<ExportScreen> {
       String defaultFileName = _sanitizeFileName(designSystem.name);
 
       if (_selectedFormat == 'json') {
-        // Save as project file
         outputFile = await ProjectService.saveProject(designSystem);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Project saved successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Project saved successfully!'), backgroundColor: Colors.green),
+          );
+        }
       } else {
         // For code exports, use file picker
         String? path = await FilePicker.platform.saveFile(
           dialogTitle: 'Save ${_selectedFormat.toUpperCase()} Export',
-          fileName: '${defaultFileName}_theme.${_getFileExtension()}',
+          fileName: '${defaultFileName}_${_selectedFormat == 'tokens' ? 'tokens' : 'theme'}.${_getFileExtension()}',
           type: FileType.custom,
           allowedExtensions: [_getFileExtension()],
         );
@@ -385,12 +582,18 @@ class _ExportScreenState extends State<ExportScreen> {
 
   String _getFileExtension() {
     switch (_selectedFormat) {
+      case 'tokens':
+        return 'json';
       case 'flutter':
         return 'dart';
       case 'kotlin':
         return 'kt';
       case 'swift':
         return 'swift';
+      case 'react':
+        return 'ts';
+      case 'css':
+        return 'css';
       default:
         return 'txt';
     }

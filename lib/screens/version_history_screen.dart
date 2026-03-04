@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/design_system_provider.dart';
+import '../providers/billing_provider.dart';
+import '../services/feature_gate_service.dart';
 import '../utils/screen_body_padding.dart';
+import '../widgets/billing/locked_badge.dart';
+import '../widgets/billing/upgrade_modal.dart';
+import 'upgrade_screen.dart';
 
 class VersionHistoryScreen extends StatelessWidget {
   const VersionHistoryScreen({super.key});
@@ -9,6 +14,9 @@ class VersionHistoryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<DesignSystemProvider>(context);
+    final billingProvider = Provider.of<BillingProvider>(context);
+    final gate = const FeatureGateService();
+    final canUseTeam = gate.canUseTeamFeatures(billingProvider.plan);
     final designSystem = provider.designSystem;
     final versionHistory = designSystem.versionHistory ?? [];
 
@@ -20,12 +28,20 @@ class VersionHistoryScreen extends StatelessWidget {
         ),
         title: const Text('Version History'),
         actions: [
+          if (!canUseTeam)
+            Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: LockedBadge(
+                requiredPlan: 'Team',
+                onTap: () => _showTeamUpgradeModal(context),
+              ),
+            ),
           IconButton(
             icon: const Icon(Icons.add),
-            onPressed: () {
-              _showAddVersionDialog(context, provider);
-            },
-            tooltip: 'Add Version',
+            onPressed: canUseTeam
+                ? () => _showAddVersionDialog(context, provider)
+                : () => _showTeamUpgradeModal(context),
+            tooltip: canUseTeam ? 'Add Version' : 'Team feature — Upgrade',
           ),
         ],
       ),
@@ -275,6 +291,20 @@ class VersionHistoryScreen extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  void _showTeamUpgradeModal(BuildContext context) {
+    UpgradeModal.show(
+      context,
+      featureName: 'Team collaboration & versioning',
+      requiredPlan: 'Team',
+      description: 'Add and manage version history is available on the Team plan.',
+      onUpgrade: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const UpgradeScreen(selectedPlan: 'team')),
+        );
+      },
     );
   }
 

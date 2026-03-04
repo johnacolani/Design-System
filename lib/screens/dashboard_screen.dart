@@ -14,6 +14,7 @@ import 'border_radius_screen.dart';
 import 'shadows_screen.dart';
 import 'effects_screen.dart';
 import 'components_screen.dart';
+import 'ui_lab_screen.dart';
 import 'grid_screen.dart';
 import 'icons_screen.dart';
 import 'gradients_screen.dart';
@@ -25,6 +26,8 @@ import 'projects_screen.dart';
 import 'semantic_tokens_screen.dart';
 import 'version_history_screen.dart';
 import 'motion_tokens_screen.dart';
+import 'docs_screen.dart';
+import 'component_gallery_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -326,6 +329,18 @@ class DashboardScreen extends StatelessWidget {
                 ),
                 _buildFeatureCard(
                   context,
+                  icon: Icons.science_outlined,
+                  title: 'UI Lab',
+                  description: 'Experiment with components (Storybook-style)',
+                  color: Colors.deepOrange,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const UILabScreen()),
+                    );
+                  },
+                ),
+                _buildFeatureCard(
+                  context,
                   icon: Icons.grid_view,
                   title: 'Grid',
                   description: 'Layout grid system',
@@ -417,6 +432,30 @@ class DashboardScreen extends StatelessWidget {
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(builder: (_) => const ExportScreen()),
+                    );
+                  },
+                ),
+                _buildFeatureCard(
+                  context,
+                  icon: Icons.menu_book,
+                  title: 'Documentation',
+                  description: 'Docs from assets or Firestore (cached)',
+                  color: Colors.blueGrey,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const DocsScreen()),
+                    );
+                  },
+                ),
+                _buildFeatureCard(
+                  context,
+                  icon: Icons.view_carousel,
+                  title: 'Component Gallery',
+                  description: 'Lazy-loaded components by category',
+                  color: Colors.teal,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const ComponentGalleryScreen()),
                     );
                   },
                 ),

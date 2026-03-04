@@ -95,6 +95,7 @@ class DesignSystemWrapper {
       },
       if (ds.lastModified != null) 'lastModified': ds.lastModified,
       if (ds.versionHistory != null) 'versionHistory': ds.versionHistory!.map((v) => v.toJson()).toList(),
+      if (ds.componentVersions != null && ds.componentVersions!.isNotEmpty) 'componentVersions': ds.componentVersions,
     };
   }
 
@@ -194,6 +195,9 @@ class DesignSystemWrapper {
                 changes: List<String>.from(v['changes'] as List),
                 description: v['description'] as String?,
               )).toList()
+          : null,
+      componentVersions: json['componentVersions'] != null
+          ? Map<String, String>.from(json['componentVersions'] as Map<String, dynamic>)
           : null,
     );
   }

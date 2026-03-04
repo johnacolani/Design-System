@@ -4,6 +4,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
 import '../widgets/app_logo.dart';
+import '../widgets/hero_value_prop.dart';
 import '../utils/platform_icons.dart';
 import '../utils/responsive.dart';
 import 'onboarding_screen.dart';
@@ -44,13 +45,11 @@ class WelcomeScreen extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
-            Text(
-              'Build and manage cross-platform design systems for Flutter, SwiftUI, Jetpack Compose, React, and Web — from one source of truth.',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: Colors.white.withOpacity(0.9),
-                    fontSize: 18,
-                  ),
-              textAlign: TextAlign.center,
+            HeroValueProp(
+              textColor: Colors.white.withOpacity(0.95),
+              fontSize: 18,
+              isMobile: false,
+              showAccentBar: false,
             ),
           ],
         ),
@@ -66,10 +65,17 @@ class WelcomeScreen extends StatelessWidget {
     const double cardMaxWidth = 400;
     final optionsCard = ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: cardMaxWidth),
-      child: Card(
-        elevation: 8,
-        shape: RoundedRectangleBorder(
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
           borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 32,
+              offset: const Offset(0, 12),
+            ),
+          ],
         ),
         child: Padding(
                       padding: EdgeInsets.all(responsive.isMobile ? 24 : 32),
@@ -146,7 +152,7 @@ class WelcomeScreen extends StatelessWidget {
                             icon: const Icon(Icons.email_outlined),
                             label: const Text('Sign up with Email'),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.black,
+                              backgroundColor: Theme.of(context).colorScheme.primary,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               shape: RoundedRectangleBorder(
@@ -267,8 +273,10 @@ class WelcomeScreen extends StatelessWidget {
                 end: Alignment.bottomRight,
                 colors: [
                   Theme.of(context).colorScheme.primary,
+                  Theme.of(context).colorScheme.primary.withOpacity(0.85),
                   Theme.of(context).colorScheme.secondary,
                 ],
+                stops: const [0.0, 0.5, 1.0],
               ),
             ),
             child: SafeArea(
@@ -307,13 +315,11 @@ class WelcomeScreen extends StatelessWidget {
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 16),
-                        Text(
-                          'Build and manage cross-platform design systems for Flutter, SwiftUI, Jetpack Compose, React, and Web — from one source of truth.',
-                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                color: Colors.white.withOpacity(0.9),
-                                fontSize: responsive.isMobile ? 16 : 18,
-                              ),
-                          textAlign: TextAlign.center,
+                        HeroValueProp(
+                          textColor: Colors.white.withOpacity(0.95),
+                          fontSize: responsive.isMobile ? 16 : 18,
+                          isMobile: responsive.isMobile,
+                          showAccentBar: false,
                         ),
                         SizedBox(height: responsive.isMobile ? 28 : 36),
                         optionsCard,

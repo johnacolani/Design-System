@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:provider/provider.dart';
+import '../providers/billing_provider.dart';
+import '../services/feature_gate_service.dart';
 import '../utils/screen_body_padding.dart';
+import '../widgets/billing/locked_badge.dart';
+import '../widgets/billing/upgrade_modal.dart';
 import 'material_picker_screen.dart';
 import 'cupertino_picker_screen.dart';
+import 'upgrade_screen.dart';
 
 class DesignLibraryScreen extends StatelessWidget {
   const DesignLibraryScreen({super.key});
@@ -57,7 +63,82 @@ class DesignLibraryScreen extends StatelessWidget {
               );
             },
           ),
+          const SizedBox(height: 16),
+          _buildThemeBuilderAdvancedCard(context),
         ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildThemeBuilderAdvancedCard(BuildContext context) {
+    final billingProvider = Provider.of<BillingProvider>(context);
+    final gate = const FeatureGateService();
+    final canUse = gate.canUseThemeBuilderAdvanced(billingProvider.plan);
+
+    return Card(
+      elevation: 2,
+      child: InkWell(
+        onTap: canUse
+            ? null
+            : () {
+                UpgradeModal.show(
+                  context,
+                  featureName: 'Theme builder advanced',
+                  requiredPlan: 'Pro',
+                  description: 'Custom theme presets and advanced tokens are available on the Pro plan.',
+                  onUpgrade: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const UpgradeScreen(selectedPlan: 'pro')),
+                    );
+                  },
+                );
+              },
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.purple.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.palette, size: 40, color: Colors.purple),
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          'Theme builder advanced',
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                        if (!canUse) ...[
+                          const SizedBox(width: 8),
+                          LockedBadge(requiredPlan: 'Pro'),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Custom theme presets, advanced tokens, and export-ready themes',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Colors.grey[600],
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.arrow_forward_ios, size: 16),
+            ],
+          ),
         ),
       ),
     );

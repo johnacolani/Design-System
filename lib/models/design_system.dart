@@ -23,6 +23,8 @@ class DesignSystem {
   final MotionTokens motionTokens;
   final String? lastModified;
   final List<VersionHistory>? versionHistory;
+  /// Component version per key (e.g. "buttons.primary" -> "2"). Enables Button v1, v2, v3.
+  final Map<String, String>? componentVersions;
 
   DesignSystem({
     required this.name,
@@ -44,6 +46,7 @@ class DesignSystem {
     required this.motionTokens,
     this.lastModified,
     this.versionHistory,
+    this.componentVersions,
   });
 
   // factory DesignSystem.fromJson(Map<String, dynamic> json) =>
@@ -77,6 +80,7 @@ class DesignSystem {
             changes: ['Initial project creation'],
           ),
         ],
+        componentVersions: {},
       );
 }
 

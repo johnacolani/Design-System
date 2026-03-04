@@ -7,12 +7,18 @@ import '../models/user.dart';
 import '../models/design_system.dart' as models;
 import '../utils/responsive.dart';
 import '../widgets/app_logo.dart';
+import '../widgets/hero_value_prop.dart';
+import '../widgets/hero_lottie_background.dart';
 import 'onboarding_screen.dart';
 import 'dashboard_screen.dart';
 import 'projects_screen.dart';
 import 'profile_screen.dart';
 import 'auth_screen.dart';
 import 'welcome_screen.dart';
+import 'pricing_screen.dart';
+import 'onboarding_checklist_screen.dart';
+import 'tutorials_screen.dart';
+import 'demo_gallery_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -49,10 +55,20 @@ class _HomeScreenState extends State<HomeScreen> {
     final userProvider = Provider.of<UserProvider>(context);
     final designSystemProvider = Provider.of<DesignSystemProvider>(context);
 
+    final primary = Theme.of(context).colorScheme.primary;
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
-          color: Colors.grey[50],
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              primary.withOpacity(0.04),
+              Colors.grey[50]!,
+              Colors.white,
+            ],
+            stops: const [0.0, 0.4, 1.0],
+          ),
         ),
         child: SafeArea(
           child: Column(
@@ -65,7 +81,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: SingleChildScrollView(
                   child: Column(
                     children: [
-                      // 5-second value proposition — visible immediately
+                      // 5-second value proposition — 3 lines + framework icons
                       Padding(
                         padding: EdgeInsets.fromLTRB(
                           context.responsive.isMobile ? 20 : 32,
@@ -73,15 +89,10 @@ class _HomeScreenState extends State<HomeScreen> {
                           context.responsive.isMobile ? 20 : 32,
                           8,
                         ),
-                        child: Text(
-                          'Build and manage cross-platform design systems for Flutter, SwiftUI, Jetpack Compose, React, and Web — from one source of truth.',
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.grey[900],
-                                height: 1.3,
-                                fontSize: context.responsive.isMobile ? 18 : 22,
-                              ),
-                          textAlign: TextAlign.center,
+                        child: HeroValueProp(
+                          textColor: Colors.grey[900],
+                          isMobile: context.responsive.isMobile,
+                          showAccentBar: true,
                         ),
                       ),
                       // Hero Section with Project Previews
@@ -103,7 +114,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           textAlign: TextAlign.center,
                         ),
                       ),
-                      
+                      // Learn & explore
+                      _buildLearnSection(context),
                       const SizedBox(height: 24),
                     ],
                   ),
@@ -124,10 +136,14 @@ class _HomeScreenState extends State<HomeScreen> {
       padding: responsive.padding,
       decoration: BoxDecoration(
         color: Colors.white,
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(20),
+          bottomRight: Radius.circular(20),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 12,
             offset: const Offset(0, 2),
           ),
         ],
@@ -171,6 +187,16 @@ class _HomeScreenState extends State<HomeScreen> {
                 },
                 child: const Text('My Projects'),
               ),
+            if (!responsive.isMobile) const SizedBox(width: 4),
+            if (!responsive.isMobile)
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const PricingScreen()),
+                  );
+                },
+                child: const Text('Pricing'),
+              ),
             if (!responsive.isMobile) const SizedBox(width: 8),
             GestureDetector(
               onTap: () {
@@ -206,6 +232,16 @@ class _HomeScreenState extends State<HomeScreen> {
                 },
                 child: const Text('Log in'),
               ),
+            if (!responsive.isMobile) const SizedBox(width: 4),
+            if (!responsive.isMobile)
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const PricingScreen()),
+                  );
+                },
+                child: const Text('Pricing'),
+              ),
             if (!responsive.isMobile) const SizedBox(width: 8),
             ElevatedButton(
               onPressed: () {
@@ -214,14 +250,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.black,
+                backgroundColor: Theme.of(context).colorScheme.primary,
                 foregroundColor: Colors.white,
                 padding: EdgeInsets.symmetric(
                   horizontal: responsive.isMobile ? 16 : 20,
                   vertical: responsive.isMobile ? 10 : 12,
                 ),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(12),
                 ),
               ),
               child: Text(
@@ -242,6 +278,8 @@ class _HomeScreenState extends State<HomeScreen> {
       height: responsive.isMobile ? 400 : responsive.isTablet ? 500 : 600,
       child: Stack(
         children: [
+          // Lottie animation from LottieFiles (behind cards)
+          HeroLottieBackground(isMobile: responsive.isMobile),
           // Background with project previews
           Positioned.fill(
             child: Padding(
@@ -422,6 +460,7 @@ class _HomeScreenState extends State<HomeScreen> {
       }
       primaryColor ??= Theme.of(context).colorScheme.primary;
       
+      final primary = Theme.of(context).colorScheme.primary;
       return Container(
         width: responsive.isMobile ? double.infinity : responsive.isTablet ? 350 : 400,
         margin: responsive.margin,
@@ -429,11 +468,12 @@ class _HomeScreenState extends State<HomeScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: primary.withOpacity(0.12), width: 1),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 30,
-              spreadRadius: 5,
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 24,
+              offset: const Offset(0, 8),
             ),
           ],
         ),
@@ -476,6 +516,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
     
     // No project - show create CTA
+    final primary = Theme.of(context).colorScheme.primary;
     return Container(
       width: responsive.isMobile ? double.infinity : responsive.isTablet ? 350 : 400,
       margin: responsive.margin,
@@ -483,11 +524,12 @@ class _HomeScreenState extends State<HomeScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: primary.withOpacity(0.12), width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 30,
-            spreadRadius: 5,
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -552,6 +594,64 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildLearnSection(BuildContext context) {
+    final responsive = Responsive(context);
+    final isMobile = responsive.isMobile;
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 16 : 48,
+        vertical: 16,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Learn & explore',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[800],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              _learnChip(context, 'Get started checklist', Icons.check_circle_outline, () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const OnboardingChecklistScreen()),
+                );
+              }),
+              _learnChip(context, 'Tutorials', Icons.school_outlined, () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const TutorialsScreen()),
+                );
+              }),
+              _learnChip(context, 'Demo projects', Icons.view_carousel_outlined, () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const DemoGalleryScreen()),
+                );
+              }),
+              _learnChip(context, 'Pricing', Icons.credit_card_outlined, () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const PricingScreen()),
+                );
+              }),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _learnChip(BuildContext context, String label, IconData icon, VoidCallback onTap) {
+    return ActionChip(
+      avatar: Icon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
+      label: Text(label),
+      onPressed: onTap,
     );
   }
 

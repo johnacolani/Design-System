@@ -121,14 +121,17 @@ class _ComponentsScreenState extends State<ComponentsScreen> {
     String name,
     dynamic componentData,
   ) {
+    final provider = Provider.of<DesignSystemProvider>(context, listen: false);
+    final version = provider.getComponentVersion(category, name);
     final hasStates = componentData is Map && componentData.containsKey('states');
     final states = hasStates ? componentData['states'] as Map<String, dynamic>? : null;
+    final stateInfo = hasStates ? ' • ${states?.length ?? 0} states' : '';
     
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: ExpansionTile(
         title: Text(name),
-        subtitle: Text('$category component${hasStates ? ' • ${states?.length ?? 0} states' : ''}'),
+        subtitle: Text('v$version • $category component$stateInfo'),
         children: [
           Padding(
             padding: const EdgeInsets.all(16),
@@ -199,6 +202,14 @@ class _ComponentsScreenState extends State<ComponentsScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
+                    TextButton.icon(
+                      onPressed: () {
+                        provider.bumpComponentVersion(category, name);
+                      },
+                      icon: const Icon(Icons.add_circle_outline, size: 18),
+                      label: const Text('New version'),
+                    ),
+                    const SizedBox(width: 8),
                     TextButton.icon(
                       onPressed: () {
                         _showEditComponentDialog(context, category, name, componentData);

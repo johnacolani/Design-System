@@ -4,6 +4,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'providers/design_system_provider.dart';
 import 'providers/user_provider.dart';
+import 'providers/tokens_provider.dart';
+import 'providers/billing_provider.dart';
 import 'screens/home_screen.dart';
 
 void main() async {
@@ -32,22 +34,51 @@ class DesignSystemApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => UserProvider()..initialize()),
         ChangeNotifierProvider(create: (_) => DesignSystemProvider()),
+        ChangeNotifierProvider(create: (_) => TokensProvider()),
+        ChangeNotifierProvider(create: (_) => BillingProvider()),
       ],
       child: MaterialApp(
         title: 'Design System Builder',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: const Color(0xFF5E5CE6),
+            brightness: Brightness.light,
+          ),
           useMaterial3: true,
+          cardTheme: CardThemeData(
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+          ),
+          elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+          inputDecorationTheme: InputDecorationTheme(
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            filled: true,
+          ),
         ),
-        home: Consumer<UserProvider>(
-          builder: (context, userProvider, _) {
-            // Initialize user if not already done
+        home: Consumer2<UserProvider, BillingProvider>(
+          builder: (context, userProvider, billingProvider, _) {
             if (userProvider.currentUser == null) {
               userProvider.initialize();
             }
-            // Always show home screen (landing page) first
-            // Users can navigate to authentication from there if they want
+            // Sync billing when user is logged in (non-guest)
+            final uid = userProvider.currentUser?.id;
+            if (uid != null && !uid.startsWith('guest_')) {
+              billingProvider.watchBilling(uid);
+            } else {
+              billingProvider.stopWatching();
+            }
             return const HomeScreen();
           },
         ),

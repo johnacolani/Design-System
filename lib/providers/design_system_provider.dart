@@ -40,6 +40,7 @@ class DesignSystemProvider extends ChangeNotifier {
           changes: ['Initial project creation'],
         ),
       ],
+      componentVersions: {},
     );
 
     // Set primary color if provided
@@ -78,6 +79,7 @@ class DesignSystemProvider extends ChangeNotifier {
       motionTokens: designSystem.motionTokens,
       lastModified: DateTime.now().toIso8601String(),
       versionHistory: designSystem.versionHistory ?? _designSystem.versionHistory,
+      componentVersions: designSystem.componentVersions ?? _designSystem.componentVersions,
     );
     notifyListeners();
   }
@@ -103,6 +105,7 @@ class DesignSystemProvider extends ChangeNotifier {
       motionTokens: _designSystem.motionTokens,
       lastModified: _designSystem.lastModified,
       versionHistory: _designSystem.versionHistory,
+      componentVersions: _designSystem.componentVersions,
     );
     notifyListeners();
   }
@@ -128,6 +131,7 @@ class DesignSystemProvider extends ChangeNotifier {
       motionTokens: _designSystem.motionTokens,
       lastModified: DateTime.now().toIso8601String(),
       versionHistory: _designSystem.versionHistory,
+      componentVersions: _designSystem.componentVersions,
     );
     notifyListeners();
   }
@@ -153,6 +157,7 @@ class DesignSystemProvider extends ChangeNotifier {
       motionTokens: _designSystem.motionTokens,
       lastModified: _designSystem.lastModified,
       versionHistory: _designSystem.versionHistory,
+      componentVersions: _designSystem.componentVersions,
     );
     notifyListeners();
   }
@@ -178,6 +183,7 @@ class DesignSystemProvider extends ChangeNotifier {
       motionTokens: _designSystem.motionTokens,
       lastModified: _designSystem.lastModified,
       versionHistory: _designSystem.versionHistory,
+      componentVersions: _designSystem.componentVersions,
     );
     notifyListeners();
   }
@@ -203,6 +209,7 @@ class DesignSystemProvider extends ChangeNotifier {
       motionTokens: motionTokens,
       lastModified: _designSystem.lastModified,
       versionHistory: _designSystem.versionHistory,
+      componentVersions: _designSystem.componentVersions,
     );
     notifyListeners();
   }
@@ -236,8 +243,46 @@ class DesignSystemProvider extends ChangeNotifier {
       motionTokens: _designSystem.motionTokens,
       lastModified: DateTime.now().toIso8601String(),
       versionHistory: history,
+      componentVersions: _designSystem.componentVersions,
     );
     notifyListeners();
+  }
+
+  /// Bump component version (e.g. "buttons", "primary" -> v2). Helps teams maintain stability.
+  void bumpComponentVersion(String category, String componentName) {
+    final key = '$category.$componentName';
+    final versions = Map<String, String>.from(_designSystem.componentVersions ?? {});
+    final current = int.tryParse(versions[key] ?? '1') ?? 1;
+    versions[key] = '${current + 1}';
+    _designSystem = models.DesignSystem(
+      name: _designSystem.name,
+      version: _designSystem.version,
+      description: _designSystem.description,
+      created: _designSystem.created,
+      colors: _designSystem.colors,
+      typography: _designSystem.typography,
+      spacing: _designSystem.spacing,
+      borderRadius: _designSystem.borderRadius,
+      shadows: _designSystem.shadows,
+      effects: _designSystem.effects,
+      components: _designSystem.components,
+      grid: _designSystem.grid,
+      icons: _designSystem.icons,
+      gradients: _designSystem.gradients,
+      roles: _designSystem.roles,
+      semanticTokens: _designSystem.semanticTokens,
+      motionTokens: _designSystem.motionTokens,
+      lastModified: DateTime.now().toIso8601String(),
+      versionHistory: _designSystem.versionHistory,
+      componentVersions: versions,
+    );
+    notifyListeners();
+  }
+
+  int getComponentVersion(String category, String componentName) {
+    final key = '$category.$componentName';
+    final v = _designSystem.componentVersions?[key];
+    return int.tryParse(v ?? '1') ?? 1;
   }
 
   void loadProject(models.DesignSystem designSystem) {

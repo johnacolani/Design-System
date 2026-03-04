@@ -4,6 +4,8 @@ import '../providers/user_provider.dart';
 import '../models/user.dart';
 import '../utils/screen_body_padding.dart';
 import 'settings_screen.dart';
+import 'upgrade_screen.dart';
+import 'pricing_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -186,11 +188,24 @@ class ProfileScreen extends StatelessWidget {
                       ? null
                       : TextButton(
                           onPressed: () {
-                            userProvider.upgradeToPremium();
+                            Navigator.of(context).push(
+                              MaterialPageRoute(builder: (_) => const UpgradeScreen()),
+                            );
                           },
                           child: const Text('Upgrade'),
                         ),
                   onTap: () {},
+                ),
+                _buildListTile(
+                  context,
+                  icon: Icons.credit_card,
+                  title: 'Pricing',
+                  subtitle: 'View plans and features',
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const PricingScreen()),
+                    );
+                  },
                 ),
               ],
             ),
