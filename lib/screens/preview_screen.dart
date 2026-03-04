@@ -49,32 +49,34 @@ class _PreviewScreenState extends State<PreviewScreen> {
 
   Future<pw.Document> _generatePdf(models.DesignSystem ds) async {
     final pdf = pw.Document();
-    
     final titleStyle = pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold);
     final headerStyle = pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900);
     final subHeaderStyle = pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold);
 
-    // Page 1: Colors
+    // Page 1: Cover + Colors (all palettes)
     pdf.addPage(pw.MultiPage(
       pageFormat: PdfPageFormat.a4,
       margin: const pw.EdgeInsets.all(40),
       build: (pw.Context context) => [
         pw.Header(level: 0, child: pw.Text(ds.name, style: titleStyle)),
-        pw.Text('1. Core Colors', style: headerStyle),
+        if (ds.description.isNotEmpty) pw.Padding(padding: const pw.EdgeInsets.only(bottom: 12), child: pw.Text(ds.description, style: pw.TextStyle(fontSize: 11, color: PdfColors.grey700))),
+        pw.Text('Version ${ds.version}', style: pw.TextStyle(fontSize: 10, color: PdfColors.grey600)),
+        pw.SizedBox(height: 20),
+        pw.Text('1. Colors', style: headerStyle),
         pw.SizedBox(height: 10),
-        _buildPdfColors(ds),
+        _buildPdfColorsFull(ds),
       ],
     ));
 
-    // Page 2: Typography & Spacing
+    // Page 2: Typography (family, weights, sizes, styles) + Spacing & Grid
     pdf.addPage(pw.MultiPage(
       pageFormat: PdfPageFormat.a4,
       margin: const pw.EdgeInsets.all(40),
       build: (pw.Context context) => [
         pw.Text('2. Typography', style: headerStyle),
         pw.SizedBox(height: 10),
-        _buildPdfTypographyDetailed(ds),
-        pw.SizedBox(height: 30),
+        _buildPdfTypographyFull(ds),
+        pw.SizedBox(height: 24),
         pw.Text('3. Spacing & Grid', style: headerStyle),
         pw.SizedBox(height: 10),
         _buildPdfSpacingDetailed(ds),
@@ -83,75 +85,97 @@ class _PreviewScreenState extends State<PreviewScreen> {
       ],
     ));
 
-    // Page 3: Shapes & Shadows
+    // Page 3: Border Radius (all values), Shadows, Effects
     pdf.addPage(pw.MultiPage(
       pageFormat: PdfPageFormat.a4,
       margin: const pw.EdgeInsets.all(40),
       build: (pw.Context context) => [
-        pw.Text('4. Shapes & Shadows', style: headerStyle),
-        pw.SizedBox(height: 10),
-        pw.Text('Border Radius', style: subHeaderStyle),
-        _buildPdfBorderRadiusDetailed(ds),
+        pw.Text('4. Border Radius', style: headerStyle),
+        pw.SizedBox(height: 8),
+        _buildPdfBorderRadiusFull(ds),
         pw.SizedBox(height: 20),
-        pw.Text('Shadow Tokens', style: subHeaderStyle),
+        pw.Text('5. Shadows', style: headerStyle),
+        pw.SizedBox(height: 8),
         _buildPdfShadowsDetailed(ds),
+        pw.SizedBox(height: 20),
+        pw.Text('6. Effects', style: headerStyle),
+        pw.SizedBox(height: 8),
+        _buildPdfEffectsDetailed(ds),
       ],
     ));
 
-    // Page 4: Components & Assets
+    // Page 4: All component categories + Icons
     pdf.addPage(pw.MultiPage(
       pageFormat: PdfPageFormat.a4,
       margin: const pw.EdgeInsets.all(40),
       build: (pw.Context context) => [
-        pw.Text('5. Component Library', style: headerStyle),
+        pw.Text('7. Component Library', style: headerStyle),
         pw.SizedBox(height: 10),
-        _buildPdfComponentsDetailed(ds),
-        pw.SizedBox(height: 30),
-        pw.Text('6. Iconography', style: headerStyle),
+        _buildPdfComponentsFull(ds),
+        pw.SizedBox(height: 24),
+        pw.Text('8. Iconography', style: headerStyle),
         pw.SizedBox(height: 10),
         _buildPdfIconsDetailed(ds),
       ],
     ));
 
-    // Page 5: Advanced (Gradients, Roles, Tokens, Motion)
+    // Page 5: Gradients, Roles, Semantic (all), Motion (duration + easing), Version history
     pdf.addPage(pw.MultiPage(
       pageFormat: PdfPageFormat.a4,
       margin: const pw.EdgeInsets.all(40),
       build: (pw.Context context) => [
-        pw.Text('7. Advanced Tokens', style: headerStyle),
-        pw.SizedBox(height: 10),
-        pw.Text('Gradients', style: subHeaderStyle),
+        pw.Text('9. Gradients', style: headerStyle),
+        pw.SizedBox(height: 8),
         _buildPdfGradientsDetailed(ds),
         pw.SizedBox(height: 20),
-        pw.Text('Roles', style: subHeaderStyle),
+        pw.Text('10. Roles', style: headerStyle),
+        pw.SizedBox(height: 8),
         _buildPdfRolesDetailed(ds),
         pw.SizedBox(height: 20),
-        pw.Text('Semantic Tokens', style: subHeaderStyle),
-        _buildPdfSemanticTokensDetailed(ds),
+        pw.Text('11. Semantic Tokens', style: headerStyle),
+        pw.SizedBox(height: 8),
+        _buildPdfSemanticTokensFull(ds),
         pw.SizedBox(height: 20),
-        pw.Text('Motion Tokens', style: subHeaderStyle),
-        _buildPdfMotionTokensDetailed(ds),
+        pw.Text('12. Motion Tokens', style: headerStyle),
+        pw.SizedBox(height: 8),
+        _buildPdfMotionTokensFull(ds),
+        pw.SizedBox(height: 20),
+        pw.Text('13. Version History', style: headerStyle),
+        pw.SizedBox(height: 8),
+        _buildPdfVersionHistory(ds),
       ],
     ));
-    
+
     return pdf;
   }
 
-  // --- PDF WIDGETS (SYNCHRONIZED WITH ON-SCREEN SHAPES) ---
+  // --- PDF WIDGETS (all design system elements) ---
 
-  pw.Widget _buildPdfColors(models.DesignSystem ds) {
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        pw.Text('Primary Colors', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
-        pw.SizedBox(height: 8),
-        _buildPdfSwatchGroup(ds.colors.primary),
-        pw.SizedBox(height: 20),
-        pw.Text('Semantic Colors', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
-        pw.SizedBox(height: 8),
-        _buildPdfSwatchGroup(ds.colors.semantic),
-      ],
-    );
+  pw.Widget _buildPdfColorsFull(models.DesignSystem ds) {
+    final c = ds.colors;
+    final sections = <pw.Widget>[];
+    void addPalette(String title, Map<String, dynamic>? palette) {
+      if (palette != null && palette.isNotEmpty) {
+        sections.add(pw.Text(title, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)));
+        sections.add(pw.SizedBox(height: 6));
+        sections.add(_buildPdfSwatchGroup(palette));
+        sections.add(pw.SizedBox(height: 16));
+      }
+    }
+    addPalette('Primary', c.primary);
+    addPalette('Semantic', c.semantic);
+    addPalette('Blue', c.blue);
+    addPalette('Green', c.green);
+    addPalette('Orange', c.orange);
+    addPalette('Purple', c.purple);
+    addPalette('Red', c.red);
+    addPalette('Grey', c.grey);
+    addPalette('White', c.white);
+    addPalette('Text', c.text);
+    addPalette('Input', c.input);
+    addPalette('Role-specific', c.roleSpecific);
+    if (sections.isEmpty) sections.add(pw.Text('No colors defined.', style: pw.TextStyle(fontSize: 10, color: PdfColors.grey600)));
+    return pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: sections);
   }
 
   pw.Widget _buildPdfSwatchGroup(Map<String, dynamic> colors) {
@@ -169,24 +193,51 @@ class _PreviewScreenState extends State<PreviewScreen> {
     );
   }
 
-  pw.Widget _buildPdfTypographyDetailed(models.DesignSystem ds) {
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        pw.Text('Primary Font: ${ds.typography.fontFamily.primary}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-        pw.SizedBox(height: 10),
-        ...ds.typography.textStyles.entries.map((e) => 
-          pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Text(e.key, style: pw.TextStyle(fontSize: 8, color: PdfColors.grey700)),
-              pw.Text('Sample Text in Style', style: pw.TextStyle(fontSize: 12)),
-              pw.SizedBox(height: 4),
-            ],
-          )
+  pw.Widget _buildPdfTypographyFull(models.DesignSystem ds) {
+    final t = ds.typography;
+    final children = <pw.Widget>[
+      pw.Text('Font family: ${t.fontFamily.primary}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11)),
+      if (t.fontFamily.fallback.isNotEmpty) pw.Text('Fallback: ${t.fontFamily.fallback}', style: pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
+      pw.SizedBox(height: 10),
+    ];
+    if (t.fontWeights.isNotEmpty) {
+      children.add(pw.Text('Weights', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)));
+      children.add(pw.SizedBox(height: 4));
+      children.add(pw.Wrap(
+        spacing: 8,
+        runSpacing: 4,
+        children: t.fontWeights.entries.map((e) => pw.Text('${e.key}: ${e.value}', style: const pw.TextStyle(fontSize: 9))).toList(),
+      ));
+      children.add(pw.SizedBox(height: 10));
+    }
+    if (t.fontSizes.isNotEmpty) {
+      children.add(pw.Text('Sizes', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)));
+      children.add(pw.SizedBox(height: 4));
+      children.add(pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: t.fontSizes.entries.map((e) => pw.Padding(
+          padding: const pw.EdgeInsets.only(bottom: 2),
+          child: pw.Text('${e.key}: ${e.value.value} (line-height: ${e.value.lineHeight})', style: const pw.TextStyle(fontSize: 9)),
+        )).toList(),
+      ));
+      children.add(pw.SizedBox(height: 10));
+    }
+    if (t.textStyles.isNotEmpty) {
+      children.add(pw.Text('Text styles', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)));
+      children.add(pw.SizedBox(height: 4));
+      children.addAll(t.textStyles.entries.map((e) => pw.Padding(
+        padding: const pw.EdgeInsets.only(bottom: 4),
+        child: pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Text(e.key, style: pw.TextStyle(fontSize: 8, color: PdfColors.grey700)),
+            pw.Text('Sample in ${e.key}', style: pw.TextStyle(fontSize: 10)),
+          ],
         ),
-      ],
-    );
+      )));
+    }
+    if (children.length <= 3) children.add(pw.Text('No typography defined.', style: pw.TextStyle(fontSize: 10, color: PdfColors.grey600)));
+    return pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: children);
   }
 
   pw.Widget _buildPdfSpacingDetailed(models.DesignSystem ds) {
@@ -214,34 +265,74 @@ class _PreviewScreenState extends State<PreviewScreen> {
     return pw.Text('Grid: ${ds.grid.columns} columns / ${ds.grid.gutter} gutter', style: pw.TextStyle(fontSize: 10));
   }
 
-  pw.Widget _buildPdfBorderRadiusDetailed(models.DesignSystem ds) {
-    final base = _parsePx(ds.borderRadius.base);
-    return pw.Row(children: [
-      pw.Container(width: 40, height: 40, decoration: pw.BoxDecoration(borderRadius: pw.BorderRadius.circular(base / 2), border: pw.Border.all(color: PdfColors.blue))),
-      pw.SizedBox(width: 10),
-      pw.Text('Radius: ${ds.borderRadius.base}'),
-    ]);
+  pw.Widget _buildPdfBorderRadiusFull(models.DesignSystem ds) {
+    final r = ds.borderRadius;
+    final entries = [
+      ('none', r.none),
+      ('sm', r.sm),
+      ('base', r.base),
+      ('md', r.md),
+      ('lg', r.lg),
+      ('xl', r.xl),
+      ('full', r.full),
+    ];
+    return pw.Wrap(
+      spacing: 12,
+      runSpacing: 12,
+      children: entries.map((e) => pw.Column(
+        mainAxisSize: pw.MainAxisSize.min,
+        children: [
+          pw.Container(
+            width: 36,
+            height: 36,
+            decoration: pw.BoxDecoration(
+              border: pw.Border.all(color: PdfColors.blue),
+              borderRadius: pw.BorderRadius.circular(e.$2 == '9999px' ? 18 : (_parsePx(e.$2) / 2).clamp(0.0, 18.0)),
+            ),
+          ),
+          pw.SizedBox(height: 4),
+          pw.Text('${e.$1}: ${e.$2}', style: const pw.TextStyle(fontSize: 8)),
+        ],
+      )).toList(),
+    );
   }
 
   pw.Widget _buildPdfShadowsDetailed(models.DesignSystem ds) {
     return pw.Column(children: ds.shadows.values.entries.map((e) => pw.Text('${e.key}: ${e.value.value}', style: pw.TextStyle(fontSize: 10))).toList());
   }
 
-  pw.Widget _buildPdfComponentsDetailed(models.DesignSystem ds) {
-    final list = [...ds.components.buttons.entries, ...ds.components.inputs.entries, ...ds.components.cards.entries];
-    final radius = _parsePx(ds.borderRadius.base);
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: list.map((e) {
+  pw.Widget _buildPdfComponentsFull(models.DesignSystem ds) {
+    final comp = ds.components;
+    final radius = _parsePx(ds.borderRadius.base) / 4;
+    final categories = [
+      ('Buttons', comp.buttons),
+      ('Cards', comp.cards),
+      ('Inputs', comp.inputs),
+      ('Navigation', comp.navigation),
+      ('Avatars', comp.avatars),
+      ('Modals', comp.modals ?? {}),
+      ('Tables', comp.tables ?? {}),
+      ('Progress', comp.progress ?? {}),
+      ('Alerts', comp.alerts ?? {}),
+    ];
+    final children = <pw.Widget>[];
+    for (final cat in categories) {
+      if (cat.$2.isEmpty) continue;
+      children.add(pw.Text(cat.$1, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)));
+      children.add(pw.SizedBox(height: 4));
+      children.addAll(cat.$2.entries.map((e) {
         final desc = e.value is Map ? e.value['description']?.toString() ?? '' : '';
         return pw.Container(
-          margin: const pw.EdgeInsets.only(bottom: 5),
+          margin: const pw.EdgeInsets.only(bottom: 4),
           padding: const pw.EdgeInsets.all(5),
-          decoration: pw.BoxDecoration(border: pw.Border.all(color: PdfColors.grey300), borderRadius: pw.BorderRadius.circular(radius / 4)),
-          child: pw.Text('${e.key}: $desc', style: const pw.TextStyle(fontSize: 8)),
+          decoration: pw.BoxDecoration(border: pw.Border.all(color: PdfColors.grey300), borderRadius: pw.BorderRadius.circular(radius)),
+          child: pw.Text('${e.key}${desc.isNotEmpty ? ': $desc' : ''}', style: const pw.TextStyle(fontSize: 8)),
         );
-      }).toList(),
-    );
+      }));
+      children.add(pw.SizedBox(height: 12));
+    }
+    if (children.isEmpty) children.add(pw.Text('No components defined.', style: pw.TextStyle(fontSize: 10, color: PdfColors.grey600)));
+    return pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: children);
   }
 
   pw.Widget _buildPdfIconsDetailed(models.DesignSystem ds) {
@@ -256,12 +347,92 @@ class _PreviewScreenState extends State<PreviewScreen> {
     return pw.Column(children: ds.roles.values.entries.map((e) => pw.Text('${e.key}: ${e.value.primaryColor}', style: pw.TextStyle(fontSize: 10))).toList());
   }
 
-  pw.Widget _buildPdfSemanticTokensDetailed(models.DesignSystem ds) {
-    return pw.Column(children: ds.semanticTokens.color.entries.map((e) => pw.Text('${e.key} -> ${e.value['baseTokenReference']}', style: pw.TextStyle(fontSize: 10))).toList());
+  pw.Widget _buildPdfEffectsDetailed(models.DesignSystem ds) {
+    final e = ds.effects;
+    final lines = <pw.Widget>[];
+    if (e.glassMorphism != null && e.glassMorphism!.isNotEmpty) {
+      lines.add(pw.Text('Glass morphism', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)));
+      for (final entry in e.glassMorphism!.entries) {
+        lines.add(pw.Text('  ${entry.key}: ${entry.value}', style: const pw.TextStyle(fontSize: 9)));
+      }
+      lines.add(pw.SizedBox(height: 8));
+    }
+    if (e.darkOverlay != null && e.darkOverlay!.isNotEmpty) {
+      lines.add(pw.Text('Dark overlay', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)));
+      for (final entry in e.darkOverlay!.entries) {
+        lines.add(pw.Text('  ${entry.key}: ${entry.value}', style: const pw.TextStyle(fontSize: 9)));
+      }
+    }
+    if (lines.isEmpty) lines.add(pw.Text('No effects defined.', style: pw.TextStyle(fontSize: 10, color: PdfColors.grey600)));
+    return pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: lines);
   }
 
-  pw.Widget _buildPdfMotionTokensDetailed(models.DesignSystem ds) {
-    return pw.Column(children: ds.motionTokens.duration.entries.map((e) => pw.Text('${e.key}: ${e.value}', style: pw.TextStyle(fontSize: 10))).toList());
+  pw.Widget _buildPdfSemanticTokensFull(models.DesignSystem ds) {
+    final st = ds.semanticTokens;
+    final children = <pw.Widget>[];
+    void addSection(String title, Map<String, dynamic> map) {
+      if (map.isEmpty) return;
+      children.add(pw.Text(title, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)));
+      children.add(pw.SizedBox(height: 4));
+      for (final e in map.entries) {
+        final v = e.value;
+        final ref = v is Map ? v['baseTokenReference'] ?? v['reference'] ?? v.toString() : v.toString();
+        children.add(pw.Text('  ${e.key} → $ref', style: const pw.TextStyle(fontSize: 9)));
+      }
+      children.add(pw.SizedBox(height: 8));
+    }
+    addSection('Color', st.color);
+    addSection('Typography', st.typography);
+    addSection('Spacing', st.spacing);
+    addSection('Shadow', st.shadow);
+    addSection('Border radius', st.borderRadius);
+    if (children.isEmpty) children.add(pw.Text('No semantic tokens defined.', style: pw.TextStyle(fontSize: 10, color: PdfColors.grey600)));
+    return pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: children);
+  }
+
+  pw.Widget _buildPdfMotionTokensFull(models.DesignSystem ds) {
+    final mt = ds.motionTokens;
+    final children = <pw.Widget>[];
+    if (mt.duration.isNotEmpty) {
+      children.add(pw.Text('Duration', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)));
+      children.add(pw.SizedBox(height: 4));
+      for (final e in mt.duration.entries) {
+        children.add(pw.Text('  ${e.key}: ${e.value}', style: const pw.TextStyle(fontSize: 9)));
+      }
+      children.add(pw.SizedBox(height: 8));
+    }
+    if (mt.easing.isNotEmpty) {
+      children.add(pw.Text('Easing', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)));
+      children.add(pw.SizedBox(height: 4));
+      for (final e in mt.easing.entries) {
+        children.add(pw.Text('  ${e.key}: ${e.value}', style: const pw.TextStyle(fontSize: 9)));
+      }
+    }
+    if (children.isEmpty) children.add(pw.Text('No motion tokens defined.', style: pw.TextStyle(fontSize: 10, color: PdfColors.grey600)));
+    return pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: children);
+  }
+
+  pw.Widget _buildPdfVersionHistory(models.DesignSystem ds) {
+    final history = ds.versionHistory ?? [];
+    if (history.isEmpty) return pw.Text('No version history.', style: pw.TextStyle(fontSize: 10, color: PdfColors.grey600));
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: history.take(15).map((v) {
+        return pw.Container(
+          margin: const pw.EdgeInsets.only(bottom: 6),
+          padding: const pw.EdgeInsets.all(6),
+          decoration: pw.BoxDecoration(border: pw.Border.all(color: PdfColors.grey300), borderRadius: pw.BorderRadius.circular(4)),
+          child: pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text('${v.version} — ${v.date}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9)),
+              if (v.changes.isNotEmpty) pw.Text(v.changes.join('; '), style: const pw.TextStyle(fontSize: 8)),
+              if (v.description != null && v.description!.isNotEmpty) pw.Text(v.description!, style: pw.TextStyle(fontSize: 8, color: PdfColors.grey700)),
+            ],
+          ),
+        );
+      }).toList(),
+    );
   }
 
   // --- UI SCREEN BUILDER ---
