@@ -65,17 +65,36 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: SingleChildScrollView(
                   child: Column(
                     children: [
+                      // 5-second value proposition — visible immediately
+                      Padding(
+                        padding: EdgeInsets.fromLTRB(
+                          context.responsive.isMobile ? 20 : 32,
+                          context.responsive.isMobile ? 24 : 32,
+                          context.responsive.isMobile ? 20 : 32,
+                          8,
+                        ),
+                        child: Text(
+                          'Build and manage cross-platform design systems for Flutter, SwiftUI, Jetpack Compose, React, and Web — from one source of truth.',
+                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey[900],
+                                height: 1.3,
+                                fontSize: context.responsive.isMobile ? 18 : 22,
+                              ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
                       // Hero Section with Project Previews
                       _buildHeroSection(context, designSystemProvider, userProvider),
                       
-                      // Tagline
+                      // Supporting tagline
                       Padding(
                         padding: EdgeInsets.symmetric(
                           horizontal: context.responsive.isMobile ? 16 : 24,
                           vertical: context.responsive.isMobile ? 24 : 32,
                         ),
                         child: Text(
-                          'Design System Builder lets you turn big ideas into real products. Create, customize, and export design systems for Flutter, Kotlin, and Swift.',
+                          'Create, customize, and export one design system — then use it across Flutter, SwiftUI, Jetpack Compose, React, and Web.',
                           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                                 color: Colors.grey[700],
                                 height: 1.6,

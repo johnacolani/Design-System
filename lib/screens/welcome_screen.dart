@@ -35,7 +35,7 @@ class WelcomeScreen extends StatelessWidget {
             AppLogo(size: 120),
             const SizedBox(height: 32),
             Text(
-              'Welcome to Design System Builder',
+              'Design System Builder',
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
@@ -45,7 +45,7 @@ class WelcomeScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'Create, customize, and export design systems\nfor Flutter, Kotlin, and Swift',
+              'Build and manage cross-platform design systems for Flutter, SwiftUI, Jetpack Compose, React, and Web — from one source of truth.',
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     color: Colors.white.withOpacity(0.9),
                     fontSize: 18,
@@ -298,7 +298,7 @@ class WelcomeScreen extends StatelessWidget {
                         AppLogo(size: responsive.isMobile ? 80 : 100),
                         const SizedBox(height: 20),
                         Text(
-                          'Welcome to Design System Builder',
+                          'Design System Builder',
                           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,
@@ -308,7 +308,7 @@ class WelcomeScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'Create, customize, and export design systems\nfor Flutter, Kotlin, and Swift',
+                          'Build and manage cross-platform design systems for Flutter, SwiftUI, Jetpack Compose, React, and Web — from one source of truth.',
                           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                                 color: Colors.white.withOpacity(0.9),
                                 fontSize: responsive.isMobile ? 16 : 18,
