@@ -107,16 +107,28 @@ class _PlatformImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: size,
-      height: size,
-      child: Image.asset(
-        assetPath,
-        width: size,
-        height: size,
-        fit: BoxFit.contain,
-        filterQuality: FilterQuality.medium,
-        errorBuilder: (_, __, ___) => FaIcon(fallbackIcon, size: size, color: fallbackColor),
+    const double elevation = 3;
+    const double padding = 6;
+
+    return Material(
+      elevation: elevation,
+      shadowColor: Colors.black26,
+      borderRadius: BorderRadius.circular(10),
+      color: Theme.of(context).colorScheme.surface,
+      child: Padding(
+        padding: const EdgeInsets.all(padding),
+        child: SizedBox(
+          width: size,
+          height: size,
+          child: Image.asset(
+            assetPath,
+            width: size,
+            height: size,
+            fit: BoxFit.contain,
+            filterQuality: FilterQuality.medium,
+            errorBuilder: (_, __, ___) => FaIcon(fallbackIcon, size: size, color: fallbackColor),
+          ),
+        ),
       ),
     );
   }
