@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
+/// Asset paths for platform icons (fallback to FontAwesome if image fails to load).
+const String _assetFlutter = 'assets/images/flutter.png';
+const String _assetApple = 'assets/images/apple.png';
+const String _assetAndroid = 'assets/images/android.png';
+const String _assetReact = 'assets/images/react-native.png';
+const String _assetWeb = 'assets/images/web-png.png';
+
 /// Three-line hero: line 1 text, line 2 framework icons, line 3 text.
 class HeroValueProp extends StatelessWidget {
   final Color? textColor;
@@ -21,11 +28,11 @@ class HeroValueProp extends StatelessWidget {
 
   Widget _buildFrameworkIcons(BuildContext context, Color color) {
     final icons = <Widget>[
-      _PlatformIcon(icon: FontAwesomeIcons.flutter, color: const Color(0xFF02539A), size: _iconSize),
-      _PlatformIcon(icon: FontAwesomeIcons.apple, color: Colors.black87, size: _iconSize),
-      _PlatformIcon(icon: FontAwesomeIcons.android, color: const Color(0xFF3DDC84), size: _iconSize),
-      _PlatformIcon(icon: FontAwesomeIcons.react, color: const Color(0xFF61DAFB), size: _iconSize),
-      _PlatformIcon(icon: FontAwesomeIcons.globe, color: color, size: _iconSize),
+      _PlatformImage(assetPath: _assetFlutter, fallbackIcon: FontAwesomeIcons.flutter, fallbackColor: const Color(0xFF02539A), size: _iconSize),
+      _PlatformImage(assetPath: _assetApple, fallbackIcon: FontAwesomeIcons.apple, fallbackColor: Colors.black87, size: _iconSize),
+      _PlatformImage(assetPath: _assetAndroid, fallbackIcon: FontAwesomeIcons.android, fallbackColor: const Color(0xFF3DDC84), size: _iconSize),
+      _PlatformImage(assetPath: _assetReact, fallbackIcon: FontAwesomeIcons.react, fallbackColor: const Color(0xFF61DAFB), size: _iconSize),
+      _PlatformImage(assetPath: _assetWeb, fallbackIcon: FontAwesomeIcons.globe, fallbackColor: color, size: _iconSize),
     ];
     return Wrap(
       alignment: WrapAlignment.center,
@@ -84,19 +91,33 @@ class HeroValueProp extends StatelessWidget {
   }
 }
 
-class _PlatformIcon extends StatelessWidget {
-  final IconData icon;
-  final Color color;
+/// Shows platform image from assets; on load error or missing asset, shows FontAwesome icon so no placeholder appears.
+class _PlatformImage extends StatelessWidget {
+  final String assetPath;
+  final IconData fallbackIcon;
+  final Color fallbackColor;
   final double size;
 
-  const _PlatformIcon({
-    required this.icon,
-    required this.color,
+  const _PlatformImage({
+    required this.assetPath,
+    required this.fallbackIcon,
+    required this.fallbackColor,
     required this.size,
   });
 
   @override
   Widget build(BuildContext context) {
-    return FaIcon(icon, size: size, color: color);
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Image.asset(
+        assetPath,
+        width: size,
+        height: size,
+        fit: BoxFit.contain,
+        filterQuality: FilterQuality.medium,
+        errorBuilder: (_, __, ___) => FaIcon(fallbackIcon, size: size, color: fallbackColor),
+      ),
+    );
   }
 }
