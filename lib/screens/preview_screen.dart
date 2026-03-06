@@ -30,11 +30,10 @@ class _PreviewScreenState extends State<PreviewScreen> {
       final provider = Provider.of<DesignSystemProvider>(context, listen: false);
       final designSystem = provider.designSystem;
 
-      // Let the loading overlay paint, then run PDF generation (heavy work runs after delay)
+      // Let the loading overlay paint, then run PDF generation with yields so the UI stays responsive
       await Future.delayed(const Duration(milliseconds: 150));
       if (!mounted) return;
-      final pdf = await Future<pw.Document>.microtask(() => _generatePdfSync(designSystem));
-
+      final pdf = await _generatePdfAsync(designSystem);
       if (!mounted) return;
 
       await Printing.layoutPdf(
@@ -58,11 +57,11 @@ class _PreviewScreenState extends State<PreviewScreen> {
     }
   }
 
-  pw.Document _generatePdfSync(models.DesignSystem ds) {
+  /// Builds the PDF asynchronously, yielding to the UI after each page so the app doesn't freeze.
+  Future<pw.Document> _generatePdfAsync(models.DesignSystem ds) async {
     final pdf = pw.Document();
     final titleStyle = pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold);
     final headerStyle = pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900);
-    final subHeaderStyle = pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold);
 
     // Page 1: Cover + Colors (all palettes)
     pdf.addPage(pw.MultiPage(
@@ -78,8 +77,9 @@ class _PreviewScreenState extends State<PreviewScreen> {
         _buildPdfColorsFull(ds),
       ],
     ));
+    await Future.delayed(Duration.zero);
 
-    // Page 2: Typography (family, weights, sizes, styles) + Spacing & Grid
+    // Page 2: Typography + Spacing & Grid
     pdf.addPage(pw.MultiPage(
       pageFormat: PdfPageFormat.a4,
       margin: const pw.EdgeInsets.all(40),
@@ -95,8 +95,9 @@ class _PreviewScreenState extends State<PreviewScreen> {
         _buildPdfGridDetailed(ds),
       ],
     ));
+    await Future.delayed(Duration.zero);
 
-    // Page 3: Border Radius (all values), Shadows, Effects
+    // Page 3: Border Radius, Shadows, Effects
     pdf.addPage(pw.MultiPage(
       pageFormat: PdfPageFormat.a4,
       margin: const pw.EdgeInsets.all(40),
@@ -114,8 +115,9 @@ class _PreviewScreenState extends State<PreviewScreen> {
         _buildPdfEffectsDetailed(ds),
       ],
     ));
+    await Future.delayed(Duration.zero);
 
-    // Page 4: All component categories + Icons
+    // Page 4: Component Library + Icons
     pdf.addPage(pw.MultiPage(
       pageFormat: PdfPageFormat.a4,
       margin: const pw.EdgeInsets.all(40),
@@ -129,8 +131,9 @@ class _PreviewScreenState extends State<PreviewScreen> {
         _buildPdfIconsDetailed(ds),
       ],
     ));
+    await Future.delayed(Duration.zero);
 
-    // Page 5: Gradients, Roles, Semantic (all), Motion (duration + easing), Version history
+    // Page 5: Gradients, Roles, Semantic, Motion, Version history
     pdf.addPage(pw.MultiPage(
       pageFormat: PdfPageFormat.a4,
       margin: const pw.EdgeInsets.all(40),
@@ -160,8 +163,100 @@ class _PreviewScreenState extends State<PreviewScreen> {
     return pdf;
   }
 
+  pw.Document _generatePdfSync(models.DesignSystem ds) {
+    final pdf = pw.Document();
+    final titleStyle = pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold);
+    final headerStyle = pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900);
+    final subHeaderStyle = pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold);
+
+    pdf.addPage(pw.MultiPage(
+      pageFormat: PdfPageFormat.a4,
+      margin: const pw.EdgeInsets.all(40),
+      build: (pw.Context context) => [
+        pw.Header(level: 0, child: pw.Text(ds.name, style: titleStyle)),
+        if (ds.description.isNotEmpty) pw.Padding(padding: const pw.EdgeInsets.only(bottom: 12), child: pw.Text(ds.description, style: pw.TextStyle(fontSize: 11, color: PdfColors.grey700))),
+        pw.Text('Version ${ds.version}', style: pw.TextStyle(fontSize: 10, color: PdfColors.grey600)),
+        pw.SizedBox(height: 20),
+        pw.Text('1. Colors', style: headerStyle),
+        pw.SizedBox(height: 10),
+        _buildPdfColorsFull(ds),
+      ],
+    ));
+    pdf.addPage(pw.MultiPage(
+      pageFormat: PdfPageFormat.a4,
+      margin: const pw.EdgeInsets.all(40),
+      build: (pw.Context context) => [
+        pw.Text('2. Typography', style: headerStyle),
+        pw.SizedBox(height: 10),
+        _buildPdfTypographyFull(ds),
+        pw.SizedBox(height: 24),
+        pw.Text('3. Spacing & Grid', style: headerStyle),
+        pw.SizedBox(height: 10),
+        _buildPdfSpacingDetailed(ds),
+        pw.SizedBox(height: 10),
+        _buildPdfGridDetailed(ds),
+      ],
+    ));
+    pdf.addPage(pw.MultiPage(
+      pageFormat: PdfPageFormat.a4,
+      margin: const pw.EdgeInsets.all(40),
+      build: (pw.Context context) => [
+        pw.Text('4. Border Radius', style: headerStyle),
+        pw.SizedBox(height: 8),
+        _buildPdfBorderRadiusFull(ds),
+        pw.SizedBox(height: 20),
+        pw.Text('5. Shadows', style: headerStyle),
+        pw.SizedBox(height: 8),
+        _buildPdfShadowsDetailed(ds),
+        pw.SizedBox(height: 20),
+        pw.Text('6. Effects', style: headerStyle),
+        pw.SizedBox(height: 8),
+        _buildPdfEffectsDetailed(ds),
+      ],
+    ));
+    pdf.addPage(pw.MultiPage(
+      pageFormat: PdfPageFormat.a4,
+      margin: const pw.EdgeInsets.all(40),
+      build: (pw.Context context) => [
+        pw.Text('7. Component Library', style: headerStyle),
+        pw.SizedBox(height: 10),
+        _buildPdfComponentsFull(ds),
+        pw.SizedBox(height: 24),
+        pw.Text('8. Iconography', style: headerStyle),
+        pw.SizedBox(height: 10),
+        _buildPdfIconsDetailed(ds),
+      ],
+    ));
+    pdf.addPage(pw.MultiPage(
+      pageFormat: PdfPageFormat.a4,
+      margin: const pw.EdgeInsets.all(40),
+      build: (pw.Context context) => [
+        pw.Text('9. Gradients', style: headerStyle),
+        pw.SizedBox(height: 8),
+        _buildPdfGradientsDetailed(ds),
+        pw.SizedBox(height: 20),
+        pw.Text('10. Roles', style: headerStyle),
+        pw.SizedBox(height: 8),
+        _buildPdfRolesDetailed(ds),
+        pw.SizedBox(height: 20),
+        pw.Text('11. Semantic Tokens', style: headerStyle),
+        pw.SizedBox(height: 8),
+        _buildPdfSemanticTokensFull(ds),
+        pw.SizedBox(height: 20),
+        pw.Text('12. Motion Tokens', style: headerStyle),
+        pw.SizedBox(height: 8),
+        _buildPdfMotionTokensFull(ds),
+        pw.SizedBox(height: 20),
+        pw.Text('13. Version History', style: headerStyle),
+        pw.SizedBox(height: 8),
+        _buildPdfVersionHistory(ds),
+      ],
+    ));
+    return pdf;
+  }
+
   Future<pw.Document> _generatePdf(models.DesignSystem ds) async {
-    return _generatePdfSync(ds);
+    return _generatePdfAsync(ds);
   }
 
   // --- PDF WIDGETS (all design system elements) ---

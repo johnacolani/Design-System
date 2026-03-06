@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
 import '../providers/design_system_provider.dart';
+import '../utils/download_helper.dart';
 import '../providers/user_provider.dart';
 import '../utils/responsive.dart';
 import '../services/project_service.dart';
@@ -34,6 +36,19 @@ class DashboardScreen extends StatelessWidget {
 
   Future<void> _handleSaveToComputer(BuildContext context, models.DesignSystem ds) async {
     try {
+      if (kIsWeb) {
+        // file_picker saveFile() is not implemented on web; trigger browser download
+        final jsonString = await ProjectService.exportProject(ds, '');
+        final fileName = '${ds.name.replaceAll(' ', '_')}.ds.json';
+        downloadFile(jsonString, fileName);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Design System saved to computer!'), backgroundColor: Colors.green),
+          );
+        }
+        return;
+      }
+
       String? outputFile = await FilePicker.platform.saveFile(
         dialogTitle: 'Save Design System',
         fileName: '${ds.name.replaceAll(' ', '_')}.ds.json',
