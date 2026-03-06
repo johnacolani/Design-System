@@ -1,4 +1,6 @@
+import 'dart:typed_data';
 import 'dart:ui' as ui;
+import 'package:flutter/foundation.dart' show compute, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:pdf/pdf.dart';
@@ -7,6 +9,8 @@ import 'package:printing/printing.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../providers/design_system_provider.dart';
 import '../models/design_system.dart' as models;
+import '../models/design_system_wrapper.dart';
+import '../utils/design_system_pdf_builder.dart';
 import '../utils/screen_body_padding.dart';
 
 class PreviewScreen extends StatefulWidget {
@@ -30,14 +34,18 @@ class _PreviewScreenState extends State<PreviewScreen> {
       final provider = Provider.of<DesignSystemProvider>(context, listen: false);
       final designSystem = provider.designSystem;
 
-      // Let the loading overlay paint, then run PDF generation with yields so the UI stays responsive
+      // Web: compute() runs on same thread, so use chunked builder that yields to the UI.
+      // Mobile/desktop: use background isolate via compute().
       await Future.delayed(const Duration(milliseconds: 150));
       if (!mounted) return;
-      final pdf = await _generatePdfAsync(designSystem);
+      final wrapper = DesignSystemWrapper(designSystem: designSystem);
+      final Uint8List pdfBytes = kIsWeb
+          ? await generatePdfBytesFromJsonChunked(wrapper.toJson())
+          : await compute(generatePdfBytesFromJson, wrapper.toJson());
       if (!mounted) return;
 
       await Printing.layoutPdf(
-        onLayout: (PdfPageFormat format) async => pdf.save(),
+        onLayout: (PdfPageFormat format) async => pdfBytes,
         name: '${designSystem.name.replaceAll(' ', '_')}_Design_System.pdf',
       );
 
