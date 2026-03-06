@@ -17,6 +17,10 @@ echo Pushing to GitHub...
 git push origin main
 
 echo.
+echo Clean flutter project...
+call flutter clean
+
+echo.
 echo Building Flutter web...
 call flutter build web --release
 
