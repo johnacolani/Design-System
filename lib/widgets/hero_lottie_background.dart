@@ -22,7 +22,7 @@ class HeroLottieBackground extends StatelessWidget {
             _lottieUrl,
             fit: BoxFit.cover,
             repeat: true,
-            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+            errorBuilder: (_, _, _) => const SizedBox.shrink(),
           ),
         ),
       ),

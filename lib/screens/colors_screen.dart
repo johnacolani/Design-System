@@ -220,7 +220,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
-        side: BorderSide(color: Colors.grey.shade300!),
+        side: BorderSide(color: Colors.grey.shade300),
       ),
       child: InkWell(
         onTap: () {
@@ -358,12 +358,16 @@ class _ColorsScreenState extends State<ColorsScreen> {
     while (i < s.length) {
       if (RegExp(r'[0-9]').hasMatch(s[i])) {
         var j = i;
-        while (j < s.length && RegExp(r'[0-9]').hasMatch(s[j])) j++;
+        while (j < s.length && RegExp(r'[0-9]').hasMatch(s[j])) {
+          j++;
+        }
         list.add(s.substring(i, j));
         i = j;
       } else {
         var j = i;
-        while (j < s.length && !RegExp(r'[0-9]').hasMatch(s[j])) j++;
+        while (j < s.length && !RegExp(r'[0-9]').hasMatch(s[j])) {
+          j++;
+        }
         list.add(s.substring(i, j));
         i = j;
       }
@@ -428,7 +432,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade300!),
+        border: Border.all(color: Colors.grey.shade300),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -438,7 +442,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
             decoration: BoxDecoration(
               color: Colors.grey.shade100,
               borderRadius: const BorderRadius.vertical(top: Radius.circular(7)),
-              border: Border(bottom: BorderSide(color: Colors.grey.shade300!)),
+              border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
             ),
             child: Text(title, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
           ),

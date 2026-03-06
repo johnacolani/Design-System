@@ -44,10 +44,27 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   List<Color> _generatedColors = [];
   Color? _selectedPrimaryColor;
 
+  bool _didPreFillFromProvider = false;
+
   @override
   void initState() {
     super.initState();
     _updateHexColorController();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_didPreFillFromProvider) {
+      _didPreFillFromProvider = true;
+      final provider = Provider.of<DesignSystemProvider>(context, listen: false);
+      if (provider.hasProject && provider.designSystem.name.isNotEmpty) {
+        _nameController.text = provider.designSystem.name;
+        if (provider.designSystem.description.isNotEmpty) {
+          _descriptionController.text = provider.designSystem.description;
+        }
+      }
+    }
   }
 
   @override

@@ -9,7 +9,7 @@ import '../utils/responsive.dart';
 import '../widgets/app_logo.dart';
 import '../widgets/hero_value_prop.dart';
 import '../widgets/hero_lottie_background.dart';
-import 'onboarding_screen.dart';
+import 'create_new_project_screen.dart';
 import 'dashboard_screen.dart';
 import 'projects_screen.dart';
 import 'profile_screen.dart';
@@ -574,7 +574,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 } else {
                   // User is logged in, allow project creation
                   Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+                    MaterialPageRoute(builder: (_) => const CreateNewProjectScreen()),
                   );
                 }
               },
@@ -1319,7 +1319,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ElevatedButton.icon(
                       onPressed: () {
                         Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+                          MaterialPageRoute(builder: (_) => const CreateNewProjectScreen()),
                         );
                       },
                       icon: const Icon(Icons.add),

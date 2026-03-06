@@ -458,7 +458,7 @@ class _TypographyScreenState extends State<TypographyScreen> {
                 const Text('Weight', style: TextStyle(fontWeight: FontWeight.w600)),
                 const SizedBox(height: 4),
                 DropdownButtonFormField<String>(
-                  value: selectedWeightKey,
+                  initialValue: selectedWeightKey,
                   decoration: const InputDecoration(border: OutlineInputBorder()),
                   items: weightKeys.map((k) => DropdownMenuItem(value: k, child: Text('$k (${t.fontWeights[k] ?? 400})'))).toList(),
                   onChanged: (v) => setDialogState(() => selectedWeightKey = v ?? selectedWeightKey),
@@ -467,7 +467,7 @@ class _TypographyScreenState extends State<TypographyScreen> {
                 const Text('Size', style: TextStyle(fontWeight: FontWeight.w600)),
                 const SizedBox(height: 4),
                 DropdownButtonFormField<String>(
-                  value: selectedSizeKey,
+                  initialValue: selectedSizeKey,
                   decoration: const InputDecoration(border: OutlineInputBorder()),
                   items: sizeKeys.map((k) {
                     final sz = t.fontSizes[k];
@@ -723,7 +723,7 @@ class _TypographyScreenState extends State<TypographyScreen> {
                 const Text('Weight', style: TextStyle(fontWeight: FontWeight.w600)),
                 const SizedBox(height: 4),
                 DropdownButtonFormField<String>(
-                  value: selectedWeightKey,
+                  initialValue: selectedWeightKey,
                   decoration: const InputDecoration(border: OutlineInputBorder()),
                   items: weightKeys.map((k) => DropdownMenuItem(value: k, child: Text('$k (${t.fontWeights[k] ?? 400})'))).toList(),
                   onChanged: (v) => setDialogState(() => selectedWeightKey = v ?? selectedWeightKey),
@@ -732,7 +732,7 @@ class _TypographyScreenState extends State<TypographyScreen> {
                 const Text('Size', style: TextStyle(fontWeight: FontWeight.w600)),
                 const SizedBox(height: 4),
                 DropdownButtonFormField<String>(
-                  value: selectedSizeKey,
+                  initialValue: selectedSizeKey,
                   decoration: const InputDecoration(border: OutlineInputBorder()),
                   items: sizeKeys.map((k) {
                     final sz = t.fontSizes[k];

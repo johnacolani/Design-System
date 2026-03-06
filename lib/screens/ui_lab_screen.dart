@@ -720,7 +720,7 @@ class _UILabScreenState extends State<UILabScreen> {
 
   static Widget _buildDropdown(BuildContext context) {
     return DropdownButtonFormField<String>(
-      value: 'option1',
+      initialValue: 'option1',
       decoration: InputDecoration(
         labelText: 'Choose',
         border: OutlineInputBorder(
@@ -972,7 +972,7 @@ class _UILabScreenState extends State<UILabScreen> {
   // ——— Dropdowns ———
   static Widget _buildDropdownForm(BuildContext context) {
     return DropdownButtonFormField<String>(
-      value: 'a',
+      initialValue: 'a',
       decoration: InputDecoration(
         labelText: 'Select',
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),

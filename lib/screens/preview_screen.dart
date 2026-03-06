@@ -505,7 +505,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200!),
+        border: Border.all(color: Colors.grey.shade200),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
       ),
       child: Column(
@@ -535,13 +535,15 @@ class _PreviewScreenState extends State<PreviewScreen> {
     final allEntries = <(String name, String hex)>[];
     for (final e in ds.colors.primary.entries) {
       final val = e.value;
-      if (val is Map && val['value'] != null) allEntries.add((e.key, val['value'].toString()));
-      else if (val is! Map) allEntries.add((e.key, val.toString()));
+      if (val is Map && val['value'] != null) {
+        allEntries.add((e.key, val['value'].toString()));
+      } else if (val is! Map) allEntries.add((e.key, val.toString()));
     }
     for (final e in ds.colors.semantic.entries) {
       final val = e.value;
-      if (val is Map && val['value'] != null) allEntries.add((e.key, val['value'].toString()));
-      else if (val is! Map) allEntries.add((e.key, val.toString()));
+      if (val is Map && val['value'] != null) {
+        allEntries.add((e.key, val['value'].toString()));
+      } else if (val is! Map) allEntries.add((e.key, val.toString()));
     }
     final groups = _groupColorsByPrefix(allEntries);
     final orderedGroups = <String>[];
@@ -622,12 +624,16 @@ class _PreviewScreenState extends State<PreviewScreen> {
     while (i < s.length) {
       if (RegExp(r'[0-9]').hasMatch(s[i])) {
         var j = i;
-        while (j < s.length && RegExp(r'[0-9]').hasMatch(s[j])) j++;
+        while (j < s.length && RegExp(r'[0-9]').hasMatch(s[j])) {
+          j++;
+        }
         list.add(s.substring(i, j));
         i = j;
       } else {
         var j = i;
-        while (j < s.length && !RegExp(r'[0-9]').hasMatch(s[j])) j++;
+        while (j < s.length && !RegExp(r'[0-9]').hasMatch(s[j])) {
+          j++;
+        }
         list.add(s.substring(i, j));
         i = j;
       }
@@ -639,7 +645,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade200!),
+        border: Border.all(color: Colors.grey.shade200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -649,7 +655,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
             decoration: BoxDecoration(
               color: Colors.grey.shade100,
               borderRadius: const BorderRadius.vertical(top: Radius.circular(7)),
-              border: Border(bottom: BorderSide(color: Colors.grey.shade200!)),
+              border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
             ),
             child: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black87)),
           ),
@@ -665,7 +671,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        border: showBorder ? Border(bottom: BorderSide(color: Colors.grey.shade200!)) : null,
+        border: showBorder ? Border(bottom: BorderSide(color: Colors.grey.shade200)) : null,
       ),
       child: Row(
         children: [
@@ -680,7 +686,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
             decoration: BoxDecoration(
               color: color,
               borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: Colors.grey.shade300!),
+              border: Border.all(color: Colors.grey.shade300),
             ),
           ),
           const SizedBox(width: 8),
@@ -722,7 +728,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.grey.shade200!),
+            border: Border.all(color: Colors.grey.shade200),
           ),
           child: Row(
             children: [
@@ -740,7 +746,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey.shade200!),
+              border: Border.all(color: Colors.grey.shade200),
             ),
             child: Row(
               children: [
@@ -758,7 +764,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
           Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey.shade200!),
+              border: Border.all(color: Colors.grey.shade200),
             ),
             child: Column(
               children: _buildTypographyWeightRows(primaryFont, t.fontWeights),
@@ -772,7 +778,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
           Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey.shade200!),
+              border: Border.all(color: Colors.grey.shade200),
             ),
             child: Column(
               children: _buildTypographySizeRows(primaryFont, t.fontSizes),
@@ -786,7 +792,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
           Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey.shade200!),
+              border: Border.all(color: Colors.grey.shade200),
             ),
             child: Column(
               children: () {
@@ -797,7 +803,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
                   return Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                     decoration: BoxDecoration(
-                      border: showBorder ? Border(bottom: BorderSide(color: Colors.grey.shade200!)) : null,
+                      border: showBorder ? Border(bottom: BorderSide(color: Colors.grey.shade200)) : null,
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -845,7 +851,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          border: showBorder ? Border(bottom: BorderSide(color: Colors.grey.shade200!)) : null,
+          border: showBorder ? Border(bottom: BorderSide(color: Colors.grey.shade200)) : null,
         ),
         child: Row(
           children: [
@@ -874,7 +880,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          border: showBorder ? Border(bottom: BorderSide(color: Colors.grey.shade200!)) : null,
+          border: showBorder ? Border(bottom: BorderSide(color: Colors.grey.shade200)) : null,
         ),
         child: Row(
           children: [
@@ -1004,7 +1010,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
           return Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             decoration: BoxDecoration(
-              border: showBorder ? Border(bottom: BorderSide(color: Colors.grey.shade200!)) : null,
+              border: showBorder ? Border(bottom: BorderSide(color: Colors.grey.shade200)) : null,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1046,7 +1052,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade200!),
+          border: Border.all(color: Colors.grey.shade200),
           boxShadow: shadow,
         ),
         child: Column(
@@ -1102,7 +1108,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.grey.shade200!),
+          border: Border.all(color: Colors.grey.shade200),
           boxShadow: shadow,
         ),
         child: Column(
@@ -1122,7 +1128,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade200!),
+          border: Border.all(color: Colors.grey.shade200),
           boxShadow: shadow,
         ),
         child: Column(
@@ -1164,7 +1170,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         decoration: BoxDecoration(
           color: Colors.white,
-          border: Border(bottom: BorderSide(color: Colors.grey.shade200!)),
+          border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
           boxShadow: shadow,
         ),
         alignment: Alignment.centerLeft,
@@ -1191,7 +1197,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-          border: Border.all(color: Colors.grey.shade200!),
+          border: Border.all(color: Colors.grey.shade200),
           boxShadow: shadow,
         ),
         child: Column(
@@ -1212,7 +1218,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade300!),
+        border: Border.all(color: Colors.grey.shade300),
         boxShadow: shadow,
       ),
       child: const Center(child: Icon(Icons.square, color: Colors.grey, size: 24)),
@@ -1488,9 +1494,9 @@ class _PreviewScreenState extends State<PreviewScreen> {
     return _buildSectionCard('Advanced Tokens', Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (ds.gradients.values.isNotEmpty) _buildTokenList('Gradients', ds.gradients.values.entries.map((e) => '${e.key}').toList()),
+        if (ds.gradients.values.isNotEmpty) _buildTokenList('Gradients', ds.gradients.values.entries.map((e) => e.key).toList()),
         if (ds.gradients.values.isNotEmpty && (ds.roles.values.isNotEmpty || ds.semanticTokens.color.isNotEmpty || ds.motionTokens.duration.isNotEmpty)) const SizedBox(height: 16),
-        if (ds.roles.values.isNotEmpty) _buildTokenList('Roles', ds.roles.values.entries.map((e) => '${e.key}').toList()),
+        if (ds.roles.values.isNotEmpty) _buildTokenList('Roles', ds.roles.values.entries.map((e) => e.key).toList()),
         if (ds.roles.values.isNotEmpty && (ds.semanticTokens.color.isNotEmpty || ds.motionTokens.duration.isNotEmpty)) const SizedBox(height: 16),
         if (ds.semanticTokens.color.isNotEmpty) _buildTokenList('Semantic Tokens', ds.semanticTokens.color.keys.toList()),
         if (ds.semanticTokens.color.isNotEmpty && ds.motionTokens.duration.isNotEmpty) const SizedBox(height: 16),

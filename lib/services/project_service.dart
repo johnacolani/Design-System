@@ -266,12 +266,31 @@ class ProjectService {
     }
   }
 
-  /// Sanitize file name to remove invalid characters
-  static String _sanitizeFileName(String name) {
+  /// Sanitize file name to remove invalid characters (public for use when saving to custom path).
+  static String sanitizeFileName(String name) {
     return name
         .replaceAll(RegExp(r'[<>:"/\\|?*]'), '_')
         .replaceAll(' ', '_')
         .toLowerCase();
+  }
+
+  static String _sanitizeFileName(String name) => sanitizeFileName(name);
+
+  /// Save project to a specific file path (desktop/mobile only; used when user picks save location).
+  static Future<String> saveProjectToFile(models.DesignSystem designSystem, String filePath) async {
+    if (kIsWeb) {
+      throw UnsupportedError('saveProjectToFile is not available on web; use saveProject()');
+    }
+    try {
+      final wrapper = DesignSystemWrapper(designSystem: designSystem);
+      final json = wrapper.toJson();
+      final jsonString = const JsonEncoder.withIndent('  ').convert(json);
+      final file = io.File(filePath);
+      await file.writeAsString(jsonString);
+      return file.path;
+    } catch (e) {
+      throw Exception('Failed to save project to file: $e');
+    }
   }
 }
 

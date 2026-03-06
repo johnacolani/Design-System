@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../providers/design_system_provider.dart';
 import '../services/project_service.dart';
-import 'onboarding_screen.dart';
+import 'create_new_project_screen.dart';
 import 'dashboard_screen.dart';
 import '../utils/screen_body_padding.dart';
 
@@ -72,7 +72,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
             icon: const Icon(Icons.add),
             onPressed: () {
               Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+                MaterialPageRoute(builder: (_) => const CreateNewProjectScreen()),
               );
             },
             tooltip: 'New Project',
@@ -114,7 +114,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
           ElevatedButton.icon(
             onPressed: () {
               Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+                MaterialPageRoute(builder: (_) => const CreateNewProjectScreen()),
               );
             },
             icon: const Icon(Icons.add),

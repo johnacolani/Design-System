@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../models/billing.dart';
 import '../providers/user_provider.dart';
 import '../providers/billing_provider.dart';
-import '../widgets/billing/plan_card.dart';
 
 /// Upgrade flow: select plan and confirm. Placeholder for Stripe; writes mock
 /// subscription to Firestore users/{uid}/billing/subscription for now.

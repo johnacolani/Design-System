@@ -7,7 +7,7 @@ import '../widgets/app_logo.dart';
 import '../widgets/hero_value_prop.dart';
 import '../utils/platform_icons.dart';
 import '../utils/responsive.dart';
-import 'onboarding_screen.dart';
+import 'create_new_project_screen.dart';
 import 'auth_screen.dart';
 
 bool _useWideLayout(BuildContext context) {
@@ -108,7 +108,7 @@ class WelcomeScreen extends StatelessWidget {
                               final userProvider = Provider.of<UserProvider>(context, listen: false);
                               userProvider.initialize(); // Set as guest
                               Navigator.of(context).pushReplacement(
-                                MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+                                MaterialPageRoute(builder: (_) => const CreateNewProjectScreen()),
                               );
                             },
                             icon: const Icon(Icons.person_outline),
@@ -175,7 +175,7 @@ class WelcomeScreen extends StatelessWidget {
                                           if (context.mounted && userProvider.isLoggedIn) {
                                             Navigator.of(context).pushReplacement(
                                               MaterialPageRoute(
-                                                builder: (_) => const OnboardingScreen(),
+                                                builder: (_) => const CreateNewProjectScreen(),
                                               ),
                                             );
                                           } else if (context.mounted) {

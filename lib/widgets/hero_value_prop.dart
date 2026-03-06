@@ -126,7 +126,7 @@ class _PlatformImage extends StatelessWidget {
             height: size,
             fit: BoxFit.contain,
             filterQuality: FilterQuality.medium,
-            errorBuilder: (_, __, ___) => FaIcon(fallbackIcon, size: size, color: fallbackColor),
+            errorBuilder: (_, _, _) => FaIcon(fallbackIcon, size: size, color: fallbackColor),
           ),
         ),
       ),

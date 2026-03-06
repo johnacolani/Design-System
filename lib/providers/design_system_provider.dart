@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import '../models/design_system.dart' as models;
 import '../services/project_service.dart';
@@ -5,9 +6,17 @@ import '../services/project_service.dart';
 class DesignSystemProvider extends ChangeNotifier {
   models.DesignSystem _designSystem = models.DesignSystem.empty();
   bool _hasProject = false;
+  /// When set, saveProject() writes to this path instead of default location (desktop/mobile only).
+  String? _currentProjectPath;
 
   models.DesignSystem get designSystem => _designSystem;
   bool get hasProject => _hasProject;
+  String? get currentProjectPath => _currentProjectPath;
+
+  void setCurrentProjectPath(String? path) {
+    _currentProjectPath = path;
+    notifyListeners();
+  }
 
   void createNewProject({
     required String name,
@@ -291,15 +300,19 @@ class DesignSystemProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Save current project to disk
+  /// Save current project to disk (uses [currentProjectPath] when set on desktop/mobile).
   Future<String> saveProject() async {
+    if (!kIsWeb && _currentProjectPath != null && _currentProjectPath!.isNotEmpty) {
+      return await ProjectService.saveProjectToFile(_designSystem, _currentProjectPath!);
+    }
     return await ProjectService.saveProject(_designSystem);
   }
 
-  /// Load project from file path
+  /// Load project from file path (also sets [currentProjectPath] so future saves go to same file).
   Future<void> loadProjectFromPath(String filePath) async {
     final designSystem = await ProjectService.loadProject(filePath);
     loadProject(designSystem);
+    if (!kIsWeb) setCurrentProjectPath(filePath);
   }
 
   /// Get list of all saved projects
@@ -316,6 +329,7 @@ class DesignSystemProvider extends ChangeNotifier {
   void reset() {
     _designSystem = models.DesignSystem.empty();
     _hasProject = false;
+    _currentProjectPath = null;
     notifyListeners();
   }
 }

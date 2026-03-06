@@ -137,7 +137,7 @@ class _StepCard extends StatelessWidget {
           child: step.done
               ? Icon(Icons.check, color: theme.colorScheme.primary)
               : Text(
-                  '${step.title[0]}',
+                  step.title[0],
                   style: theme.textTheme.titleMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
