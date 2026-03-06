@@ -17,22 +17,31 @@ class PreviewScreen extends StatefulWidget {
 }
 
 class _PreviewScreenState extends State<PreviewScreen> {
+  bool _isExportingPdf = false;
+
   Future<void> _exportAsPdf() async {
-    if (!mounted) return;
-    
+    if (!mounted || _isExportingPdf) return;
+    setState(() => _isExportingPdf = true);
+
+    // Yield so the loading overlay can paint before we block on PDF generation
+    await Future.delayed(Duration.zero);
+
     try {
       final provider = Provider.of<DesignSystemProvider>(context, listen: false);
       final designSystem = provider.designSystem;
 
-      final pdf = await _generatePdf(designSystem);
-      
+      // Let the loading overlay paint, then run PDF generation (heavy work runs after delay)
+      await Future.delayed(const Duration(milliseconds: 150));
+      if (!mounted) return;
+      final pdf = await Future<pw.Document>.microtask(() => _generatePdfSync(designSystem));
+
       if (!mounted) return;
 
       await Printing.layoutPdf(
         onLayout: (PdfPageFormat format) async => pdf.save(),
         name: '${designSystem.name.replaceAll(' ', '_')}_Design_System.pdf',
       );
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('PDF generated successfully!'), backgroundColor: Colors.green),
@@ -44,10 +53,12 @@ class _PreviewScreenState extends State<PreviewScreen> {
           SnackBar(content: Text('Export failed: $e'), backgroundColor: Colors.red),
         );
       }
+    } finally {
+      if (mounted) setState(() => _isExportingPdf = false);
     }
   }
 
-  Future<pw.Document> _generatePdf(models.DesignSystem ds) async {
+  pw.Document _generatePdfSync(models.DesignSystem ds) {
     final pdf = pw.Document();
     final titleStyle = pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold);
     final headerStyle = pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900);
@@ -147,6 +158,10 @@ class _PreviewScreenState extends State<PreviewScreen> {
     ));
 
     return pdf;
+  }
+
+  Future<pw.Document> _generatePdf(models.DesignSystem ds) async {
+    return _generatePdfSync(ds);
   }
 
   // --- PDF WIDGETS (all design system elements) ---
@@ -442,14 +457,20 @@ class _PreviewScreenState extends State<PreviewScreen> {
     final provider = Provider.of<DesignSystemProvider>(context);
     final ds = provider.designSystem;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Design System Preview'),
-        actions: [
-          IconButton(icon: const Icon(Icons.picture_as_pdf), onPressed: _exportAsPdf, tooltip: 'Export PDF'),
-        ],
-      ),
-      body: ScreenBodyPadding(
+    return Stack(
+      children: [
+        Scaffold(
+          appBar: AppBar(
+            title: const Text('Design System Preview'),
+            actions: [
+              IconButton(
+                icon: _isExportingPdf ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.picture_as_pdf),
+                onPressed: _isExportingPdf ? null : _exportAsPdf,
+                tooltip: 'Export PDF',
+              ),
+            ],
+          ),
+          body: ScreenBodyPadding(
         verticalPadding: 0,
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -487,6 +508,28 @@ class _PreviewScreenState extends State<PreviewScreen> {
           ),
         ),
       ),
+        ),
+        if (_isExportingPdf)
+          Material(
+            color: Colors.black54,
+            child: Center(
+              child: Card(
+                margin: const EdgeInsets.all(48),
+                child: Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const CircularProgressIndicator(),
+                      const SizedBox(height: 24),
+                      Text('Generating PDF...', style: Theme.of(context).textTheme.titleMedium),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 
