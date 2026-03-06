@@ -97,6 +97,9 @@ flutter run -d windows
 - ✅ Windows
 - ✅ Linux
 
+### User guide & Coming soon
+- **Full user instructions:** See **[USER_INSTRUCTIONS.md](USER_INSTRUCTIONS.md)** for a complete guide (getting started, dashboard, export, preview, settings) and a **Coming soon** section for features still in progress (e.g. settings options, export on web, billing, tutorials, demo gallery, Figma sync).
+
 ## 📁 Project Structure
 
 ```
