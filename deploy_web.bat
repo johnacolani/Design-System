@@ -9,7 +9,7 @@ echo Adding files...
 git add .
 
 echo.
-echo Commiting...
+echo Committing...
 git commit -m "%MESSAGE%"
 
 echo.
@@ -18,11 +18,11 @@ git push origin main
 
 echo.
 echo Building Flutter web...
-flutter build web --release
+call flutter build web --release
 
 echo.
-echo Deploying to Firebase...
-firebase deploy --only hosting
+echo Deploying to Firebase Hosting...
+call firebase deploy --only hosting
 
 echo.
 echo Done!
