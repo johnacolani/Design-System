@@ -5,6 +5,7 @@ import '../providers/design_system_provider.dart';
 import '../services/project_service.dart';
 import 'create_new_project_screen.dart';
 import 'dashboard_screen.dart';
+import 'settings_screen.dart';
 import '../utils/screen_body_padding.dart';
 
 class ProjectsScreen extends StatefulWidget {
@@ -63,6 +64,15 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
       appBar: AppBar(
         title: const Text('My Projects'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SettingsScreen()),
+              );
+            },
+            tooltip: 'Settings',
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadProjects,

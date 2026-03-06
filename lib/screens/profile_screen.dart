@@ -17,7 +17,20 @@ class ProfileScreen extends StatelessWidget {
 
     if (user == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Profile')),
+        appBar: AppBar(
+          title: const Text('Profile'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.settings),
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                );
+              },
+              tooltip: 'Settings',
+            ),
+          ],
+        ),
         body: const Center(child: Text('No user logged in')),
       );
     }

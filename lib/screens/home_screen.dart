@@ -13,6 +13,7 @@ import 'create_new_project_screen.dart';
 import 'dashboard_screen.dart';
 import 'projects_screen.dart';
 import 'profile_screen.dart';
+import 'settings_screen.dart';
 import 'auth_screen.dart';
 import 'welcome_screen.dart';
 import 'pricing_screen.dart';
@@ -175,6 +176,18 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           
           const Spacer(),
+          
+          // Settings (visible for everyone)
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SettingsScreen()),
+              );
+            },
+            tooltip: 'Settings',
+          ),
+          if (!responsive.isMobile) const SizedBox(width: 4),
           
           // Navigation Actions
           if (userProvider.isLoggedIn) ...[

@@ -85,9 +85,20 @@ Use each tile to open the corresponding screen and edit your design system.
 
 ---
 
+## Where to find Settings
+
+You can open **Settings** from any of these places:
+
+1. **Home screen (website or app):** Tap the **Settings (gear) icon** in the top bar (next to “My Projects” / “Get started” or your profile picture). Works whether you are signed in or not.
+2. **My Projects screen:** Tap the **Settings (gear) icon** in the app bar (next to Refresh and the “+” button).
+3. **Dashboard (inside a project):** Tap the **Settings (gear) icon** in the app bar (next to your profile picture and “Save to Computer”).
+4. **Profile screen:** Tap the **gear icon** in the Profile app bar (when signed in). If you are not signed in, Profile still shows a Settings icon so you can open app settings.
+
+---
+
 ## Settings & Profile
 
-Open **Settings** (from profile or menu) to manage:
+Open **Settings** (from the home screen gear icon or from Profile → gear) to manage:
 
 - **Profile** – View and manage profile information.
 - **Email** – **Coming soon.** Change email (will require re-authentication).

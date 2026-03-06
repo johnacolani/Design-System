@@ -25,6 +25,7 @@ import 'export_screen.dart';
 import 'preview_screen.dart';
 import 'design_library_screen.dart';
 import 'projects_screen.dart';
+import 'settings_screen.dart';
 import 'semantic_tokens_screen.dart';
 import 'version_history_screen.dart';
 import 'motion_tokens_screen.dart';
@@ -121,6 +122,15 @@ class DashboardScreen extends StatelessWidget {
                         : null,
                   ),
                 ),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: 'Settings',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SettingsScreen()),
               );
             },
           ),
