@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import '../providers/user_provider.dart';
 import '../providers/design_system_provider.dart';
+import '../services/project_service.dart';
 import '../models/user.dart';
 import '../models/design_system.dart' as models;
 import '../utils/responsive.dart';
@@ -29,15 +30,35 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  List<ProjectInfo> _projects = [];
+  bool _isLoadingProjects = true;
+
   @override
   void initState() {
     super.initState();
-    // Clear any existing snackbars when home screen loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         ScaffoldMessenger.of(context).clearSnackBars();
+        _loadProjects();
       }
     });
+  }
+
+  Future<void> _loadProjects() async {
+    if (!mounted) return;
+    final provider = Provider.of<DesignSystemProvider>(context, listen: false);
+    try {
+      final list = await provider.getProjectList();
+      if (mounted) setState(() {
+        _projects = list;
+        _isLoadingProjects = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() {
+        _projects = [];
+        _isLoadingProjects = false;
+      });
+    }
   }
 
   @override
@@ -177,40 +198,21 @@ class _HomeScreenState extends State<HomeScreen> {
           
           const Spacer(),
           
-          // Settings (visible for everyone)
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const SettingsScreen()),
-              );
-            },
-            tooltip: 'Settings',
-          ),
-          if (!responsive.isMobile) const SizedBox(width: 4),
-          
-          // Navigation Actions
+          // Right side: only Avatar and user email when logged in
           if (userProvider.isLoggedIn) ...[
-            if (!responsive.isMobile)
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const ProjectsScreen()),
-                  );
-                },
-                child: const Text('My Projects'),
+            Flexible(
+              child: Text(
+                user?.email ?? '',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Colors.grey[700],
+                  fontSize: responsive.isMobile ? 12 : null,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.end,
               ),
-            if (!responsive.isMobile) const SizedBox(width: 4),
-            if (!responsive.isMobile)
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const PricingScreen()),
-                  );
-                },
-                child: const Text('Pricing'),
-              ),
-            if (!responsive.isMobile) const SizedBox(width: 8),
+            ),
+            const SizedBox(width: 8),
             GestureDetector(
               onTap: () {
                 Navigator.of(context).push(
@@ -234,6 +236,31 @@ class _HomeScreenState extends State<HomeScreen> {
                       )
                     : null,
               ),
+            ),
+            // Overflow menu for Settings, My Projects, Pricing
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert),
+              tooltip: 'Menu',
+              onSelected: (value) {
+                if (value == 'settings') {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                  );
+                } else if (value == 'projects') {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const ProjectsScreen()),
+                  );
+                } else if (value == 'pricing') {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const PricingScreen()),
+                  );
+                }
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(value: 'projects', child: Row(children: [Icon(Icons.folder, size: 20), SizedBox(width: 12), Text('My Projects')])),
+                const PopupMenuItem(value: 'pricing', child: Row(children: [Icon(Icons.credit_card, size: 20), SizedBox(width: 12), Text('Pricing')])),
+                const PopupMenuItem(value: 'settings', child: Row(children: [Icon(Icons.settings, size: 20), SizedBox(width: 12), Text('Settings')])),
+              ],
             ),
           ] else ...[
             if (!responsive.isMobile)
@@ -286,22 +313,24 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildHeroSection(BuildContext context, DesignSystemProvider designSystemProvider, UserProvider userProvider) {
     final responsive = Responsive(context);
-    
+
+    // When we have projects, show Figma-style project preview grid (tap to open)
+    if (_projects.isNotEmpty) {
+      return _buildProjectPreviewGridSection(context, designSystemProvider, userProvider, responsive);
+    }
+
+    // No projects: show decorative previews + "Create your design system" CTA
     return SizedBox(
       height: responsive.isMobile ? 400 : responsive.isTablet ? 500 : 600,
       child: Stack(
         children: [
-          // Lottie animation from LottieFiles (behind cards)
           HeroLottieBackground(isMobile: responsive.isMobile),
-          // Background with project previews
           Positioned.fill(
             child: Padding(
               padding: responsive.margin,
-              child: _buildProjectPreviewsGrid(context, designSystemProvider),
+              child: _buildPlaceholderPreviewsGrid(context),
             ),
           ),
-          
-          // Floating Call-to-Action Card (Figma-style)
           Positioned(
             top: responsive.isMobile ? 120 : responsive.isTablet ? 150 : 200,
             left: 0,
@@ -315,71 +344,285 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildProjectPreviewsGrid(BuildContext context, DesignSystemProvider designSystemProvider) {
-    if (!designSystemProvider.hasProject) {
-      // Show placeholder previews when no project exists
-      return Stack(
-        clipBehavior: Clip.none,
+  /// Figma-style section: grid of project preview cards; tap to open project.
+  Widget _buildProjectPreviewGridSection(
+    BuildContext context,
+    DesignSystemProvider designSystemProvider,
+    UserProvider userProvider,
+    Responsive responsive,
+  ) {
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: responsive.isMobile ? 16 : 32,
+        vertical: 24,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Positioned(
-            top: 0,
-            left: 0,
-            child: _buildPreviewCard(
-              context,
-              title: 'Material Design',
-              colors: [Colors.blue, Colors.green, Colors.orange],
-              rotation: -2,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Your projects',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[800],
+                ),
+              ),
+              TextButton.icon(
+                onPressed: () => _navigateCreateProject(context, userProvider),
+                icon: const Icon(Icons.add, size: 20),
+                label: const Text('New project'),
+              ),
+            ],
           ),
-          Positioned(
-            top: 80,
-            right: 0,
-            child: _buildPreviewCard(
-              context,
-              title: 'Cupertino',
-              colors: [Colors.purple, Colors.pink, Colors.blue],
-              rotation: 2,
+          const SizedBox(height: 16),
+          if (_isLoadingProjects)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(48),
+                child: CircularProgressIndicator(),
+              ),
+            )
+          else
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: responsive.isMobile ? 320 : (responsive.isTablet ? 380 : 420),
+              ),
+              child: SingleChildScrollView(
+                child: Builder(
+                  builder: (context) {
+                    final width = MediaQuery.sizeOf(context).width -
+                        (responsive.isMobile ? 32.0 : 64.0);
+                    final crossCount = responsive.isMobile ? 2 : (responsive.isTablet ? 3 : 4);
+                    const spacing = 16.0;
+                    final cardWidth = (width - spacing * (crossCount - 1)) / crossCount;
+                    final w = cardWidth.clamp(140.0, 260.0);
+                    final h = (w * 0.7).clamp(100.0, 180.0);
+                    return Wrap(
+                      spacing: spacing,
+                      runSpacing: spacing,
+                      children: [
+                        ..._projects.map((project) => _buildProjectPreviewCard(
+                          context,
+                          designSystemProvider,
+                          project: project,
+                          width: w,
+                          height: h,
+                        )),
+                      ],
+                    );
+                  },
+                ),
+              ),
             ),
-          ),
-          Positioned(
-            bottom: 0,
-            left: 100,
-            child: _buildPreviewCard(
-              context,
-              title: 'Custom System',
-              colors: [Colors.teal, Colors.cyan, Colors.indigo],
-              rotation: -1,
-            ),
-          ),
         ],
+      ),
+    );
+  }
+
+  void _navigateCreateProject(BuildContext context, UserProvider userProvider) {
+    final firebaseAuth = firebase_auth.FirebaseAuth.instance;
+    if (firebaseAuth.currentUser == null || !userProvider.isLoggedIn) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please sign in or sign up to create a project'),
+          backgroundColor: Colors.orange,
+          duration: Duration(seconds: 2),
+        ),
+      );
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const WelcomeScreen()));
+    } else {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const CreateNewProjectScreen()),
       );
     }
-    
-    // Show actual project preview
-    final designSystem = designSystemProvider.designSystem;
-    Color? primaryColor;
-    if (designSystem.colors.primary.isNotEmpty) {
-      final firstColor = designSystem.colors.primary.values.first;
-      final colorValue = firstColor is Map
-          ? (firstColor)['value']?.toString() ?? '#000000'
-          : firstColor.toString();
-      primaryColor = _parseColor(colorValue);
+  }
+
+  Future<void> _openProject(BuildContext context, DesignSystemProvider provider, ProjectInfo project) async {
+    try {
+      await provider.loadProjectFromPath(project.filePath);
+      if (!mounted) return;
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const DashboardScreen()),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to open project: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
-    primaryColor ??= Theme.of(context).colorScheme.primary;
-    
-    return Center(
-      child: _buildPreviewCard(
-        context,
-        title: designSystem.name,
-        description: designSystem.description,
-        colors: [
-          primaryColor,
-          primaryColor.withOpacity(0.7),
-          primaryColor.withOpacity(0.4),
-        ],
-        rotation: 0,
-        isActive: true,
+  }
+
+  static const List<List<Color>> _projectCardPalettes = [
+    [Color(0xFF6366F1), Color(0xFF8B5CF6), Color(0xFFA78BFA)],
+    [Color(0xFF0EA5E9), Color(0xFF38BDF8), Color(0xFF7DD3FC)],
+    [Color(0xFF10B981), Color(0xFF34D399), Color(0xFF6EE7B7)],
+    [Color(0xFFF59E0B), Color(0xFFFBBF24), Color(0xFFFCD34D)],
+    [Color(0xFFEF4444), Color(0xFFF87171), Color(0xFFFCA5A5)],
+    [Color(0xFFEC4899), Color(0xFFF472B6), Color(0xFFF9A8D4)],
+    [Color(0xFF14B8A6), Color(0xFF2DD4BF), Color(0xFF5EEAD4)],
+    [Color(0xFF4F46E5), Color(0xFF6366F1), Color(0xFF818CF8)],
+  ];
+
+  /// Deterministic gradient colors from project name (for card preview).
+  List<Color> _colorsFromName(String name) {
+    int hash = 0;
+    for (int i = 0; i < name.length; i++) {
+      hash = (hash * 31 + name.codeUnitAt(i)) & 0x7FFFFFFF;
+    }
+    final palette = _projectCardPalettes[hash % _projectCardPalettes.length];
+    return List<Color>.from(palette);
+  }
+
+  Widget _buildProjectPreviewCard(
+    BuildContext context,
+    DesignSystemProvider designSystemProvider, {
+    required ProjectInfo project,
+    required double width,
+    required double height,
+  }) {
+    final colors = _colorsFromName(project.name);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _openProject(context, designSystemProvider, project),
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          width: width,
+          height: height,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: colors,
+                ),
+              ),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          project.name,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Icon(
+                        Icons.arrow_forward_ios,
+                        color: Colors.white.withOpacity(0.9),
+                        size: 14,
+                      ),
+                      const SizedBox(width: 4),
+                      PopupMenuButton<String>(
+                        icon: Icon(Icons.more_vert, color: Colors.white.withOpacity(0.9), size: 20),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 32),
+                        onSelected: (value) {
+                          if (value == 'open') {
+                            _openProject(context, designSystemProvider, project);
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          const PopupMenuItem(
+                            value: 'open',
+                            child: Row(children: [Icon(Icons.open_in_new, size: 18), SizedBox(width: 8), Text('Open')]),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  if (project.description.isNotEmpty)
+                    Text(
+                      project.description,
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.9),
+                        fontSize: 12,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    )
+                  else
+                    Text(
+                      'v${project.version}',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.85),
+                        fontSize: 12,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
+    );
+  }
+
+  /// Placeholder preview cards when there are no projects (decorative only).
+  Widget _buildPlaceholderPreviewsGrid(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Positioned(
+          top: 0,
+          left: 0,
+          child: _buildPreviewCard(
+            context,
+            title: 'Material Design',
+            colors: [Colors.blue, Colors.green, Colors.orange],
+            rotation: -2,
+          ),
+        ),
+        Positioned(
+          top: 80,
+          right: 0,
+          child: _buildPreviewCard(
+            context,
+            title: 'Cupertino',
+            colors: [Colors.purple, Colors.pink, Colors.blue],
+            rotation: 2,
+          ),
+        ),
+        Positioned(
+          bottom: 0,
+          left: 100,
+          child: _buildPreviewCard(
+            context,
+            title: 'Custom System',
+            colors: [Colors.teal, Colors.cyan, Colors.indigo],
+            rotation: -1,
+          ),
+        ),
+      ],
     );
   }
 
@@ -460,75 +703,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildFloatingCTACard(BuildContext context, DesignSystemProvider designSystemProvider, UserProvider userProvider) {
     final responsive = Responsive(context);
-    
-    if (designSystemProvider.hasProject) {
-      final designSystem = designSystemProvider.designSystem;
-      Color? primaryColor;
-      if (designSystem.colors.primary.isNotEmpty) {
-        final firstColor = designSystem.colors.primary.values.first;
-        final colorValue = firstColor is Map
-            ? (firstColor)['value']?.toString() ?? '#000000'
-            : firstColor.toString();
-        primaryColor = _parseColor(colorValue);
-      }
-      primaryColor ??= Theme.of(context).colorScheme.primary;
-      
-      final primary = Theme.of(context).colorScheme.primary;
-      return Container(
-        width: responsive.isMobile ? double.infinity : responsive.isTablet ? 350 : 400,
-        margin: responsive.margin,
-        padding: EdgeInsets.all(responsive.isMobile ? 20 : 32),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: primary.withOpacity(0.12), width: 1),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.06),
-              blurRadius: 24,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Continue working on "${designSystem.name}"',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const DashboardScreen()),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryColor,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: const Text(
-                  'Continue Editing',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-    
-    // No project - show create CTA
+    // Shown only when there are no projects; when there are projects, hero shows project grid instead
     final primary = Theme.of(context).colorScheme.primary;
     return Container(
       width: responsive.isMobile ? double.infinity : responsive.isTablet ? 350 : 400,

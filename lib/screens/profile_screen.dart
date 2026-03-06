@@ -263,20 +263,43 @@ class ProfileScreen extends StatelessWidget {
 
             // Logout button
             Padding(
-              padding: const EdgeInsets.all(16),
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  userProvider.logout();
-                  Navigator.of(context).pop();
-                },
-                icon: const Icon(Icons.logout, color: Colors.red),
-                label: const Text(
-                  'Logout',
-                  style: TextStyle(color: Colors.red),
-                ),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  side: const BorderSide(color: Colors.red),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () {
+                    userProvider.logout();
+                    Navigator.of(context).pop();
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      color: Colors.red.shade50,
+                      border: Border.all(color: Colors.red.shade200, width: 1),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.logout_rounded,
+                          size: 20,
+                          color: Colors.red.shade700,
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          'Log out',
+                          style: TextStyle(
+                            color: Colors.red.shade700,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
