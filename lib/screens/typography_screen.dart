@@ -13,13 +13,35 @@ class TypographyScreen extends StatefulWidget {
   State<TypographyScreen> createState() => _TypographyScreenState();
 }
 
+/// Context / use-case for typography. Suggestions show fonts that fit the choice.
+const Map<String, List<String>> _typographyContextSuggestions = {
+  'Professional': ['Inter', 'Source Sans 3', 'Open Sans', 'Lato', 'Nunito Sans', 'Work Sans', 'DM Sans'],
+  'Enterprise': ['Roboto', 'IBM Plex Sans', 'Work Sans', 'Open Sans', 'Lato', 'Montserrat', 'Ubuntu'],
+  'Creative': ['Playfair Display', 'Merriweather', 'Lora', 'Cormorant Garamond', 'Libre Baskerville', 'Crimson Text'],
+  'Editorial': ['Georgia', 'Merriweather', 'Lora', 'Crimson Text', 'Libre Baskerville', 'Source Serif 4'],
+  'Friendly': ['Nunito', 'Quicksand', 'Comfortaa', 'Varela Round', 'Patrick Hand', 'Baloo 2'],
+  'Modern': ['Inter', 'DM Sans', 'Plus Jakarta Sans', 'Manrope', 'Outfit', 'Sora', 'Figtree'],
+};
+
+/// Default weight value -> display name (100 Thin, 200 ExtraLight, ...).
+const Map<int, String> _weightDisplayNames = {
+  100: 'Thin',
+  200: 'ExtraLight',
+  300: 'Light',
+  400: 'Regular',
+  500: 'Medium',
+  600: 'SemiBold',
+  700: 'Bold',
+  800: 'ExtraBold',
+  900: 'Black',
+};
+
 class _TypographyScreenState extends State<TypographyScreen> {
-  // Use all available Google Fonts
   late List<String> _googleFonts;
-  
   String? _previewPrimaryFont;
   String _searchQuery = '';
-  
+  String? _selectedContext;
+
   @override
   void initState() {
     super.initState();
@@ -140,6 +162,69 @@ class _TypographyScreenState extends State<TypographyScreen> {
           ),
         ),
         
+        // Context selector: choose use-case to see suggested fonts
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Use case', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600, color: Colors.grey[700])),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _typographyContextSuggestions.keys.map((contextName) {
+                  final isSelected = _selectedContext == contextName;
+                  return FilterChip(
+                    label: Text(contextName),
+                    selected: isSelected,
+                    onSelected: (v) => setState(() => _selectedContext = v ? contextName : null),
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
+        ),
+        // Suggested fonts for selected context
+        if (_selectedContext != null) ...[
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Suggested for $_selectedContext', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold, color: Colors.blue)),
+                const SizedBox(height: 8),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: (_typographyContextSuggestions[_selectedContext] ?? []).where((f) => _googleFonts.contains(f)).map((font) {
+                      final isSelected = currentPrimary == font;
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: Material(
+                          elevation: isSelected ? 2 : 0,
+                          borderRadius: BorderRadius.circular(8),
+                          color: isSelected ? Colors.blue[50] : Colors.grey[100],
+                          child: InkWell(
+                            onTap: () => setState(() => _previewPrimaryFont = font),
+                            borderRadius: BorderRadius.circular(8),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              child: Text(font, style: _getSafeFont(font, fontSize: 14)),
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
         // Search Bar
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -194,14 +279,27 @@ class _TypographyScreenState extends State<TypographyScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text('Font Weights', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            ElevatedButton.icon(onPressed: () => _showAddFontWeightDialog(context), icon: const Icon(Icons.add), label: const Text('Add')),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: () => _resetFontWeightsToDefaults(context),
+                  icon: const Icon(Icons.restore, size: 18),
+                  label: const Text('Reset defaults'),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton.icon(onPressed: () => _showAddFontWeightDialog(context), icon: const Icon(Icons.add), label: const Text('Add')),
+              ],
+            ),
           ],
         ),
+        const SizedBox(height: 8),
+        Text('Default: 100 Thin, 200 ExtraLight, 300 Light, 400 Regular, 500 Medium, 600 SemiBold, 700 Bold, 800 ExtraBold, 900 Black', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
         const SizedBox(height: 16),
         ...typography.fontWeights.entries.map((entry) => Card(
           child: ListTile(
             title: Text(entry.key, style: _getSafeFont(currentFont, fontWeight: _intToWeight(entry.value))),
-            subtitle: Text('Weight Value: ${entry.value}'),
+            subtitle: Text('${entry.value} ${_weightDisplayNames[entry.value] ?? ''}'),
             trailing: PopupMenuButton<String>(
               onSelected: (val) {
                 if (val == 'edit') _showEditFontWeightDialog(context, entry.key, entry.value);
@@ -230,9 +328,22 @@ class _TypographyScreenState extends State<TypographyScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text('Font Sizes', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            ElevatedButton.icon(onPressed: () => _showAddFontSizeDialog(context), icon: const Icon(Icons.add), label: const Text('Add')),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: () => _resetFontSizesToDefaults(context),
+                  icon: const Icon(Icons.restore, size: 18),
+                  label: const Text('Reset defaults'),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton.icon(onPressed: () => _showAddFontSizeDialog(context), icon: const Icon(Icons.add), label: const Text('Add')),
+              ],
+            ),
           ],
         ),
+        const SizedBox(height: 8),
+        Text('Default: Display 48, Heading 32, Title 24, Subtitle 20, Body 16, Caption 14, Label 12', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
         const SizedBox(height: 16),
         ...typography.fontSizes.entries.map((entry) => Card(
           child: ListTile(
@@ -363,6 +474,32 @@ class _TypographyScreenState extends State<TypographyScreen> {
     final t = p.designSystem.typography;
     final updated = Map<String, int>.from(t.fontWeights)..remove(k);
     p.updateTypography(models.Typography(fontFamily: t.fontFamily, fontWeights: updated, fontSizes: t.fontSizes, textStyles: t.textStyles));
+  }
+
+  void _resetFontWeightsToDefaults(BuildContext context) {
+    final p = Provider.of<DesignSystemProvider>(context, listen: false);
+    final t = p.designSystem.typography;
+    p.updateTypography(models.Typography(
+      fontFamily: t.fontFamily,
+      fontWeights: Map<String, int>.from(models.Typography.empty().fontWeights),
+      fontSizes: t.fontSizes,
+      textStyles: t.textStyles,
+    ));
+    setState(() {});
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Weights reset to defaults (100 Thin … 900 Black)'), backgroundColor: Colors.green));
+  }
+
+  void _resetFontSizesToDefaults(BuildContext context) {
+    final p = Provider.of<DesignSystemProvider>(context, listen: false);
+    final t = p.designSystem.typography;
+    p.updateTypography(models.Typography(
+      fontFamily: t.fontFamily,
+      fontWeights: t.fontWeights,
+      fontSizes: Map<String, models.FontSize>.from(models.Typography.empty().fontSizes),
+      textStyles: t.textStyles,
+    ));
+    setState(() {});
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sizes reset to defaults (Display 48 … Label 12)'), backgroundColor: Colors.green));
   }
 
   void _showAddFontSizeDialog(BuildContext context) {
