@@ -792,8 +792,29 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 
+  /// Sample colors for each scheme type (for the "Choose your color scheme" preview swatches).
+  List<Color> _sampleColorsForScheme(String schemeTitle, Color baseColor) {
+    switch (schemeTitle) {
+      case 'Monochromatic':
+        return ColorTheoryService.generateMonochromatic(baseColor, steps: 2);
+      case 'Analogous':
+        return ColorTheoryService.generateAnalogous(baseColor, steps: 1);
+      case 'Complementary':
+        return ColorTheoryService.generateComplementary(baseColor);
+      case 'Triadic':
+        return ColorTheoryService.generateTriadic(baseColor);
+      case 'Split Complementary':
+        return ColorTheoryService.generateSplitComplementary(baseColor);
+      case 'Tetradic':
+        return ColorTheoryService.generateTetradic(baseColor);
+      default:
+        return [baseColor];
+    }
+  }
+
   Widget _buildSchemeOption(String title, String description, IconData icon, Color color) {
     final isSelected = _colorSchemeType == title;
+    final sampleColors = _sampleColorsForScheme(title, color);
     return InkWell(
       onTap: () {
         setState(() => _colorSchemeType = title);
@@ -838,6 +859,27 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       fontSize: 12,
                       color: Colors.grey[600],
                     ),
+                  ),
+                  const SizedBox(height: 10),
+                  // Sample color swatches for this scheme
+                  Row(
+                    children: sampleColors.take(5).map((c) => Container(
+                      margin: const EdgeInsets.only(right: 6),
+                      width: 20,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        color: c,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 1),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.15),
+                            blurRadius: 2,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
+                      ),
+                    )).toList(),
                   ),
                 ],
               ),
