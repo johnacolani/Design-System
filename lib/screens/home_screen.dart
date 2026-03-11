@@ -459,15 +459,16 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  // Muted, soft palettes so cards feel calm; pattern overlay tones them down further.
   static const List<List<Color>> _projectCardPalettes = [
-    [Color(0xFF6366F1), Color(0xFF8B5CF6), Color(0xFFA78BFA)],
-    [Color(0xFF0EA5E9), Color(0xFF38BDF8), Color(0xFF7DD3FC)],
-    [Color(0xFF10B981), Color(0xFF34D399), Color(0xFF6EE7B7)],
-    [Color(0xFFF59E0B), Color(0xFFFBBF24), Color(0xFFFCD34D)],
-    [Color(0xFFEF4444), Color(0xFFF87171), Color(0xFFFCA5A5)],
-    [Color(0xFFEC4899), Color(0xFFF472B6), Color(0xFFF9A8D4)],
-    [Color(0xFF14B8A6), Color(0xFF2DD4BF), Color(0xFF5EEAD4)],
-    [Color(0xFF4F46E5), Color(0xFF6366F1), Color(0xFF818CF8)],
+    [Color(0xFF7C8DB5), Color(0xFF9BA8C9), Color(0xFFB8C1D4)],
+    [Color(0xFF6B9BB5), Color(0xFF8FB0C7), Color(0xFFB3C8D9)],
+    [Color(0xFF7A9E8E), Color(0xFF98B5A8), Color(0xFFB6CCC2)],
+    [Color(0xFFB5A67C), Color(0xFFC9BE98), Color(0xFFDDD6B8)],
+    [Color(0xFFB58A8A), Color(0xFFC7A5A5), Color(0xFFD9C0C0)],
+    [Color(0xFFB58A9E), Color(0xFFC7A5B5), Color(0xFFD9C0CC)],
+    [Color(0xFF7A9E9E), Color(0xFF98B5B5), Color(0xFFB6CCCC)],
+    [Color(0xFF8A8AB5), Color(0xFFA5A5C7), Color(0xFFC0C0D9)],
   ];
 
   /// Deterministic gradient colors from project name (for card preview).
@@ -508,16 +509,30 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(16),
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: colors,
+            child: Stack(
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: colors,
+                    ),
+                  ),
                 ),
-              ),
-              padding: const EdgeInsets.all(16),
-              child: Column(
+                // Subtle dot pattern overlay to tone down the color
+                Positioned.fill(
+                  child: CustomPaint(
+                    painter: _DotPatternPainter(
+                      color: Colors.white.withOpacity(0.12),
+                      spacing: 8,
+                      radius: 1,
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -579,7 +594,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                 ],
-              ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -1564,4 +1581,26 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+}
+
+/// Paints a subtle dot grid pattern (used on project preview cards).
+class _DotPatternPainter extends CustomPainter {
+  _DotPatternPainter({required this.color, this.spacing = 8, this.radius = 1});
+
+  final Color color;
+  final double spacing;
+  final double radius;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = color;
+    for (double x = 0; x < size.width + spacing; x += spacing) {
+      for (double y = 0; y < size.height + spacing; y += spacing) {
+        canvas.drawCircle(Offset(x, y), radius, paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
