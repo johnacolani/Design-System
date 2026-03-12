@@ -30,9 +30,9 @@ Mark items as done by changing `- [ ]` to `- [x]`.
 
 ## 3. Billing & Upgrade (`lib/screens/upgrade_screen.dart`, `lib/providers/billing_provider.dart`)
 
-- [ ] **Stripe (or payment) integration** – Replace mock upgrade with real checkout (e.g. Stripe Checkout session or Payment Element).
-- [ ] **Webhook handler** – Backend/webhook that receives Stripe events and writes to Firestore `users/{uid}/billing` (subscription created/updated/canceled).
-- [ ] **Stop mock billing from app** – In production, billing doc should be updated only by webhooks, not by app after "confirm upgrade".
+- [x] **Stripe (or payment) integration** – Replace mock upgrade with real checkout (e.g. Stripe Checkout session or Payment Element). Implemented: Cloud Functions `createCheckoutSession` + app opens Stripe Checkout URL.
+- [x] **Webhook handler** – Backend/webhook that receives Stripe events and writes to Firestore `users/{uid}/billing` (subscription created/updated/canceled). Implemented: `stripeWebhook` in `functions/index.js`.
+- [x] **Stop mock billing from app** – In production, billing doc should be updated only by webhooks, not by app after "confirm upgrade". App now only calls backend and opens URL; webhook writes to Firestore.
 
 ---
 

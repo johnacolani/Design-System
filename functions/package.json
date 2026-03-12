@@ -1,0 +1,14 @@
+{
+  "name": "design-system-functions",
+  "description": "Cloud Functions for Stripe Checkout and webhooks",
+  "main": "index.js",
+  "engines": {
+    "node": "20"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.0.0",
+    "firebase-functions": "^5.0.0",
+    "stripe": "^17.0.0",
+    "express": "^4.21.0"
+  }
+}

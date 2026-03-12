@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../models/billing.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../config/stripe_config.dart';
 import '../providers/user_provider.dart';
 import '../providers/billing_provider.dart';
 
-/// Upgrade flow: select plan and confirm. Placeholder for Stripe; writes mock
-/// subscription to Firestore users/{uid}/billing/subscription for now.
+/// Upgrade flow: select plan, then redirect to Stripe Checkout.
+/// After payment, Stripe webhook updates Firestore; BillingProvider reflects it.
 class UpgradeScreen extends StatefulWidget {
   const UpgradeScreen({super.key, this.selectedPlan = 'pro'});
 
@@ -43,39 +45,52 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
       _message = null;
     });
 
-    // Placeholder: in production, redirect to Stripe Checkout and let webhooks
-    // write to Firestore. Here we write mock billing directly.
-    await Future.delayed(const Duration(milliseconds: 800));
-
-    final plan = _plan == 'team'
-        ? SubscriptionPlan.team
-        : _plan == 'pro'
-            ? SubscriptionPlan.pro
-            : SubscriptionPlan.free;
-    final end = DateTime.now().add(const Duration(days: 30));
-
-    final info = BillingInfo(
-      plan: plan,
-      status: SubscriptionStatus.active,
-      currentPeriodEnd: end,
-      stripeCustomerId: null,
-      stripeSubscriptionId: null,
-    );
-
     try {
-      await billingProvider.setBilling(uid, info);
-      if (context.mounted) {
+      final callable = FirebaseFunctions.instance.httpsCallable('createCheckoutSession');
+      final result = await callable.call<Map<Object?, Object?>>({
+        'plan': _plan,
+        'successUrl': StripeConfig.successUrl,
+        'cancelUrl': StripeConfig.cancelUrl,
+      });
+
+      final url = result.data['url'] as String?;
+      if (url == null || url.isEmpty) {
+        if (mounted) {
+          setState(() {
+            _loading = false;
+            _message = 'No checkout URL returned. Try again.';
+          });
+        }
+        return;
+      }
+
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+        if (context.mounted) {
+          setState(() => _loading = false);
+          billingProvider.loadBilling(uid);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Complete payment in the browser. We\'ll update your plan when it\'s done.'),
+            ),
+          );
+          Navigator.of(context).pop();
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _loading = false;
+            _message = 'Could not open payment page.';
+          });
+        }
+      }
+    } on FirebaseFunctionsException catch (e) {
+      if (mounted) {
         setState(() {
           _loading = false;
-          _message = 'You\'re now on ${plan.displayName}.';
+          _message = e.message ?? 'Something went wrong. Try again.';
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Welcome to ${plan.displayName}!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.of(context).pop();
       }
     } catch (e) {
       if (mounted) {
@@ -111,7 +126,7 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Stripe integration coming soon. This is a mock upgrade for testing.',
+              'You\'ll be taken to Stripe to pay securely. Your plan updates automatically after payment.',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -153,7 +168,7 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
               Text(
                 _message!,
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: _message!.startsWith('You') ? Colors.green : theme.colorScheme.error,
+                  color: theme.colorScheme.error,
                 ),
               ),
             ],
@@ -174,7 +189,7 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
                       width: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Confirm upgrade'),
+                  : const Text('Continue to payment'),
             ),
           ],
         ),
