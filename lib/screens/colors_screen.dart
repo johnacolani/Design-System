@@ -317,13 +317,32 @@ class _ColorsScreenState extends State<ColorsScreen> {
     );
   }
 
-  static const List<String> _colorGroupOrder = ['success', 'error', 'warning', 'info', 'primary', 'secondary'];
+  static const List<String> _colorGroupOrder = ['primary', 'analogous', 'success', 'error', 'warning', 'info', 'secondary'];
 
+  /// Same grouping as Preview: analogous_1_dark, analogous_1_light, etc.; primary, success, etc.
   Map<String, List<MapEntry<String, dynamic>>> _groupColorsByPrefix(Map<String, dynamic> category) {
     final map = <String, List<MapEntry<String, dynamic>>>{};
     for (final e in category.entries) {
-      final prefix = e.key.contains('_') ? e.key.split('_').first : e.key;
-      final key = prefix.toLowerCase();
+      final parts = e.key.split('_');
+      String key;
+      final first = parts.isNotEmpty ? parts[0].toLowerCase() : '';
+      final analogousNumMatch = RegExp(r'^analogous(\d+)$').firstMatch(first);
+      if (analogousNumMatch != null && parts.length >= 2) {
+        final subPart = parts.length >= 3 ? parts[2] : parts[1];
+        final sub = subPart.toLowerCase().replaceAll(RegExp(r'\d+$'), '');
+        key = 'analogous_${analogousNumMatch.group(1)}_${sub.isEmpty ? subPart.toLowerCase() : sub}';
+      } else if (analogousNumMatch != null) {
+        key = 'analogous_${analogousNumMatch.group(1)}';
+      } else if (first == 'analogous' && parts.length >= 3) {
+        final third = parts[2].toLowerCase().replaceAll(RegExp(r'\d+$'), '');
+        key = 'analogous_${parts[1]}_${third.isEmpty ? parts[2].toLowerCase() : third}';
+      } else if (first == 'analogous' && parts.length >= 2) {
+        key = '${first}_${parts[1]}';
+      } else if (parts.length >= 2 && int.tryParse(parts[1]) != null) {
+        key = '${first}_${parts[1]}';
+      } else {
+        key = first.isEmpty ? e.key.toLowerCase() : first;
+      }
       map.putIfAbsent(key, () => []).add(e);
     }
     for (final list in map.values) {
@@ -377,45 +396,83 @@ class _ColorsScreenState extends State<ColorsScreen> {
 
   Widget _buildColorsGroupedByType(BuildContext context, Map<String, dynamic> category) {
     final groups = _groupColorsByPrefix(category);
+    if (groups.isEmpty) return const SizedBox.shrink();
     final orderedKeys = <String>[];
+    if (groups.containsKey('primary')) orderedKeys.add('primary');
+    final analogousKeys = groups.keys.where((k) => k.startsWith('analogous_')).toList()
+      ..sort((a, b) => _naturalCompare(a, b));
+    for (final k in analogousKeys) orderedKeys.add(k);
     for (final k in _colorGroupOrder) {
-      if (groups.containsKey(k)) orderedKeys.add(k);
+      if (groups.containsKey(k) && !orderedKeys.contains(k)) orderedKeys.add(k);
     }
     for (final k in groups.keys) {
       if (!orderedKeys.contains(k)) orderedKeys.add(k);
     }
+    final n = orderedKeys.length;
+    final firstColumnCount = n <= 2 ? 1 : (n + 1) ~/ 2;
+    final leftKeys = orderedKeys.take(firstColumnCount).toList();
+    final rightKeys = orderedKeys.skip(firstColumnCount).toList();
+
+    Widget buildColumn(List<String> keys) {
+      if (keys.isEmpty) return const SizedBox.shrink();
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < keys.length; i++) ...[
+            if (i > 0) const SizedBox(height: 12),
+            _buildColorGroupColumn(
+              context,
+              _capitalizeGroupTitle(keys[i]),
+              groups[keys[i]]!,
+              _selectedCategory,
+            ),
+          ],
+        ],
+      );
+    }
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        for (var i = 0; i < orderedKeys.length; i += 2) ...[
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: _buildColorGroupColumn(
-                  context,
-                  _capitalize(orderedKeys[i]),
-                  groups[orderedKeys[i]]!,
-                  _selectedCategory,
-                ),
-              ),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: buildColumn(leftKeys)),
+            if (rightKeys.isNotEmpty) ...[
               const SizedBox(width: 12),
-              Expanded(
-                child: (i + 1) < orderedKeys.length
-                    ? _buildColorGroupColumn(
-                        context,
-                        _capitalize(orderedKeys[i + 1]),
-                        groups[orderedKeys[i + 1]]!,
-                        _selectedCategory,
-                      )
-                    : const SizedBox.shrink(),
-              ),
+              Expanded(child: buildColumn(rightKeys)),
             ],
-          ),
-          const SizedBox(height: 16),
-        ],
+          ],
+        ),
+        const SizedBox(height: 16),
       ],
     );
+  }
+
+  /// Same display as Preview: "Analogous 01 Dark", "Analogous 01 Light", "Analogous 01", "Primary", etc.
+  String _capitalizeGroupTitle(String s) {
+    if (s.isEmpty) return s;
+    final lower = s.toLowerCase();
+    final analogousSubMatch = RegExp(r'^analogous_(\d+)_(.+)$').firstMatch(lower);
+    if (analogousSubMatch != null) {
+      final numStr = analogousSubMatch.group(1)!;
+      final sub = analogousSubMatch.group(2)!;
+      final num = int.tryParse(numStr);
+      final label = num != null ? num.toString().padLeft(2, '0') : numStr;
+      final subCap = sub.isEmpty ? sub : sub[0].toUpperCase() + sub.substring(1).toLowerCase();
+      return 'Analogous $label $subCap';
+    }
+    final analogousMatch = RegExp(r'^analogous_(\d+)$').firstMatch(lower);
+    if (analogousMatch != null) {
+      final numStr = analogousMatch.group(1)!;
+      final num = int.tryParse(numStr);
+      final label = num != null ? num.toString().padLeft(2, '0') : numStr;
+      return 'Analogous $label';
+    }
+    return s
+        .split('_')
+        .map((part) => part.isEmpty ? part : part[0].toUpperCase() + part.substring(1).toLowerCase())
+        .join(' ');
   }
 
   String _capitalize(String s) {

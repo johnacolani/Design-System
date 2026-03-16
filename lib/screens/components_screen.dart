@@ -165,7 +165,7 @@ class _ComponentsScreenState extends State<ComponentsScreen> {
                   const Divider(),
                   const SizedBox(height: 16),
                 ],
-                // Show base properties
+                // Properties + Preview (preview in middle/right like design)
                 Text(
                   'Properties',
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
@@ -173,31 +173,63 @@ class _ComponentsScreenState extends State<ComponentsScreen> {
                       ),
                 ),
                 const SizedBox(height: 8),
-                if (componentData is Map)
-                  ...componentData.entries.where((entry) => entry.key != 'states').map((entry) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            entry.key,
-                            style: const TextStyle(fontWeight: FontWeight.w500),
-                          ),
-                          Flexible(
-                            child: Text(
-                              entry.value.toString(),
-                              style: TextStyle(
-                                color: Colors.grey[600],
-                                fontFamily: 'monospace',
-                              ),
-                              textAlign: TextAlign.end,
-                            ),
-                          ),
+                          if (componentData is Map)
+                            ...componentData.entries.where((entry) => entry.key != 'states').map((entry) {
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 8),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      entry.key,
+                                      style: const TextStyle(fontWeight: FontWeight.w500),
+                                    ),
+                                    Flexible(
+                                      child: Text(
+                                        entry.value.toString(),
+                                        style: TextStyle(
+                                          color: Colors.grey[600],
+                                          fontFamily: 'monospace',
+                                        ),
+                                        textAlign: TextAlign.end,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }),
                         ],
                       ),
-                    );
-                  }),
+                    ),
+                    const SizedBox(width: 24),
+                    Container(
+                      width: 200,
+                      height: 120,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade50,
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      alignment: Alignment.center,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _buildComponentPreview(context, category, name, componentData),
+                          const SizedBox(height: 8),
+                          _buildExactSizeLabel(category, componentData),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
@@ -232,6 +264,123 @@ class _ComponentsScreenState extends State<ComponentsScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  FontWeight _fontWeightFromInt(int w) {
+    final v = w.clamp(100, 900);
+    switch (v) {
+      case 100: return FontWeight.w100;
+      case 200: return FontWeight.w200;
+      case 300: return FontWeight.w300;
+      case 400: return FontWeight.w400;
+      case 500: return FontWeight.w500;
+      case 600: return FontWeight.w600;
+      case 700: return FontWeight.w700;
+      case 800: return FontWeight.w800;
+      case 900: return FontWeight.w900;
+      default: return FontWeight.w400;
+    }
+  }
+
+  double _parsePx(dynamic v) {
+    if (v == null) return 8;
+    if (v is num) return v.toDouble();
+    final s = v.toString().trim().toLowerCase();
+    if (s.endsWith('px')) return (double.tryParse(s.replaceAll('px', '')) ?? 8);
+    return (double.tryParse(s) ?? 8);
+  }
+
+  Widget _buildComponentPreview(BuildContext context, String category, String name, dynamic componentData) {
+    final data = componentData is Map ? Map<String, dynamic>.from(componentData) : <String, dynamic>{};
+    if (category == 'buttons') {
+      final height = _parsePx(data['height'] ?? 36);
+      final borderRadius = _parsePx(data['borderRadius'] ?? 16);
+      final padding = _parsePx(data['padding'] ?? 16);
+      final fontSize = _parsePx(data['fontSize'] ?? 24);
+      final fw = (int.tryParse(data['fontWeight']?.toString() ?? '600') ?? 600).clamp(100, 900);
+      final fontWeight = _fontWeightFromInt(fw);
+      final label = data['label']?.toString() ?? data['text']?.toString() ?? name;
+      return ElevatedButton(
+        onPressed: () {},
+        style: ElevatedButton.styleFrom(
+          minimumSize: Size(0, height),
+          padding: EdgeInsets.symmetric(horizontal: padding, vertical: 0),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(borderRadius)),
+          textStyle: TextStyle(fontSize: fontSize, fontWeight: fontWeight),
+        ),
+        child: Text(label),
+      );
+    }
+    if (category == 'inputs') {
+      final radius = _parsePx(data['borderRadius'] ?? 8);
+      return SizedBox(
+        width: 160,
+        child: TextField(
+          readOnly: true,
+          decoration: InputDecoration(
+            labelText: name,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(radius)),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          ),
+        ),
+      );
+    }
+    if (category == 'cards') {
+      final radius = _parsePx(data['borderRadius'] ?? 8);
+      return Container(
+        padding: EdgeInsets.all(_parsePx(data['padding'] ?? 12)),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: Colors.grey.shade300),
+          borderRadius: BorderRadius.circular(radius),
+        ),
+        child: Text(name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
+      );
+    }
+    return Text(name, style: TextStyle(fontSize: 12, color: Colors.grey[600]));
+  }
+
+  Widget _buildExactSizeLabel(String category, dynamic componentData) {
+    final data = componentData is Map ? componentData : <String, dynamic>{};
+    String text;
+    switch (category) {
+      case 'buttons':
+        final h = _parsePx(data['height'] ?? 36);
+        final br = _parsePx(data['borderRadius'] ?? 16);
+        final p = _parsePx(data['padding'] ?? 16);
+        final fs = _parsePx(data['fontSize'] ?? 24);
+        final fw = data['fontWeight']?.toString() ?? '600';
+        text = 'h:${h.toInt()}px  r:${br.toInt()}  p:${p.toInt()}  ${fs.toInt()}px/$fw';
+        break;
+      case 'inputs':
+        if (data.containsKey('width') || data.containsKey('height')) {
+          final w = data.containsKey('width') ? _parsePx(data['width']).toInt() : null;
+          final h = data.containsKey('height') ? _parsePx(data['height']).toInt() : null;
+          if (w != null && h != null) {
+            text = '${w}×${h} px';
+          } else {
+            text = w != null ? 'w:${w}px' : 'h:${h}px';
+          }
+        } else {
+          text = 'r:${_parsePx(data['borderRadius'] ?? 8).toInt()}px';
+        }
+        break;
+      case 'cards':
+        final p = _parsePx(data['padding'] ?? 12);
+        final br = _parsePx(data['borderRadius'] ?? 8);
+        text = 'padding: ${p.toInt()}px  •  radius: ${br.toInt()}px';
+        break;
+      default:
+        text = '';
+    }
+    if (text.isEmpty) return const SizedBox.shrink();
+    return Text(
+      text,
+      style: TextStyle(fontSize: 10, color: Colors.grey[600], fontFamily: 'monospace'),
+      textAlign: TextAlign.center,
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
     );
   }
 
@@ -279,6 +428,7 @@ class _ComponentsScreenState extends State<ComponentsScreen> {
 
   void _showComponentDialog(BuildContext context, String category, String? existingName, dynamic existingData) {
     final nameController = TextEditingController(text: existingName ?? '');
+    final labelController = TextEditingController(text: existingData is Map ? (existingData['label']?.toString() ?? existingData['text']?.toString() ?? existingName ?? '') : '');
     final heightController = TextEditingController(text: existingData is Map ? (existingData['height']?.toString() ?? '') : '');
     final borderRadiusController = TextEditingController(text: existingData is Map ? (existingData['borderRadius']?.toString() ?? '') : '');
     final paddingController = TextEditingController(text: existingData is Map ? (existingData['padding']?.toString() ?? '') : '');
@@ -313,6 +463,16 @@ class _ComponentsScreenState extends State<ComponentsScreen> {
                     border: OutlineInputBorder(),
                   ),
                 ),
+                if (category == 'buttons') ...[
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: labelController,
+                    decoration: const InputDecoration(
+                      labelText: 'Button text (e.g., Login, Submit)',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 16),
                 TextField(
                   controller: heightController,
@@ -436,15 +596,19 @@ class _ComponentsScreenState extends State<ComponentsScreen> {
                                                     : (components.alerts ?? {}),
                   );
 
+                  // Start from existing data when editing so we don't drop keys (e.g. label)
                   final componentData = <String, dynamic>{
-                    if (heightController.text.isNotEmpty) 'height': heightController.text,
-                    if (borderRadiusController.text.isNotEmpty)
-                      'borderRadius': borderRadiusController.text,
-                    if (paddingController.text.isNotEmpty) 'padding': paddingController.text,
-                    if (fontSizeController.text.isNotEmpty) 'fontSize': fontSizeController.text,
-                    if (fontWeightController.text.isNotEmpty)
-                      'fontWeight': int.tryParse(fontWeightController.text) ?? 400,
+                    if (existingData is Map) ...Map<String, dynamic>.from(existingData),
                   };
+                  // Overwrite with form values so edits apply (use empty check to allow clearing)
+                  if (heightController.text.isNotEmpty) componentData['height'] = heightController.text;
+                  if (borderRadiusController.text.isNotEmpty) componentData['borderRadius'] = borderRadiusController.text;
+                  if (paddingController.text.isNotEmpty) componentData['padding'] = paddingController.text;
+                  if (category == 'buttons') {
+                    if (fontSizeController.text.isNotEmpty) componentData['fontSize'] = fontSizeController.text;
+                    if (fontWeightController.text.isNotEmpty) componentData['fontWeight'] = int.tryParse(fontWeightController.text) ?? 400;
+                    if (labelController.text.isNotEmpty) componentData['label'] = labelController.text;
+                  }
 
                   // Add states if any are selected
                   if (selectedStates.isNotEmpty) {
@@ -458,6 +622,10 @@ class _ComponentsScreenState extends State<ComponentsScreen> {
                     componentData['states'] = statesMap;
                   }
 
+                  // If name changed when editing, remove the old key so the component is renamed
+                  if (existingName != null && existingName != nameController.text) {
+                    updatedCategory.remove(existingName);
+                  }
                   updatedCategory[nameController.text] = componentData;
 
                   final updatedButtons = category == 'buttons' ? updatedCategory : components.buttons;

@@ -27,21 +27,23 @@ class _PreviewScreenState extends State<PreviewScreen> {
     if (!mounted || _isExportingPdf) return;
     setState(() => _isExportingPdf = true);
 
-    // Yield so the loading overlay can paint before we block on PDF generation
     await Future.delayed(Duration.zero);
 
     try {
       final provider = Provider.of<DesignSystemProvider>(context, listen: false);
       final designSystem = provider.designSystem;
 
-      // Web: compute() runs on same thread, so use chunked builder that yields to the UI.
-      // Mobile/desktop: use background isolate via compute().
-      await Future.delayed(const Duration(milliseconds: 150));
+      // Let the "Generating PDF..." overlay paint (critical on web where PDF runs on same thread).
+      await Future.delayed(const Duration(milliseconds: 350));
       if (!mounted) return;
       final wrapper = DesignSystemWrapper(designSystem: designSystem);
       final Uint8List pdfBytes = kIsWeb
           ? await generatePdfBytesFromJsonChunked(wrapper.toJson())
           : await compute(generatePdfBytesFromJson, wrapper.toJson());
+      if (!mounted) return;
+
+      // Brief yield so UI can update before opening the print dialog.
+      await Future.delayed(const Duration(milliseconds: 50));
       if (!mounted) return;
 
       await Printing.layoutPdf(
@@ -57,7 +59,11 @@ class _PreviewScreenState extends State<PreviewScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Export failed: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('Export failed: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
         );
       }
     } finally {
@@ -582,31 +588,31 @@ class _PreviewScreenState extends State<PreviewScreen> {
             children: [
               _buildHeading('1. Core Colors'),
               _buildTwoColumnColors(ds),
-              const Divider(height: 40),
-              
+              const SizedBox(height: 20),
+
               _buildHeading('2. Typography'),
               _buildTypographyFull(ds),
-              const Divider(height: 40),
+              const SizedBox(height: 20),
 
               _buildHeading('3. Layout & Shape'),
               _buildLayoutFull(ds),
-              const Divider(height: 40),
+              const SizedBox(height: 20),
 
               _buildHeading('4. Shadows'),
               _buildShadowsSection(ds),
-              const Divider(height: 40),
+              const SizedBox(height: 20),
 
               _buildHeading('5. Visual Effects'),
               _buildEffectsSection(ds),
-              const Divider(height: 40),
+              const SizedBox(height: 20),
 
               _buildHeading('6. Components & Assets'),
               _buildComponentsDetailed(ds),
-              const Divider(height: 40),
+              const SizedBox(height: 20),
 
               _buildHeading('7. Advanced Tokens'),
               _buildAdvancedFull(ds),
-              const SizedBox(height: 40),
+              const SizedBox(height: 24),
             ],
           ),
         ),
@@ -646,8 +652,8 @@ class _PreviewScreenState extends State<PreviewScreen> {
   Widget _buildSectionCard(String sectionTitle, Widget child) {
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 24),
-      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -671,71 +677,158 @@ class _PreviewScreenState extends State<PreviewScreen> {
     return raw.toString();
   }
 
-  /// Preferred order for color groups (e.g. success left, error right, then warning row).
-  static const List<String> _colorGroupOrder = ['success', 'error', 'warning', 'info', 'primary', 'secondary'];
+  /// Preferred order: primary first, then analogous and semantic groups, then other palettes.
+  static const List<String> _colorGroupOrder = ['primary', 'analogous', 'success', 'error', 'warning', 'info', 'secondary'];
+
+  /// Collect (name, hex) from a color map (primary, semantic, blue, etc.).
+  List<(String name, String hex)> _colorMapToEntries(Map<String, dynamic>? map) {
+    if (map == null || map.isEmpty) return [];
+    final list = <(String name, String hex)>[];
+    for (final e in map.entries) {
+      final val = e.value;
+      if (val is Map && val['value'] != null) {
+        list.add((e.key, val['value'].toString()));
+      } else if (val is! Map) {
+        list.add((e.key, val.toString()));
+      }
+    }
+    return list;
+  }
 
   Widget _buildTwoColumnColors(models.DesignSystem ds) {
-    if (ds.colors.primary.isEmpty && ds.colors.semantic.isEmpty) {
-      return _buildPlaceholder('Colors (Primary & Semantic)');
+    final c = ds.colors;
+    // 1) Groups from primary + semantic (by prefix): primary, analogous, success, etc.
+    final primarySemanticEntries = <(String name, String hex)>[]
+      ..addAll(_colorMapToEntries(c.primary))
+      ..addAll(_colorMapToEntries(c.semantic));
+    final prefixGroups = _groupColorsByPrefix(primarySemanticEntries);
+
+    // 2) Other palettes as single groups (blue, green, orange, ...)
+    final paletteOrder = ['blue', 'green', 'orange', 'purple', 'red', 'grey', 'white', 'text', 'input', 'roleSpecific'];
+    final allGroups = <String, List<(String name, String hex)>>{};
+    for (final key in prefixGroups.keys) {
+      allGroups[key] = prefixGroups[key]!;
     }
-    final allEntries = <(String name, String hex)>[];
-    for (final e in ds.colors.primary.entries) {
-      final val = e.value;
-      if (val is Map && val['value'] != null) {
-        allEntries.add((e.key, val['value'].toString()));
-      } else if (val is! Map) allEntries.add((e.key, val.toString()));
+    for (final key in paletteOrder) {
+      Map<String, dynamic>? map;
+      switch (key) {
+        case 'blue': map = c.blue; break;
+        case 'green': map = c.green; break;
+        case 'orange': map = c.orange; break;
+        case 'purple': map = c.purple; break;
+        case 'red': map = c.red; break;
+        case 'grey': map = c.grey; break;
+        case 'white': map = c.white; break;
+        case 'text': map = c.text; break;
+        case 'input': map = c.input; break;
+        case 'roleSpecific': map = c.roleSpecific; break;
+        default: break;
+      }
+      final entries = _colorMapToEntries(map);
+      if (entries.isNotEmpty) allGroups[key] = entries;
     }
-    for (final e in ds.colors.semantic.entries) {
-      final val = e.value;
-      if (val is Map && val['value'] != null) {
-        allEntries.add((e.key, val['value'].toString()));
-      } else if (val is! Map) allEntries.add((e.key, val.toString()));
+
+    if (allGroups.isEmpty) {
+      return _buildPlaceholder('Colors (add Primary or Semantic in Colors screen)');
     }
-    final groups = _groupColorsByPrefix(allEntries);
+
+    // Order: primary first, then analogous_1, analogous_2, ... then preferred order, then rest.
     final orderedGroups = <String>[];
+    if (allGroups.containsKey('primary')) orderedGroups.add('primary');
+    final analogousKeys = allGroups.keys.where((k) => k.startsWith('analogous_')).toList()
+      ..sort((a, b) => _naturalCompare(a, b));
+    for (final k in analogousKeys) orderedGroups.add(k);
     for (final k in _colorGroupOrder) {
-      if (groups.containsKey(k)) orderedGroups.add(k);
+      if (allGroups.containsKey(k) && !orderedGroups.contains(k)) orderedGroups.add(k);
     }
-    for (final k in groups.keys) {
+    for (final k in allGroups.keys) {
       if (!orderedGroups.contains(k)) orderedGroups.add(k);
     }
-    final rows = <Widget>[];
-    for (var i = 0; i < orderedGroups.length; i += 2) {
-      final leftKey = orderedGroups[i];
-      final rightKey = (i + 1) < orderedGroups.length ? orderedGroups[i + 1] : null;
-      rows.add(
-        Padding(
-          padding: const EdgeInsets.only(bottom: 16),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: _buildColorGroupColumn(_capitalize(leftKey), groups[leftKey]!),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: rightKey != null
-                    ? _buildColorGroupColumn(_capitalize(rightKey), groups[rightKey]!)
-                    : const SizedBox.shrink(),
-              ),
-            ],
-          ),
-        ),
+
+    // Two columns: first half (rounded up) in left column, rest in right.
+    final n = orderedGroups.length;
+    final firstColumnCount = n <= 2 ? 1 : (n + 1) ~/ 2;
+    final leftKeys = orderedGroups.take(firstColumnCount).toList();
+    final rightKeys = orderedGroups.skip(firstColumnCount).toList();
+
+    Widget buildColumn(List<String> keys) {
+      if (keys.isEmpty) return const SizedBox.shrink();
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < keys.length; i++) ...[
+            if (i > 0) const SizedBox(height: 12),
+            _buildColorGroupColumn(_capitalize(keys[i]), allGroups[keys[i]]!),
+          ],
+        ],
       );
     }
-    return _buildSectionCard('Colors', Column(crossAxisAlignment: CrossAxisAlignment.start, children: rows));
+
+    return _buildSectionCard(
+      'Colors',
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(child: buildColumn(leftKeys)),
+          if (rightKeys.isNotEmpty) ...[
+            const SizedBox(width: 12),
+            Expanded(child: buildColumn(rightKeys)),
+          ],
+        ],
+      ),
+    );
   }
 
   String _capitalize(String s) {
     if (s.isEmpty) return s;
-    return s[0].toUpperCase() + s.substring(1).toLowerCase();
+    final lower = s.toLowerCase();
+    final analogousSubMatch = RegExp(r'^analogous_(\d+)_(.+)$').firstMatch(lower);
+    if (analogousSubMatch != null) {
+      final numStr = analogousSubMatch.group(1)!;
+      final sub = analogousSubMatch.group(2)!;
+      final num = int.tryParse(numStr);
+      final label = num != null ? num.toString().padLeft(2, '0') : numStr;
+      final subCap = sub.isEmpty ? sub : sub[0].toUpperCase() + sub.substring(1).toLowerCase();
+      return 'Analogous $label $subCap';
+    }
+    final analogousMatch = RegExp(r'^analogous_(\d+)$').firstMatch(lower);
+    if (analogousMatch != null) {
+      final numStr = analogousMatch.group(1)!;
+      final num = int.tryParse(numStr);
+      final label = num != null ? num.toString().padLeft(2, '0') : numStr;
+      return 'Analogous $label';
+    }
+    return s
+        .split('_')
+        .map((part) => part.isEmpty ? part : part[0].toUpperCase() + part.substring(1).toLowerCase())
+        .join(' ');
   }
 
+  /// Groups color tokens. Analogous split into sub-components: analogous_1_dark, analogous_1_light, etc.
+  /// So analogous_1_dark1, analogous_1_dark2 -> "Analogous 01 Dark"; analogous_1_light1 -> "Analogous 01 Light".
   Map<String, List<(String name, String hex)>> _groupColorsByPrefix(List<(String name, String hex)> entries) {
     final map = <String, List<(String name, String hex)>>{};
     for (final e in entries) {
-      final prefix = e.$1.contains('_') ? e.$1.split('_').first : e.$1;
-      final key = prefix.toLowerCase();
+      final parts = e.$1.split('_');
+      String key;
+      final first = parts.isNotEmpty ? parts[0].toLowerCase() : '';
+      final analogousNumMatch = RegExp(r'^analogous(\d+)$').firstMatch(first);
+      if (analogousNumMatch != null && parts.length >= 2) {
+        final subPart = parts.length >= 3 ? parts[2] : parts[1];
+        final sub = subPart.toLowerCase().replaceAll(RegExp(r'\d+$'), '');
+        key = 'analogous_${analogousNumMatch.group(1)}_${sub.isEmpty ? subPart.toLowerCase() : sub}';
+      } else if (analogousNumMatch != null) {
+        key = 'analogous_${analogousNumMatch.group(1)}';
+      } else if (first == 'analogous' && parts.length >= 3) {
+        final third = parts[2].toLowerCase().replaceAll(RegExp(r'\d+$'), '');
+        key = 'analogous_${parts[1]}_${third.isEmpty ? parts[2].toLowerCase() : third}';
+      } else if (first == 'analogous' && parts.length >= 2) {
+        key = '${first}_${parts[1]}';
+      } else if (parts.length >= 2 && int.tryParse(parts[1]) != null) {
+        key = '${first}_${parts[1]}';
+      } else {
+        key = first.isEmpty ? e.$1.toLowerCase() : first;
+      }
       map.putIfAbsent(key, () => []).add(e);
     }
     for (final list in map.values) {
