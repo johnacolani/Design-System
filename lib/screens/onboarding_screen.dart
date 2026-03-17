@@ -349,11 +349,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final firebaseAuth = firebase_auth.FirebaseAuth.instance;
     final userProvider = Provider.of<UserProvider>(context);
-    
+    final isGuest = !userProvider.isLoggedIn;
+
     // Check authentication - allow guest users but show a message
-    if (firebaseAuth.currentUser == null || !userProvider.isLoggedIn) {
+    if (isGuest) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         // Show info message but allow guest users to proceed
         ScaffoldMessenger.of(context).showSnackBar(

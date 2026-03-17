@@ -152,8 +152,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildTopNavigation(BuildContext context, UserProvider userProvider) {
     final user = userProvider.currentUser;
+    final isLoggedIn = user != null && !user.id.startsWith('guest_');
     final responsive = Responsive(context);
-    
+
     return Container(
       padding: responsive.padding,
       decoration: BoxDecoration(
@@ -199,7 +200,7 @@ class _HomeScreenState extends State<HomeScreen> {
           const Spacer(),
           
           // Right side: only Avatar and user email when logged in
-          if (userProvider.isLoggedIn) ...[
+          if (isLoggedIn) ...[
             Flexible(
               child: Text(
                 user?.email ?? '',
@@ -720,6 +721,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildFloatingCTACard(BuildContext context, DesignSystemProvider designSystemProvider, UserProvider userProvider) {
     final responsive = Responsive(context);
+    final user = userProvider.currentUser;
+    final isLoggedIn = user != null && !user.id.startsWith('guest_');
     // Shown only when there are no projects; when there are projects, hero shows project grid instead
     final primary = Theme.of(context).colorScheme.primary;
     return Container(
@@ -764,7 +767,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 // Require authentication before creating a project
                 // Check Firebase Auth directly to ensure user is actually logged in
                 final firebaseAuth = firebase_auth.FirebaseAuth.instance;
-                if (firebaseAuth.currentUser == null || !userProvider.isLoggedIn) {
+                if (firebaseAuth.currentUser == null || !isLoggedIn) {
                   // Show message and redirect to welcome screen for authentication
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
@@ -792,7 +795,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               child: Text(
-                userProvider.isLoggedIn ? 'Create New Project' : 'Get started',
+                isLoggedIn ? 'Create New Project' : 'Get started',
                 style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
             ),
@@ -862,7 +865,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildHeader(BuildContext context, UserProvider userProvider) {
     final user = userProvider.currentUser;
-    
+    final isLoggedIn = user != null && !user.id.startsWith('guest_');
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -951,7 +955,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           
           // Profile/Sign In button
-          if (userProvider.isLoggedIn)
+          if (isLoggedIn)
             IconButton(
               icon: const Icon(Icons.account_circle, color: Colors.white),
               onPressed: () {

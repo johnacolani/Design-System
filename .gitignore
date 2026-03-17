@@ -56,3 +56,7 @@ app.*.map.json
 # Environment variables
 .env
 .env.local
+
+# Patrol / integration test generated
+playwright-report/
+test_bundle.dart

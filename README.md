@@ -89,6 +89,39 @@ flutter run -d macos
 flutter run -d windows
 ```
 
+### Integration tests (Patrol with Chrome)
+
+Integration tests use [Patrol](https://patrol.leancode.co/) and run in Chrome.
+
+**Prerequisites:** [Node.js](https://nodejs.org/) (for Playwright/Chrome automation).
+
+1. Install the Patrol CLI (once):
+```bash
+dart pub global activate patrol_cli
+```
+
+2. Get dependencies:
+```bash
+flutter pub get
+```
+
+3. Run integration tests on Chrome:
+```bash
+patrol test --device chrome
+```
+
+Run a specific test file:
+```bash
+patrol test --device chrome --target integration_test/app_test.dart
+```
+
+Headless (e.g. for CI):
+```bash
+patrol test --device chrome --target integration_test/app_test.dart --web-headless true
+```
+
+Tests live in `integration_test/` and use `patrolTest()` from the `patrol` package.
+
 ### Supported Platforms
 - ✅ Android
 - ✅ iOS

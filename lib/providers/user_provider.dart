@@ -10,15 +10,10 @@ class UserProvider extends ChangeNotifier {
   bool _isLoading = false;
 
   User? get currentUser => _currentUser;
-  bool get isLoggedIn {
-    // Check if user is actually authenticated with Firebase (not just a guest)
-    final firebaseUser = firebase_auth.FirebaseAuth.instance.currentUser;
-    if (firebaseUser == null || _currentUser == null) {
-      return false;
-    }
-    // Check that it's not a guest user (guests have IDs starting with 'guest_')
-    return !_currentUser!.id.startsWith('guest_');
-  }
+  /// True when we have a non-guest user in memory. Avoids touching Firebase during build
+  /// so tests and web without Firebase config don't throw.
+  bool get isLoggedIn =>
+      _currentUser != null && !_currentUser!.id.startsWith('guest_');
   bool get isLoading => _isLoading;
   bool get isPremium => _currentUser?.isPremium ?? false;
   UserRole get userRole => _currentUser?.role ?? UserRole.free;

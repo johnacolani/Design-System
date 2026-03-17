@@ -65,9 +65,16 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  integration_test:
+    sdk: flutter
+  patrol: ^4.3.0
   flutter_lints: ^6.0.0
   build_runner: ^2.4.7
   json_serializable: ^6.7.1
+
+# Patrol integration tests (run with: patrol test --device chrome)
+patrol:
+  test_directory: integration_test
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

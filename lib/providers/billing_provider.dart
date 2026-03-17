@@ -6,11 +6,22 @@ import '../services/firebase_service.dart';
 
 /// Holds billing state from Firestore users/{uid}/billing. Single source of
 /// truth for plan/status; swap Stripe later by writing to this doc from webhooks.
+/// When Firebase/Firestore is unavailable (e.g. tests, no config), acts as free tier.
 class BillingProvider extends ChangeNotifier {
-  BillingProvider({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseService.firestore;
+  BillingProvider({FirebaseFirestore? firestore}) : _firestore = firestore;
 
-  final FirebaseFirestore _firestore;
+  FirebaseFirestore? _firestore;
+
+  /// Lazy: avoid touching Firestore in constructor so tests/web without Firebase don't crash.
+  FirebaseFirestore? get _firestoreOrNull {
+    if (_firestore != null) return _firestore;
+    try {
+      _firestore = FirebaseService.firestore;
+      return _firestore;
+    } catch (_) {
+      return null;
+    }
+  }
 
   BillingInfo _billing = BillingInfo.free();
   String? _userId;
@@ -26,8 +37,11 @@ class BillingProvider extends ChangeNotifier {
   bool get isLoading => _loading;
   String? get error => _error;
 
-  DocumentReference<Map<String, dynamic>> _billingRef(String uid) =>
-      _firestore.collection('users').doc(uid).collection('billing').doc('subscription');
+  DocumentReference<Map<String, dynamic>>? _billingRef(String uid) {
+    final fs = _firestoreOrNull;
+    if (fs == null) return null;
+    return fs.collection('users').doc(uid).collection('billing').doc('subscription');
+  }
 
   /// Load billing once (e.g. after login). Prefer watchBilling for live updates.
   Future<void> loadBilling(String userId) async {
@@ -37,12 +51,19 @@ class BillingProvider extends ChangeNotifier {
       notifyListeners();
       return;
     }
+    final ref = _billingRef(userId);
+    if (ref == null) {
+      _billing = BillingInfo.free();
+      _loading = false;
+      notifyListeners();
+      return;
+    }
     _loading = true;
     _error = null;
     notifyListeners();
 
     try {
-      final snap = await _billingRef(userId).get();
+      final snap = await ref.get();
       _billing = BillingInfo.fromFirestore(snap.data());
       _userId = userId;
     } catch (e) {
@@ -63,10 +84,17 @@ class BillingProvider extends ChangeNotifier {
       notifyListeners();
       return;
     }
+    final ref = _billingRef(userId);
+    if (ref == null) {
+      _billing = BillingInfo.free();
+      _userId = null;
+      notifyListeners();
+      return;
+    }
     if (_userId == userId) return;
     _subscription?.cancel();
     _userId = userId;
-    _subscription = _billingRef(userId).snapshots().listen(
+    _subscription = ref.snapshots().listen(
       (snap) {
         _billing = BillingInfo.fromFirestore(snap.data());
         _error = null;
@@ -91,8 +119,10 @@ class BillingProvider extends ChangeNotifier {
   /// In production, Stripe webhooks would write to Firestore; this is for placeholder flow.
   Future<void> setBilling(String userId, BillingInfo info) async {
     if (userId.isEmpty) return;
+    final ref = _billingRef(userId);
+    if (ref == null) return;
     try {
-      await _billingRef(userId).set(info.toFirestore());
+      await ref.set(info.toFirestore());
       _billing = info;
       _userId = userId;
       notifyListeners();

@@ -72,13 +72,15 @@ class DesignSystemApp extends StatelessWidget {
             if (userProvider.currentUser == null) {
               userProvider.initialize();
             }
-            // Sync billing when user is logged in (non-guest)
-            final uid = userProvider.currentUser?.id;
-            if (uid != null && !uid.startsWith('guest_')) {
-              billingProvider.watchBilling(uid);
-            } else {
-              billingProvider.stopWatching();
-            }
+            // Defer billing sync to after build to avoid setState/notifyListeners during build
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              final uid = userProvider.currentUser?.id;
+              if (uid != null && !uid.startsWith('guest_')) {
+                billingProvider.watchBilling(uid);
+              } else {
+                billingProvider.stopWatching();
+              }
+            });
             return const HomeScreen();
           },
         ),
