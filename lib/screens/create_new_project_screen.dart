@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
+import '../models/design_system.dart' as models;
 import '../providers/design_system_provider.dart';
 import '../services/project_service.dart';
 import 'onboarding_screen.dart';
@@ -21,6 +22,8 @@ class _CreateNewProjectScreenState extends State<CreateNewProjectScreen> {
   final _formKey = GlobalKey<FormState>();
   String? _chosenDirectoryPath;
   bool _isCreating = false;
+  /// 'ios' | 'android' | 'web' | 'all'
+  String _platformChoice = 'web';
 
   @override
   void dispose() {
@@ -56,10 +59,13 @@ class _CreateNewProjectScreenState extends State<CreateNewProjectScreen> {
     final designSystemProvider = Provider.of<DesignSystemProvider>(context, listen: false);
 
     try {
-      // Create minimal project (name only; description will be set in onboarding).
+      final targetPlatforms = _platformChoice == 'all'
+          ? List<String>.from(models.kTargetPlatforms)
+          : [_platformChoice];
       designSystemProvider.createNewProject(
         name: name,
         description: '',
+        targetPlatforms: targetPlatforms,
       );
 
       if (!kIsWeb && _chosenDirectoryPath != null && _chosenDirectoryPath!.isNotEmpty) {
@@ -122,6 +128,51 @@ class _CreateNewProjectScreenState extends State<CreateNewProjectScreen> {
                         color: Colors.grey[600],
                       ),
                 ),
+                const SizedBox(height: 24),
+                Text(
+                  'Which platform(s) are you designing for?',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey.shade700,
+                      ),
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    ChoiceChip(
+                      label: const Text('iOS only'),
+                      selected: _platformChoice == 'ios',
+                      onSelected: (_) => setState(() => _platformChoice = 'ios'),
+                    ),
+                    ChoiceChip(
+                      label: const Text('Android only'),
+                      selected: _platformChoice == 'android',
+                      onSelected: (_) => setState(() => _platformChoice = 'android'),
+                    ),
+                    ChoiceChip(
+                      label: const Text('Web only'),
+                      selected: _platformChoice == 'web',
+                      onSelected: (_) => setState(() => _platformChoice = 'web'),
+                    ),
+                    ChoiceChip(
+                      label: const Text('All (iOS + Android + Web)'),
+                      selected: _platformChoice == 'all',
+                      onSelected: (_) => setState(() => _platformChoice = 'all'),
+                    ),
+                  ],
+                ),
+                if (_platformChoice == 'all')
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(
+                      'You’ll get a separate section per platform so each can have its own tokens.',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Colors.blue.shade700,
+                          ),
+                    ),
+                  ),
                 const SizedBox(height: 32),
                 TextFormField(
                   controller: _nameController,

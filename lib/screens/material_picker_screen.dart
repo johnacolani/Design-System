@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../data/design_library_components.dart';
+import '../data/material_icons_catalog.dart';
 import '../providers/design_system_provider.dart';
 import '../models/design_system.dart' as models;
 
@@ -597,278 +599,7 @@ class _MaterialIconsTabState extends State<MaterialIconsTab> {
   }
 
   void _loadMaterialIcons() {
-    // Common Material icons - only valid icons
-    _allIcons = [
-      Icons.home,
-      Icons.search,
-      Icons.favorite,
-      Icons.settings,
-      Icons.person,
-      Icons.notifications,
-      Icons.menu,
-      Icons.close,
-      Icons.add,
-      Icons.remove,
-      Icons.edit,
-      Icons.delete,
-      Icons.check,
-      Icons.arrow_back,
-      Icons.arrow_forward,
-      Icons.arrow_upward,
-      Icons.arrow_downward,
-      Icons.expand_more,
-      Icons.expand_less,
-      Icons.more_vert,
-      Icons.more_horiz,
-      Icons.share,
-      Icons.download,
-      Icons.upload,
-      Icons.refresh,
-      Icons.save,
-      Icons.print,
-      Icons.email,
-      Icons.phone,
-      Icons.location_on,
-      Icons.calendar_today,
-      Icons.access_time,
-      Icons.info,
-      Icons.warning,
-      Icons.error,
-      Icons.check_circle,
-      Icons.cancel,
-      Icons.help,
-      Icons.visibility,
-      Icons.visibility_off,
-      Icons.lock,
-      Icons.lock_open,
-      Icons.star,
-      Icons.star_border,
-      Icons.thumb_up,
-      Icons.thumb_down,
-      Icons.shopping_cart,
-      Icons.payment,
-      Icons.local_offer,
-      Icons.discount,
-      Icons.filter_list,
-      Icons.sort,
-      Icons.grid_view,
-      Icons.list,
-      Icons.view_module,
-      Icons.dashboard,
-      Icons.analytics,
-      Icons.trending_up,
-      Icons.trending_down,
-      Icons.bar_chart,
-      Icons.pie_chart,
-      Icons.image,
-      Icons.video_library,
-      Icons.music_note,
-      Icons.play_arrow,
-      Icons.pause,
-      Icons.stop,
-      Icons.skip_next,
-      Icons.skip_previous,
-      Icons.volume_up,
-      Icons.volume_down,
-      Icons.volume_off,
-      Icons.fullscreen,
-      Icons.fullscreen_exit,
-      Icons.zoom_in,
-      Icons.zoom_out,
-      Icons.crop,
-      Icons.rotate_right,
-      Icons.rotate_left,
-      Icons.flip,
-      Icons.brightness_high,
-      Icons.brightness_low,
-      Icons.contrast,
-      Icons.colorize,
-      Icons.palette,
-      Icons.brush,
-      Icons.format_color_fill,
-      Icons.format_color_text,
-      Icons.text_fields,
-      Icons.title,
-      Icons.format_bold,
-      Icons.format_italic,
-      Icons.format_underlined,
-      Icons.format_align_left,
-      Icons.format_align_center,
-      Icons.format_align_right,
-      Icons.format_align_justify,
-      Icons.format_list_bulleted,
-      Icons.format_list_numbered,
-      Icons.link,
-      Icons.code,
-      Icons.functions,
-      Icons.calculate,
-      Icons.numbers,
-      Icons.percent,
-      Icons.attach_money,
-      Icons.euro,
-      Icons.currency_pound,
-      Icons.currency_yen,
-      Icons.cloud,
-      Icons.cloud_upload,
-      Icons.cloud_download,
-      Icons.cloud_off,
-      Icons.wifi,
-      Icons.wifi_off,
-      Icons.bluetooth,
-      Icons.bluetooth_connected,
-      Icons.bluetooth_disabled,
-      Icons.nfc,
-      Icons.radio,
-      Icons.signal_wifi_4_bar,
-      Icons.signal_cellular_4_bar,
-      Icons.battery_full,
-      Icons.battery_charging_full,
-      Icons.battery_alert,
-      Icons.power,
-      Icons.power_off,
-      Icons.flash_on,
-      Icons.flash_off,
-      Icons.flash_auto,
-      Icons.camera,
-      Icons.camera_alt,
-      Icons.camera_enhance,
-      Icons.camera_front,
-      Icons.camera_rear,
-      Icons.videocam,
-      Icons.videocam_off,
-      Icons.mic,
-      Icons.mic_off,
-      Icons.headset,
-      Icons.headset_mic,
-      Icons.speaker,
-      Icons.speaker_group,
-      Icons.phone_android,
-      Icons.phone_iphone,
-      Icons.tablet,
-      Icons.tablet_android,
-      Icons.laptop,
-      Icons.laptop_mac,
-      Icons.laptop_windows,
-      Icons.desktop_mac,
-      Icons.desktop_windows,
-      Icons.keyboard,
-      Icons.mouse,
-      Icons.touch_app,
-      Icons.gesture,
-      Icons.swipe,
-      Icons.pan_tool,
-      Icons.drag_handle,
-      Icons.open_with,
-      Icons.fit_screen,
-      Icons.aspect_ratio,
-      Icons.crop_free,
-      Icons.crop_rotate,
-      Icons.crop_square,
-      Icons.crop_portrait,
-      Icons.crop_landscape,
-      Icons.transform,
-      Icons.straighten,
-      Icons.tune,
-      Icons.filter_vintage,
-      Icons.filter_b_and_w,
-      Icons.filter_center_focus,
-      Icons.filter_drama,
-      Icons.filter_frames,
-      Icons.filter_hdr,
-      Icons.filter_none,
-      Icons.filter_tilt_shift,
-      Icons.auto_fix_high,
-      Icons.auto_fix_normal,
-      Icons.auto_fix_off,
-      Icons.auto_awesome,
-      Icons.auto_awesome_motion,
-      Icons.auto_awesome_mosaic,
-      Icons.auto_stories,
-      Icons.auto_delete,
-      Icons.auto_mode,
-      Icons.auto_graph,
-      Icons.build,
-      Icons.build_circle,
-      Icons.construction,
-      Icons.handyman,
-      Icons.plumbing,
-      Icons.electrical_services,
-      Icons.hvac,
-      Icons.roofing,
-      Icons.fence,
-      Icons.grass,
-      Icons.park,
-      Icons.nature,
-      Icons.nature_people,
-      Icons.local_florist,
-      Icons.local_parking,
-      Icons.local_gas_station,
-      Icons.local_car_wash,
-      Icons.local_hotel,
-      Icons.local_restaurant,
-      Icons.local_cafe,
-      Icons.local_bar,
-      Icons.local_pizza,
-      Icons.local_dining,
-      Icons.local_drink,
-      Icons.local_convenience_store,
-      Icons.local_grocery_store,
-      Icons.local_shipping,
-      Icons.local_post_office,
-      Icons.local_pharmacy,
-      Icons.local_hospital,
-      Icons.local_laundry_service,
-      Icons.local_atm,
-      Icons.local_activity,
-      Icons.local_play,
-      Icons.local_movies,
-      Icons.local_library,
-      Icons.school,
-      Icons.local_airport,
-      Icons.local_taxi,
-      Icons.directions_bus,
-      Icons.subway,
-      Icons.train,
-      Icons.directions_car,
-      Icons.directions_bus,
-      Icons.directions_subway,
-      Icons.directions_train,
-      Icons.directions_walk,
-      Icons.directions_bike,
-      Icons.directions_boat,
-      Icons.directions_transit,
-      Icons.directions_railway,
-      Icons.directions_run,
-      Icons.directions_ferry,
-      Icons.directions_off,
-      Icons.map,
-      Icons.my_location,
-      Icons.navigation,
-      Icons.near_me,
-      Icons.pin_drop,
-      Icons.place,
-      Icons.room,
-      Icons.satellite,
-      Icons.terrain,
-      Icons.traffic,
-      Icons.flight,
-      Icons.flight_land,
-      Icons.flight_takeoff,
-      Icons.airplane_ticket,
-      Icons.confirmation_number,
-      Icons.luggage,
-      Icons.hotel,
-      Icons.bed,
-      Icons.bedtime,
-      Icons.nightlight,
-      Icons.wb_sunny,
-      Icons.wb_twilight,
-      Icons.wb_incandescent,
-      Icons.wb_iridescent,
-      Icons.wb_cloudy,
-      Icons.wb_auto,
-      Icons.ac_unit,
-    ];
+    _allIcons = List<IconData>.from(kMaterialIconsCatalog);
     _filteredIcons = _allIcons;
   }
 
@@ -964,44 +695,91 @@ class _MaterialIconsTabState extends State<MaterialIconsTab> {
     return match?.group(1) ?? 'icon';
   }
 
-  void _addIconToDesignSystem(BuildContext context, IconData icon) {
+  void _addIconToDesignSystem(BuildContext tabContext, IconData icon) {
+    final labelCtrl = TextEditingController(text: _getIconName(icon));
     showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add Icon'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 64),
-            const SizedBox(height: 16),
-            Text('Add "${_getIconName(icon)}" to your design system?'),
-          ],
+      context: tabContext,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Material icon'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(child: Icon(icon, size: 56)),
+              const SizedBox(height: 16),
+              TextField(
+                controller: labelCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Usage name',
+                  hintText: 'e.g. Tab — Home',
+                  border: OutlineInputBorder(),
+                ),
+                autofocus: true,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Add to project icons to show them in Design System Preview and exports.',
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
-          ElevatedButton(
+          TextButton(
             onPressed: () {
-              // Note: The design system Icons model only stores sizes, not icon names.
-              // Material icons are part of Flutter's icon library and don't need to be stored.
-              // This feature would require extending the Icons model to support icon names/references.
-              // For now, we'll show a message explaining this limitation.
-              Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
+              Navigator.pop(dialogContext);
+              ScaffoldMessenger.of(tabContext).showSnackBar(
                 SnackBar(
-                  content: Text(
-                    'Material icons are available via Flutter\'s Icon widget.\n'
-                    'Use Icon(${_getIconName(icon)}) in your code.\n'
-                    'Icon sizes can be managed in the Icons section.',
-                  ),
-                  backgroundColor: Colors.blue,
-                  duration: const Duration(seconds: 4),
+                  content: Text('Use Icon(${_getIconName(icon)}) in code. Sizes: Icons screen.'),
                 ),
               );
             },
-            child: const Text('Got it'),
+            child: const Text('Code hint'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final prov = Provider.of<DesignSystemProvider>(dialogContext, listen: false);
+              final ds = prov.designSystem;
+              final ic = ds.icons;
+              final label = labelCtrl.text.trim().isEmpty ? _getIconName(icon) : labelCtrl.text.trim();
+              final entry = models.ProjectIconEntry(
+                id: 'pi_${DateTime.now().microsecondsSinceEpoch}',
+                label: label,
+                codePoint: icon.codePoint,
+              );
+              Navigator.pop(dialogContext);
+              prov.updateDesignSystem(models.DesignSystem(
+                name: ds.name,
+                version: ds.version,
+                description: ds.description,
+                created: ds.created,
+                colors: ds.colors,
+                typography: ds.typography,
+                spacing: ds.spacing,
+                borderRadius: ds.borderRadius,
+                shadows: ds.shadows,
+                effects: ds.effects,
+                components: ds.components,
+                grid: ds.grid,
+                icons: models.Icons(sizes: ic.sizes, projectIcons: [...ic.projectIcons, entry]),
+                gradients: ds.gradients,
+                roles: ds.roles,
+                semanticTokens: ds.semanticTokens,
+                motionTokens: ds.motionTokens,
+                lastModified: ds.lastModified,
+                versionHistory: ds.versionHistory,
+                componentVersions: ds.componentVersions,
+              ));
+              ScaffoldMessenger.of(tabContext).showSnackBar(
+                SnackBar(content: Text('“$label” added — see Icons & Preview')),
+              );
+            },
+            child: const Text('Add to project'),
           ),
         ],
       ),
@@ -1199,10 +977,91 @@ class MaterialComponentsTab extends StatelessWidget {
   }
 
   void _addComponentToDesignSystem(BuildContext context, String componentName) {
+    final provider = Provider.of<DesignSystemProvider>(context, listen: false);
+    final comp = provider.designSystem.components;
+    Map<String, dynamic>? toAdd;
+    switch (componentName) {
+      case 'Buttons':
+        toAdd = DesignLibraryComponents.materialButtons;
+        break;
+      case 'Cards':
+        toAdd = DesignLibraryComponents.materialCards;
+        break;
+      case 'Inputs':
+        toAdd = DesignLibraryComponents.materialInputs;
+        break;
+      default:
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$componentName — add from Components screen'), backgroundColor: Colors.blue),
+        );
+        return;
+    }
+
+    final updatedButtons = Map<String, dynamic>.from(comp.buttons);
+    final updatedCards = Map<String, dynamic>.from(comp.cards);
+    final updatedInputs = Map<String, dynamic>.from(comp.inputs);
+    var added = 0;
+    if (componentName == 'Buttons') {
+      for (final e in toAdd.entries) {
+        if (!updatedButtons.containsKey(e.key)) {
+          updatedButtons[e.key] = Map<String, dynamic>.from(e.value);
+          added++;
+        }
+      }
+    } else if (componentName == 'Cards') {
+      for (final e in toAdd.entries) {
+        if (!updatedCards.containsKey(e.key)) {
+          updatedCards[e.key] = Map<String, dynamic>.from(e.value);
+          added++;
+        }
+      }
+    } else if (componentName == 'Inputs') {
+      for (final e in toAdd.entries) {
+        if (!updatedInputs.containsKey(e.key)) {
+          updatedInputs[e.key] = Map<String, dynamic>.from(e.value);
+          added++;
+        }
+      }
+    }
+
+    final ds = provider.designSystem;
+    provider.updateDesignSystem(models.DesignSystem(
+      name: ds.name,
+      version: ds.version,
+      description: ds.description,
+      created: ds.created,
+      colors: ds.colors,
+      typography: ds.typography,
+      spacing: ds.spacing,
+      borderRadius: ds.borderRadius,
+      shadows: ds.shadows,
+      effects: ds.effects,
+      components: models.Components(
+        buttons: updatedButtons,
+        cards: updatedCards,
+        inputs: updatedInputs,
+        navigation: comp.navigation,
+        avatars: comp.avatars,
+        modals: comp.modals,
+        tables: comp.tables,
+        progress: comp.progress,
+        alerts: comp.alerts,
+      ),
+      grid: ds.grid,
+      icons: ds.icons,
+      gradients: ds.gradients,
+      roles: ds.roles,
+      semanticTokens: ds.semanticTokens,
+      motionTokens: ds.motionTokens,
+      lastModified: ds.lastModified,
+      versionHistory: ds.versionHistory,
+      componentVersions: ds.componentVersions,
+    ));
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('$componentName added to design system!'),
-        backgroundColor: Colors.green,
+        content: Text(added > 0 ? 'Added $added Material $componentName to your project — see Components & Preview' : 'Those $componentName are already in your project'),
+        backgroundColor: added > 0 ? Colors.green : Colors.blue,
       ),
     );
   }
@@ -1301,9 +1160,37 @@ class MaterialTypographyTab extends StatelessWidget {
   }
 
   void _addTypographyToDesignSystem(BuildContext context, MaterialTextStyle style) {
+    final provider = Provider.of<DesignSystemProvider>(context, listen: false);
+    final typo = provider.designSystem.typography;
+    final key = 'material_${style.name.toLowerCase().replaceAll(' ', '_')}';
+    if (typo.textStyles.containsKey(key)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('“${style.name}” is already in your project — see Typography'),
+          backgroundColor: Colors.blue,
+        ),
+      );
+      return;
+    }
+    final lineHeightStr = style.fontSize > 0
+        ? (style.lineHeight / style.fontSize).toStringAsPrecision(3)
+        : '1.25';
+    final updated = Map<String, models.TextStyle>.from(typo.textStyles)
+      ..[key] = models.TextStyle(
+        fontFamily: typo.fontFamily.primary,
+        fontSize: '${style.fontSize.toInt()}px',
+        fontWeight: style.fontWeight,
+        lineHeight: lineHeightStr,
+      );
+    provider.updateTypography(models.Typography(
+      fontFamily: typo.fontFamily,
+      fontWeights: typo.fontWeights,
+      fontSizes: typo.fontSizes,
+      textStyles: updated,
+    ));
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('${style.name} added to design system!'),
+        content: Text('“${style.name}” added — see Typography & Preview'),
         backgroundColor: Colors.green,
       ),
     );

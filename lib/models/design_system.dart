@@ -2,6 +2,103 @@
 
 // part 'design_system.g.dart';
 
+/// Supported platforms. One project can target a single platform or multiple (separate section per platform).
+const List<String> kTargetPlatforms = ['ios', 'android', 'web'];
+
+/// Per-platform token overrides. When present, they replace base tokens for that platform so iOS/Android/Web can differ completely.
+class PlatformOverride {
+  final Colors? colors;
+  final Typography? typography;
+  final Spacing? spacing;
+  final BorderRadius? borderRadius;
+  final Shadows? shadows;
+  final Effects? effects;
+  final Components? components;
+  final Grid? grid;
+  final Icons? icons;
+  final Gradients? gradients;
+  final Roles? roles;
+  final SemanticTokens? semanticTokens;
+  final MotionTokens? motionTokens;
+  final Map<String, String>? componentVersions;
+
+  const PlatformOverride({
+    this.colors,
+    this.typography,
+    this.spacing,
+    this.borderRadius,
+    this.shadows,
+    this.effects,
+    this.components,
+    this.grid,
+    this.icons,
+    this.gradients,
+    this.roles,
+    this.semanticTokens,
+    this.motionTokens,
+    this.componentVersions,
+  });
+
+  PlatformOverride copyWith({
+    Colors? colors,
+    Typography? typography,
+    Spacing? spacing,
+    BorderRadius? borderRadius,
+    Shadows? shadows,
+    Effects? effects,
+    Components? components,
+    Grid? grid,
+    Icons? icons,
+    Gradients? gradients,
+    Roles? roles,
+    SemanticTokens? semanticTokens,
+    MotionTokens? motionTokens,
+    Map<String, String>? componentVersions,
+  }) =>
+      PlatformOverride(
+        colors: colors ?? this.colors,
+        typography: typography ?? this.typography,
+        spacing: spacing ?? this.spacing,
+        borderRadius: borderRadius ?? this.borderRadius,
+        shadows: shadows ?? this.shadows,
+        effects: effects ?? this.effects,
+        components: components ?? this.components,
+        grid: grid ?? this.grid,
+        icons: icons ?? this.icons,
+        gradients: gradients ?? this.gradients,
+        roles: roles ?? this.roles,
+        semanticTokens: semanticTokens ?? this.semanticTokens,
+        motionTokens: motionTokens ?? this.motionTokens,
+        componentVersions: componentVersions ?? this.componentVersions,
+      );
+
+  /// Merge with base: override wins when non-null.
+  DesignSystem applyTo(DesignSystem base) => DesignSystem(
+        name: base.name,
+        version: base.version,
+        description: base.description,
+        created: base.created,
+        colors: colors ?? base.colors,
+        typography: typography ?? base.typography,
+        spacing: spacing ?? base.spacing,
+        borderRadius: borderRadius ?? base.borderRadius,
+        shadows: shadows ?? base.shadows,
+        effects: effects ?? base.effects,
+        components: components ?? base.components,
+        grid: grid ?? base.grid,
+        icons: icons ?? base.icons,
+        gradients: gradients ?? base.gradients,
+        roles: roles ?? base.roles,
+        semanticTokens: semanticTokens ?? base.semanticTokens,
+        motionTokens: motionTokens ?? base.motionTokens,
+        lastModified: base.lastModified,
+        versionHistory: base.versionHistory,
+        componentVersions: componentVersions ?? base.componentVersions,
+        targetPlatforms: base.targetPlatforms,
+        platformOverrides: base.platformOverrides,
+      );
+}
+
 // // @JsonSerializable()
 class DesignSystem {
   final String name;
@@ -25,6 +122,10 @@ class DesignSystem {
   final List<VersionHistory>? versionHistory;
   /// Component version per key (e.g. "buttons.primary" -> "2"). Enables Button v1, v2, v3.
   final Map<String, String>? componentVersions;
+  /// Which platform(s) this project targets: ['ios'], ['android'], ['web'], or ['ios','android','web'].
+  final List<String> targetPlatforms;
+  /// When multi-platform, per-platform token overrides. Key = 'ios'|'android'|'web'.
+  final Map<String, PlatformOverride>? platformOverrides;
 
   DesignSystem({
     required this.name,
@@ -47,7 +148,9 @@ class DesignSystem {
     this.lastModified,
     this.versionHistory,
     this.componentVersions,
-  });
+    List<String>? targetPlatforms,
+    this.platformOverrides,
+  }) : targetPlatforms = targetPlatforms ?? const ['web'];
 
   // factory DesignSystem.fromJson(Map<String, dynamic> json) =>
   //     _$DesignSystemFromJson(json);
@@ -81,6 +184,67 @@ class DesignSystem {
           ),
         ],
         componentVersions: {},
+        targetPlatforms: const ['web'],
+        platformOverrides: null,
+      );
+
+  /// Returns this design system merged with the given platform override (for editing one platform).
+  DesignSystem withPlatformOverride(String platformKey) {
+    final o = platformOverrides?[platformKey];
+    if (o == null) return this;
+    return o.applyTo(this);
+  }
+
+  /// True when the project has more than one target platform (show platform selector).
+  bool get isMultiPlatform => targetPlatforms.length > 1;
+
+  DesignSystem copyWith({
+    String? name,
+    String? version,
+    String? description,
+    String? created,
+    Colors? colors,
+    Typography? typography,
+    Spacing? spacing,
+    BorderRadius? borderRadius,
+    Shadows? shadows,
+    Effects? effects,
+    Components? components,
+    Grid? grid,
+    Icons? icons,
+    Gradients? gradients,
+    Roles? roles,
+    SemanticTokens? semanticTokens,
+    MotionTokens? motionTokens,
+    String? lastModified,
+    List<VersionHistory>? versionHistory,
+    Map<String, String>? componentVersions,
+    List<String>? targetPlatforms,
+    Map<String, PlatformOverride>? platformOverrides,
+  }) =>
+      DesignSystem(
+        name: name ?? this.name,
+        version: version ?? this.version,
+        description: description ?? this.description,
+        created: created ?? this.created,
+        colors: colors ?? this.colors,
+        typography: typography ?? this.typography,
+        spacing: spacing ?? this.spacing,
+        borderRadius: borderRadius ?? this.borderRadius,
+        shadows: shadows ?? this.shadows,
+        effects: effects ?? this.effects,
+        components: components ?? this.components,
+        grid: grid ?? this.grid,
+        icons: icons ?? this.icons,
+        gradients: gradients ?? this.gradients,
+        roles: roles ?? this.roles,
+        semanticTokens: semanticTokens ?? this.semanticTokens,
+        motionTokens: motionTokens ?? this.motionTokens,
+        lastModified: lastModified ?? this.lastModified,
+        versionHistory: versionHistory ?? this.versionHistory,
+        componentVersions: componentVersions ?? this.componentVersions,
+        targetPlatforms: targetPlatforms ?? this.targetPlatforms,
+        platformOverrides: platformOverrides ?? this.platformOverrides,
       );
 }
 
@@ -452,11 +616,41 @@ class Grid {
       );
 }
 
+/// Material icon used by the project (semantic label + code point for export/preview).
+class ProjectIconEntry {
+  final String id;
+  final String label;
+  final int codePoint;
+
+  ProjectIconEntry({
+    required this.id,
+    required this.label,
+    required this.codePoint,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'label': label,
+        'codePoint': codePoint,
+      };
+
+  factory ProjectIconEntry.fromJson(Map<String, dynamic> j) => ProjectIconEntry(
+        id: j['id'] as String? ?? '${j['codePoint']}',
+        label: (j['label'] as String?)?.trim().isNotEmpty == true ? j['label'] as String : 'Icon',
+        codePoint: (j['codePoint'] as num).toInt(),
+      );
+}
+
 // @JsonSerializable()
 class Icons {
   final Map<String, String> sizes;
+  /// Icons the product uses (navigation, actions, etc.) — shown in Icons screen + Preview.
+  final List<ProjectIconEntry> projectIcons;
 
-  Icons({required this.sizes});
+  Icons({
+    required this.sizes,
+    List<ProjectIconEntry>? projectIcons,
+  }) : projectIcons = projectIcons ?? const [];
 
   // factory Icons.fromJson(Map<String, dynamic> json) => _$IconsFromJson(json);
 
@@ -471,6 +665,7 @@ class Icons {
           'xl': '32px',
           '2xl': '40px',
         },
+        projectIcons: const [],
       );
 }
 

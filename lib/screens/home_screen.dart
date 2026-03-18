@@ -18,6 +18,7 @@ import 'settings_screen.dart';
 import 'auth_screen.dart';
 import 'welcome_screen.dart';
 import 'pricing_screen.dart';
+import 'upgrade_screen.dart';
 import 'onboarding_checklist_screen.dart';
 import 'tutorials_screen.dart';
 import 'demo_gallery_screen.dart';
@@ -460,6 +461,85 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _confirmDeleteProject(
+    BuildContext context,
+    DesignSystemProvider provider,
+    ProjectInfo project,
+  ) async {
+    final name = project.name;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        icon: Icon(Icons.warning_amber_rounded, size: 40, color: Colors.orange.shade700),
+        title: const Text('Delete this project?'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'You are about to permanently delete:',
+                style: TextStyle(color: Colors.grey.shade700),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                name,
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'This cannot be undone. All design tokens and settings stored in this project file will be lost. '
+                'If you might need it later, use Save to computer or Export from the dashboard first.',
+                style: TextStyle(color: Colors.grey.shade800, height: 1.4),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Delete permanently'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    try {
+      final wasOpen = provider.currentProjectPath == project.filePath;
+      await provider.deleteProject(project.filePath);
+      if (wasOpen) {
+        provider.reset();
+      }
+      await _loadProjects();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Project "$name" was deleted'),
+          backgroundColor: Colors.grey.shade800,
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not delete project: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   // Muted, soft palettes so cards feel calm; pattern overlay tones them down further.
   static const List<List<Color>> _projectCardPalettes = [
     [Color(0xFF7C8DB5), Color(0xFF9BA8C9), Color(0xFFB8C1D4)],
@@ -565,12 +645,25 @@ class _HomeScreenState extends State<HomeScreen> {
                         onSelected: (value) {
                           if (value == 'open') {
                             _openProject(context, designSystemProvider, project);
+                          } else if (value == 'delete') {
+                            _confirmDeleteProject(context, designSystemProvider, project);
                           }
                         },
                         itemBuilder: (context) => [
                           const PopupMenuItem(
                             value: 'open',
                             child: Row(children: [Icon(Icons.open_in_new, size: 18), SizedBox(width: 8), Text('Open')]),
+                          ),
+                          const PopupMenuDivider(),
+                          const PopupMenuItem(
+                            value: 'delete',
+                            child: Row(
+                              children: [
+                                Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                                SizedBox(width: 8),
+                                Text('Delete…', style: TextStyle(color: Colors.red)),
+                              ],
+                            ),
                           ),
                         ],
                       ),
@@ -1040,7 +1133,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 12),
                 ElevatedButton(
                   onPressed: () {
-                    userProvider.upgradeToPremium();
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const UpgradeScreen(selectedPlan: 'pro'),
+                      ),
+                    );
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,

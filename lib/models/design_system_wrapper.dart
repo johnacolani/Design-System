@@ -70,7 +70,10 @@ class DesignSystemWrapper {
         'margin': ds.grid.margin,
         'breakpoints': ds.grid.breakpoints,
       },
-      'icons': ds.icons.sizes,
+      'icons': {
+        'sizes': ds.icons.sizes,
+        'projectIcons': ds.icons.projectIcons.map((e) => e.toJson()).toList(),
+      },
       'gradients': ds.gradients.values.map((key, g) => MapEntry(key, {
         'type': g.type,
         'direction': g.direction,
@@ -96,7 +99,145 @@ class DesignSystemWrapper {
       if (ds.lastModified != null) 'lastModified': ds.lastModified,
       if (ds.versionHistory != null) 'versionHistory': ds.versionHistory!.map((v) => v.toJson()).toList(),
       if (ds.componentVersions != null && ds.componentVersions!.isNotEmpty) 'componentVersions': ds.componentVersions,
+      'targetPlatforms': ds.targetPlatforms,
+      if (ds.platformOverrides != null && ds.platformOverrides!.isNotEmpty)
+        'platformOverrides': ds.platformOverrides!.map((k, v) => MapEntry(k, _platformOverrideToJson(v))),
     };
+  }
+
+  static Map<String, dynamic> _platformOverrideToJson(PlatformOverride o) {
+    return {
+      if (o.colors != null) 'colors': _colorsToJson(o.colors!),
+      if (o.typography != null) 'typography': _typographyToJson(o.typography!),
+      if (o.spacing != null) 'spacing': {'scale': o.spacing!.scale, 'values': o.spacing!.values},
+      if (o.borderRadius != null) 'borderRadius': {'none': o.borderRadius!.none, 'sm': o.borderRadius!.sm, 'base': o.borderRadius!.base, 'md': o.borderRadius!.md, 'lg': o.borderRadius!.lg, 'xl': o.borderRadius!.xl, 'full': o.borderRadius!.full},
+      if (o.shadows != null) 'shadows': o.shadows!.values.map((key, s) => MapEntry(key, {'value': s.value, if (s.description != null) 'description': s.description})),
+      if (o.effects != null) 'effects': {
+        if (o.effects!.glassMorphism != null) 'glassMorphism': o.effects!.glassMorphism,
+        if (o.effects!.darkOverlay != null) 'darkOverlay': o.effects!.darkOverlay,
+      },
+      if (o.components != null) 'components': {
+        'buttons': o.components!.buttons,
+        'cards': o.components!.cards,
+        'inputs': o.components!.inputs,
+        'navigation': o.components!.navigation,
+        'avatars': o.components!.avatars,
+        if (o.components!.modals != null) 'modals': o.components!.modals,
+        if (o.components!.tables != null) 'tables': o.components!.tables,
+        if (o.components!.progress != null) 'progress': o.components!.progress,
+        if (o.components!.alerts != null) 'alerts': o.components!.alerts,
+      },
+      if (o.grid != null) 'grid': {'columns': o.grid!.columns, 'gutter': o.grid!.gutter, 'margin': o.grid!.margin, 'breakpoints': o.grid!.breakpoints},
+      if (o.icons != null) 'icons': {'sizes': o.icons!.sizes, 'projectIcons': o.icons!.projectIcons.map((e) => e.toJson()).toList()},
+      if (o.gradients != null) 'gradients': o.gradients!.values.map((key, g) => MapEntry(key, {'type': g.type, 'direction': g.direction, 'colors': g.colors, 'stops': g.stops})),
+      if (o.roles != null) 'roles': o.roles!.values.map((key, r) => MapEntry(key, {'primaryColor': r.primaryColor, 'accentColor': r.accentColor, 'background': r.background})),
+      if (o.semanticTokens != null) 'semanticTokens': {'color': o.semanticTokens!.color, 'typography': o.semanticTokens!.typography, 'spacing': o.semanticTokens!.spacing, 'shadow': o.semanticTokens!.shadow, 'borderRadius': o.semanticTokens!.borderRadius},
+      if (o.motionTokens != null) 'motionTokens': {'duration': o.motionTokens!.duration, 'easing': o.motionTokens!.easing},
+      if (o.componentVersions != null && o.componentVersions!.isNotEmpty) 'componentVersions': o.componentVersions,
+    };
+  }
+
+  static PlatformOverride _platformOverrideFromJson(Map<String, dynamic>? j) {
+    if (j == null || j.isEmpty) return const PlatformOverride();
+    return PlatformOverride(
+      colors: j.containsKey('colors') ? _colorsFromJson(Map<String, dynamic>.from(j['colors'] as Map)) : null,
+      typography: j.containsKey('typography') ? _typographyFromJson(Map<String, dynamic>.from(j['typography'] as Map)) : null,
+      spacing: j.containsKey('spacing') ? Spacing(scale: List<int>.from(j['spacing']['scale'] as List), values: Map<String, String>.from(j['spacing']['values'] as Map<String, dynamic>)) : null,
+      borderRadius: j.containsKey('borderRadius') ? BorderRadius(none: j['borderRadius']['none'] as String, sm: j['borderRadius']['sm'] as String, base: j['borderRadius']['base'] as String, md: j['borderRadius']['md'] as String, lg: j['borderRadius']['lg'] as String, xl: j['borderRadius']['xl'] as String, full: j['borderRadius']['full'] as String) : null,
+      shadows: j.containsKey('shadows') ? Shadows(values: (j['shadows'] as Map<String, dynamic>).map((key, s) => MapEntry(key, ShadowValue(value: s['value'] as String, description: s['description'] as String?)))) : null,
+      effects: j.containsKey('effects') ? Effects(glassMorphism: j['effects']['glassMorphism'] as Map<String, dynamic>?, darkOverlay: j['effects']['darkOverlay'] as Map<String, dynamic>?) : null,
+      components: j.containsKey('components')
+          ? Components(
+              buttons: Map<String, dynamic>.from(j['components']['buttons'] as Map),
+              cards: Map<String, dynamic>.from(j['components']['cards'] as Map),
+              inputs: Map<String, dynamic>.from(j['components']['inputs'] as Map),
+              navigation: Map<String, dynamic>.from(j['components']['navigation'] as Map),
+              avatars: Map<String, dynamic>.from(j['components']['avatars'] as Map),
+              modals: j['components']['modals'] != null ? Map<String, dynamic>.from(j['components']['modals'] as Map) : null,
+              tables: j['components']['tables'] != null ? Map<String, dynamic>.from(j['components']['tables'] as Map) : null,
+              progress: j['components']['progress'] != null ? Map<String, dynamic>.from(j['components']['progress'] as Map) : null,
+              alerts: j['components']['alerts'] != null ? Map<String, dynamic>.from(j['components']['alerts'] as Map) : null,
+            )
+          : null,
+      grid: j.containsKey('grid')
+          ? Grid(
+              columns: j['grid']['columns'] as int,
+              gutter: j['grid']['gutter'] as String,
+              margin: j['grid']['margin'] as String,
+              breakpoints: Map<String, String>.from(j['grid']['breakpoints'] as Map<String, dynamic>),
+            )
+          : null,
+      icons: j.containsKey('icons') ? _iconsFromJson(j['icons']) : null,
+      gradients: j.containsKey('gradients')
+          ? Gradients(
+              values: (j['gradients'] as Map<String, dynamic>).map((key, g) => MapEntry(
+                key,
+                GradientValue(
+                  type: g['type'] as String,
+                  direction: g['direction'] as String,
+                  colors: List<String>.from(g['colors'] as List),
+                  stops: List<int>.from(g['stops'] as List),
+                ),
+              )),
+            )
+          : null,
+      roles: j.containsKey('roles')
+          ? Roles(
+              values: (j['roles'] as Map<String, dynamic>).map((key, r) => MapEntry(
+                key,
+                RoleValue(
+                  primaryColor: r['primaryColor'] as String,
+                  accentColor: r['accentColor'] as String,
+                  background: r['background'] as String,
+                ),
+              )),
+            )
+          : null,
+      semanticTokens: j.containsKey('semanticTokens')
+          ? SemanticTokens(
+              color: Map<String, dynamic>.from(j['semanticTokens']['color'] as Map? ?? {}),
+              typography: Map<String, dynamic>.from(j['semanticTokens']['typography'] as Map? ?? {}),
+              spacing: Map<String, dynamic>.from(j['semanticTokens']['spacing'] as Map? ?? {}),
+              shadow: Map<String, dynamic>.from(j['semanticTokens']['shadow'] as Map? ?? {}),
+              borderRadius: Map<String, dynamic>.from(j['semanticTokens']['borderRadius'] as Map? ?? {}),
+            )
+          : null,
+      motionTokens: j.containsKey('motionTokens')
+          ? MotionTokens(
+              duration: Map<String, String>.from(j['motionTokens']['duration'] as Map? ?? {}),
+              easing: Map<String, String>.from(j['motionTokens']['easing'] as Map? ?? {}),
+            )
+          : null,
+      componentVersions: j['componentVersions'] != null ? Map<String, String>.from(j['componentVersions'] as Map<String, dynamic>) : null,
+    );
+  }
+
+  static Map<String, PlatformOverride>? _platformOverridesFromJson(dynamic raw) {
+    if (raw == null || raw is! Map) return null;
+    final map = <String, PlatformOverride>{};
+    for (final e in raw.entries) {
+      if (e.value is Map) map[e.key as String] = _platformOverrideFromJson(Map<String, dynamic>.from(e.value as Map));
+    }
+    return map.isEmpty ? null : map;
+  }
+
+  /// New format: `{ sizes, projectIcons }`. Legacy: flat map of size tokens only.
+  static Icons _iconsFromJson(dynamic raw) {
+    if (raw == null) return Icons.empty();
+    if (raw is! Map) return Icons.empty();
+    final m = Map<String, dynamic>.from(raw);
+    if (m.containsKey('sizes')) {
+      return Icons(
+        sizes: Map<String, String>.from(m['sizes'] as Map),
+        projectIcons: (m['projectIcons'] as List<dynamic>? ?? [])
+            .map((e) => ProjectIconEntry.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList(),
+      );
+    }
+    return Icons(
+      sizes: Map<String, String>.from(m),
+      projectIcons: const [],
+    );
   }
 
   static DesignSystem _designSystemFromJson(Map<String, dynamic> json) {
@@ -150,7 +291,7 @@ class DesignSystemWrapper {
         margin: json['grid']['margin'] as String,
         breakpoints: Map<String, String>.from(json['grid']['breakpoints'] as Map<String, dynamic>),
       ),
-      icons: Icons(sizes: Map<String, String>.from(json['icons'] as Map<String, dynamic>)),
+      icons: _iconsFromJson(json['icons']),
       gradients: Gradients(
         values: (json['gradients'] as Map<String, dynamic>).map((key, g) => MapEntry(
           key,
@@ -199,6 +340,10 @@ class DesignSystemWrapper {
       componentVersions: json['componentVersions'] != null
           ? Map<String, String>.from(json['componentVersions'] as Map<String, dynamic>)
           : null,
+      targetPlatforms: json['targetPlatforms'] != null
+          ? List<String>.from(json['targetPlatforms'] as List)
+          : const ['web'],
+      platformOverrides: _platformOverridesFromJson(json['platformOverrides']),
     );
   }
 

@@ -18,11 +18,73 @@ class ColorsScreen extends StatefulWidget {
 class _ColorsScreenState extends State<ColorsScreen> {
   String _selectedCategory = 'primary';
   Color? _editDialogSelectedColor;
+  /// When multi-platform, which platform section is shown (iOS / Android / Web).
+  String? _platformForSection;
+
+  void _applyColorsUpdate(models.Colors newColors) {
+    final p = Provider.of<DesignSystemProvider>(context, listen: false);
+    if (_platformForSection != null) {
+      p.updateColorsForPlatform(_platformForSection!, newColors);
+    } else {
+      p.updateColors(newColors);
+    }
+  }
+
+  models.Colors _getEffectiveColors() {
+    final p = Provider.of<DesignSystemProvider>(context, listen: false);
+    if (_platformForSection != null) return p.designSystemForPlatform(_platformForSection!).colors;
+    return p.designSystem.colors;
+  }
+
+  Widget _buildPlatformSelector(DesignSystemProvider provider) {
+    final platforms = provider.targetPlatforms;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        border: Border(bottom: BorderSide(color: Theme.of(context).dividerColor)),
+      ),
+      child: Row(
+        children: [
+          Text('Platform:', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: platforms.map((platform) {
+                  final isSelected = _platformForSection == platform;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: FilterChip(
+                      label: Text(platform),
+                      selected: isSelected,
+                      onSelected: (selected) {
+                        if (selected) setState(() => _platformForSection = platform);
+                      },
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<DesignSystemProvider>(context);
-    final colors = provider.designSystem.colors;
+    final isMulti = provider.isMultiPlatform;
+    if (isMulti && _platformForSection == null) {
+      _platformForSection = provider.targetPlatforms.first;
+    }
+    final effectiveColors = isMulti && _platformForSection != null
+        ? provider.designSystemForPlatform(_platformForSection!).colors
+        : provider.designSystem.colors;
+    final colors = effectiveColors;
 
     final categories = [
       {'key': 'primary', 'name': 'Primary Colors', 'color': Colors.deepPurple},
@@ -140,6 +202,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
         verticalPadding: 0,
         child: Column(
           children: [
+            if (isMulti) _buildPlatformSelector(provider),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               color: accentColor.withOpacity(0.1),
@@ -1120,8 +1183,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
   ) {
     if (!context.mounted) return;
     
-    final provider = Provider.of<DesignSystemProvider>(context, listen: false);
-    final colors = provider.designSystem.colors;
+    final colors = _getEffectiveColors();
     final colorHex = _colorToHex(color);
 
     // Build color data map with all scales
@@ -1161,7 +1223,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
           }
         });
         
-        provider.updateColors(models.Colors(
+        _applyColorsUpdate(models.Colors(
           primary: updatedCategory,
           semantic: colors.semantic,
           blue: colors.blue,
@@ -1203,7 +1265,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
           }
         });
         
-        provider.updateColors(models.Colors(
+        _applyColorsUpdate(models.Colors(
           primary: colors.primary,
           semantic: updatedCategory,
           blue: colors.blue,
@@ -1243,8 +1305,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
     String description,
   ) {
     if (!context.mounted) return;
-    final provider = Provider.of<DesignSystemProvider>(context, listen: false);
-    final colors = provider.designSystem.colors;
+    final colors = _getEffectiveColors();
     final colorHex = _colorToHex(color);
 
     final colorData = {
@@ -1258,7 +1319,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
       case 'primary':
         updatedCategory = Map<String, dynamic>.from(colors.primary);
         updatedCategory[name] = colorData;
-        provider.updateColors(models.Colors(
+        _applyColorsUpdate(models.Colors(
           primary: updatedCategory,
           semantic: colors.semantic,
           blue: colors.blue,
@@ -1276,7 +1337,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
       case 'semantic':
         updatedCategory = Map<String, dynamic>.from(colors.semantic);
         updatedCategory[name] = colorData;
-        provider.updateColors(models.Colors(
+        _applyColorsUpdate(models.Colors(
           primary: colors.primary,
           semantic: updatedCategory,
           blue: colors.blue,
@@ -1298,7 +1359,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
         if (category == 'blue') {
           final tempMap = Map<String, dynamic>.from(colors.blue ?? {});
           tempMap[name] = colorData;
-          provider.updateColors(models.Colors(
+          _applyColorsUpdate(models.Colors(
             primary: colors.primary,
             semantic: colors.semantic,
             blue: tempMap,
@@ -1315,7 +1376,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
         } else if (category == 'green') {
           final tempMap = Map<String, dynamic>.from(colors.green ?? {});
           tempMap[name] = colorData;
-          provider.updateColors(models.Colors(
+          _applyColorsUpdate(models.Colors(
             primary: colors.primary,
             semantic: colors.semantic,
             blue: colors.blue,
@@ -1332,7 +1393,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
         } else if (category == 'orange') {
           final tempMap = Map<String, dynamic>.from(colors.orange ?? {});
           tempMap[name] = colorData;
-          provider.updateColors(models.Colors(
+          _applyColorsUpdate(models.Colors(
             primary: colors.primary,
             semantic: colors.semantic,
             blue: colors.blue,
@@ -1349,7 +1410,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
         } else if (category == 'purple') {
           final tempMap = Map<String, dynamic>.from(colors.purple ?? {});
           tempMap[name] = colorData;
-          provider.updateColors(models.Colors(
+          _applyColorsUpdate(models.Colors(
             primary: colors.primary,
             semantic: colors.semantic,
             blue: colors.blue,
@@ -1366,7 +1427,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
         } else if (category == 'red') {
           final tempMap = Map<String, dynamic>.from(colors.red ?? {});
           tempMap[name] = colorData;
-          provider.updateColors(models.Colors(
+          _applyColorsUpdate(models.Colors(
             primary: colors.primary,
             semantic: colors.semantic,
             blue: colors.blue,
@@ -1383,7 +1444,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
         } else if (category == 'grey') {
           final tempMap = Map<String, dynamic>.from(colors.grey ?? {});
           tempMap[name] = colorData;
-          provider.updateColors(models.Colors(
+          _applyColorsUpdate(models.Colors(
             primary: colors.primary,
             semantic: colors.semantic,
             blue: colors.blue,
@@ -1420,8 +1481,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
     String description,
   ) {
     if (!context.mounted) return;
-    final provider = Provider.of<DesignSystemProvider>(context, listen: false);
-    final colors = provider.designSystem.colors;
+    final colors = _getEffectiveColors();
     final colorHex = _colorToHex(color);
 
     final colorData = {
@@ -1438,7 +1498,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
           updatedCategory.remove(oldName);
         }
         updatedCategory[newName] = colorData;
-        provider.updateColors(models.Colors(
+        _applyColorsUpdate(models.Colors(
           primary: updatedCategory,
           semantic: colors.semantic,
           blue: colors.blue,
@@ -1459,7 +1519,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
           updatedCategory.remove(oldName);
         }
         updatedCategory[newName] = colorData;
-        provider.updateColors(models.Colors(
+        _applyColorsUpdate(models.Colors(
           primary: colors.primary,
           semantic: updatedCategory,
           blue: colors.blue,
@@ -1483,7 +1543,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
             tempMap.remove(oldName);
           }
           tempMap[newName] = colorData;
-          provider.updateColors(models.Colors(
+          _applyColorsUpdate(models.Colors(
             primary: colors.primary,
             semantic: colors.semantic,
             blue: tempMap,
@@ -1503,7 +1563,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
             tempMap.remove(oldName);
           }
           tempMap[newName] = colorData;
-          provider.updateColors(models.Colors(
+          _applyColorsUpdate(models.Colors(
             primary: colors.primary,
             semantic: colors.semantic,
             blue: colors.blue,
@@ -1523,7 +1583,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
             tempMap.remove(oldName);
           }
           tempMap[newName] = colorData;
-          provider.updateColors(models.Colors(
+          _applyColorsUpdate(models.Colors(
             primary: colors.primary,
             semantic: colors.semantic,
             blue: colors.blue,
@@ -1543,7 +1603,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
             tempMap.remove(oldName);
           }
           tempMap[newName] = colorData;
-          provider.updateColors(models.Colors(
+          _applyColorsUpdate(models.Colors(
             primary: colors.primary,
             semantic: colors.semantic,
             blue: colors.blue,
@@ -1563,7 +1623,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
             tempMap.remove(oldName);
           }
           tempMap[newName] = colorData;
-          provider.updateColors(models.Colors(
+          _applyColorsUpdate(models.Colors(
             primary: colors.primary,
             semantic: colors.semantic,
             blue: colors.blue,
@@ -1583,7 +1643,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
             tempMap.remove(oldName);
           }
           tempMap[newName] = colorData;
-          provider.updateColors(models.Colors(
+          _applyColorsUpdate(models.Colors(
             primary: colors.primary,
             semantic: colors.semantic,
             blue: colors.blue,
@@ -1628,15 +1688,14 @@ class _ColorsScreenState extends State<ColorsScreen> {
               if (!context.mounted) return;
               Navigator.of(dialogContext).pop();
               
-              final provider = Provider.of<DesignSystemProvider>(context, listen: false);
-              final colors = provider.designSystem.colors;
+              final colors = _getEffectiveColors();
 
               Map<String, dynamic> updatedCategory;
               switch (category) {
                 case 'primary':
                   updatedCategory = Map<String, dynamic>.from(colors.primary);
                   updatedCategory.remove(name);
-                  provider.updateColors(models.Colors(
+                  _applyColorsUpdate(models.Colors(
                     primary: updatedCategory,
                     semantic: colors.semantic,
                     blue: colors.blue,
@@ -1654,7 +1713,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
                 case 'semantic':
                   updatedCategory = Map<String, dynamic>.from(colors.semantic);
                   updatedCategory.remove(name);
-                  provider.updateColors(models.Colors(
+                  _applyColorsUpdate(models.Colors(
                     primary: colors.primary,
                     semantic: updatedCategory,
                     blue: colors.blue,
@@ -1675,7 +1734,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
                   if (category == 'blue') {
                     final tempMap = Map<String, dynamic>.from(colors.blue ?? {});
                     tempMap.remove(name);
-                    provider.updateColors(models.Colors(
+                    _applyColorsUpdate(models.Colors(
                       primary: colors.primary,
                       semantic: colors.semantic,
                       blue: tempMap,
@@ -1692,7 +1751,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
                   } else if (category == 'green') {
                     final tempMap = Map<String, dynamic>.from(colors.green ?? {});
                     tempMap.remove(name);
-                    provider.updateColors(models.Colors(
+                    _applyColorsUpdate(models.Colors(
                       primary: colors.primary,
                       semantic: colors.semantic,
                       blue: colors.blue,
@@ -1709,7 +1768,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
                   } else if (category == 'orange') {
                     final tempMap = Map<String, dynamic>.from(colors.orange ?? {});
                     tempMap.remove(name);
-                    provider.updateColors(models.Colors(
+                    _applyColorsUpdate(models.Colors(
                       primary: colors.primary,
                       semantic: colors.semantic,
                       blue: colors.blue,
@@ -1726,7 +1785,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
                   } else if (category == 'purple') {
                     final tempMap = Map<String, dynamic>.from(colors.purple ?? {});
                     tempMap.remove(name);
-                    provider.updateColors(models.Colors(
+                    _applyColorsUpdate(models.Colors(
                       primary: colors.primary,
                       semantic: colors.semantic,
                       blue: colors.blue,
@@ -1743,7 +1802,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
                   } else if (category == 'red') {
                     final tempMap = Map<String, dynamic>.from(colors.red ?? {});
                     tempMap.remove(name);
-                    provider.updateColors(models.Colors(
+                    _applyColorsUpdate(models.Colors(
                       primary: colors.primary,
                       semantic: colors.semantic,
                       blue: colors.blue,
@@ -1760,7 +1819,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
                   } else if (category == 'grey') {
                     final tempMap = Map<String, dynamic>.from(colors.grey ?? {});
                     tempMap.remove(name);
-                    provider.updateColors(models.Colors(
+                    _applyColorsUpdate(models.Colors(
                       primary: colors.primary,
                       semantic: colors.semantic,
                       blue: colors.blue,

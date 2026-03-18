@@ -124,22 +124,25 @@ Open **Settings** (from the home screen gear icon or from Profile → gear) to m
 
 ## Tutorials
 
-- The **Tutorials** screen lists guides (e.g. “Design tokens in 5 minutes”, “Building your first component”, “Export to Flutter and React”).  
-- **Coming soon:** Tapping a tutorial will open a real link or in-app content; currently it shows a placeholder message.
+- The **Tutorials** screen lists guides (e.g. design tokens, components, export).  
+- **Tap a row** to open the linked guide in your **browser** (Material Design, Flutter docs, React learn, etc.).  
+- To use **your own** URLs (docs site, YouTube, Notion), edit the tutorial list in `lib/screens/tutorials_screen.dart` (`resourceUrl` and `linkLabel` for each entry).
 
 ---
 
 ## Demo Gallery
 
-- **Demo projects** (e.g. Mobile UI kit, Admin dashboard, Landing page) are shown on the Demo Gallery screen.  
-- **Coming soon:** Tapping a demo will load that design system into your project or open a read-only preview; currently it shows a placeholder message.
+- **Demo projects** (Mobile UI Kit, Admin Dashboard, Landing Page) are full **preset design systems** (colors, type, components, spacing, etc.).  
+- **Tap a card → Load demo** to open the dashboard with that preset. **Save** (Save to computer / your project flow) if you want to keep it—demos are not auto-saved as named projects until you save.
 
 ---
 
-## Figma Token Sync
+## Figma token sync
 
-- On the Export screen, **Figma Token Sync** is advertised as a future feature (import/export tokens, sync with Figma).  
-- **Coming soon:** Full Figma plugin and sync flow.
+- On **Export**, choose **Figma** to generate **Tokens Studio–compatible JSON** (colors, spacing, radius, typography, shadows, motion, gradients as notes).
+- **Copy** or **Save** the file, then in Figma use **Tokens Studio** (or similar) to **import** the JSON and map to variables/styles.
+- **Copy W3C DTCG JSON** (in the help card) for tools that expect `$value` / `$type` format.
+- Ongoing sync (two-way with Figma’s API) is not included; re-export from this app when tokens change.
 
 ---
 
@@ -163,9 +166,8 @@ These sections need more work. You may see “coming soon” messages or placeho
 1. **Settings:** Email change, password change, notifications, theme, language, privacy policy, terms, help center, feedback, delete account.
 2. **Export (web):** Save exported code file and download package (zip) in the browser.
 3. **Billing:** Real Stripe (or other) payment and subscription management.
-4. **Tutorials:** Real tutorial links or in-app content.
-5. **Demo Gallery:** Loading demo design systems when you tap a demo.
-6. **Figma Token Sync:** Figma plugin and token sync.
+4. **Tutorials:** Optional in-app markdown lessons (external links are wired; edit URLs in code for your own docs).
+5. **Figma:** Optional two-way API sync; export/import JSON is available today.
 
 When a feature is ready, the in-app message will be removed or updated and this list will be revised.
 

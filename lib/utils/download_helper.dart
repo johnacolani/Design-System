@@ -6,3 +6,8 @@ import 'download_helper_stub.dart'
 void downloadFile(String content, String filename) {
   impl.downloadFile(content, filename);
 }
+
+/// Binary file download (web only). Stub throws on IO platforms.
+void downloadBytes(List<int> bytes, String filename) {
+  impl.downloadBytes(bytes, filename);
+}

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/design_system_provider.dart';
 import '../models/design_system.dart' as models;
 import '../utils/screen_body_padding.dart';
+import '../widgets/project_icon_picker_page.dart';
 
 class IconsScreen extends StatefulWidget {
   const IconsScreen({super.key});
@@ -12,10 +13,89 @@ class IconsScreen extends StatefulWidget {
 }
 
 class _IconsScreenState extends State<IconsScreen> {
+  String? _platformForSection;
+
+  void _applyIconsUpdate(models.Icons icons) {
+    final p = Provider.of<DesignSystemProvider>(context, listen: false);
+    if (_platformForSection != null) {
+      p.updateIconsForPlatform(_platformForSection!, icons);
+    } else {
+      final d = p.designSystem;
+      p.updateDesignSystem(models.DesignSystem(
+        name: d.name,
+        version: d.version,
+        description: d.description,
+        created: d.created,
+        colors: d.colors,
+        typography: d.typography,
+        spacing: d.spacing,
+        borderRadius: d.borderRadius,
+        shadows: d.shadows,
+        effects: d.effects,
+        components: d.components,
+        grid: d.grid,
+        icons: icons,
+        gradients: d.gradients,
+        roles: d.roles,
+        semanticTokens: d.semanticTokens,
+        motionTokens: d.motionTokens,
+        lastModified: d.lastModified,
+        versionHistory: d.versionHistory,
+        componentVersions: d.componentVersions,
+        targetPlatforms: d.targetPlatforms,
+        platformOverrides: d.platformOverrides,
+      ));
+    }
+  }
+
+  models.Icons _getEffectiveIcons() {
+    final p = Provider.of<DesignSystemProvider>(context, listen: false);
+    if (_platformForSection != null) return p.designSystemForPlatform(_platformForSection!).icons;
+    return p.designSystem.icons;
+  }
+
+  Widget _buildPlatformSelector(DesignSystemProvider provider) {
+    final platforms = provider.targetPlatforms;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        border: Border(bottom: BorderSide(color: Theme.of(context).dividerColor)),
+      ),
+      child: Row(
+        children: [
+          Text('Platform:', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: platforms.map((platform) {
+                  final isSelected = _platformForSection == platform;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: FilterChip(
+                      label: Text(platform),
+                      selected: isSelected,
+                      onSelected: (selected) { if (selected) setState(() => _platformForSection = platform); },
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<DesignSystemProvider>(context);
-    final icons = provider.designSystem.icons;
+    final isMulti = provider.isMultiPlatform;
+    if (isMulti && _platformForSection == null) _platformForSection = provider.targetPlatforms.first;
+    final icons = isMulti && _platformForSection != null ? _getEffectiveIcons() : provider.designSystem.icons;
 
     return Scaffold(
       appBar: AppBar(
@@ -34,6 +114,79 @@ class _IconsScreenState extends State<IconsScreen> {
         child: ListView(
           padding: const EdgeInsets.symmetric(vertical: 16),
           children: [
+          if (isMulti) _buildPlatformSelector(provider),
+          Text(
+            'Project icons',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Icons your product uses (nav, actions, empty states). They appear in Design System Preview and exports.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Colors.grey[600],
+                ),
+          ),
+          const SizedBox(height: 16),
+          if (icons.projectIcons.isEmpty)
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    Icon(Icons.widgets_outlined, size: 48, color: Colors.grey[400]),
+                    const SizedBox(height: 12),
+                    Text(
+                      'No project icons yet',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Add icons to document what your team should use in the UI.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                    ),
+                    const SizedBox(height: 16),
+                    FilledButton.icon(
+                      onPressed: () => _addProjectIcon(context),
+                      icon: const Icon(Icons.add),
+                      label: const Text('Add project icon'),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else ...[
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: icons.projectIcons.map((e) {
+                final iconData = IconData(e.codePoint, fontFamily: 'MaterialIcons');
+                final md = _parseSizePx(icons.sizes['md'] ?? '24px');
+                return Chip(
+                  avatar: Icon(iconData, size: md * 0.85),
+                  label: SizedBox(
+                    width: 120,
+                    child: Text(
+                      e.label,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 13),
+                    ),
+                  ),
+                  deleteIcon: const Icon(Icons.close, size: 18),
+                  onDeleted: () => _removeProjectIcon(context, e.id),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () => _addProjectIcon(context),
+              icon: const Icon(Icons.add),
+              label: const Text('Add project icon'),
+            ),
+          ],
+          const SizedBox(height: 32),
           Text(
             'Icon Sizes',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
@@ -161,6 +314,86 @@ class _IconsScreenState extends State<IconsScreen> {
     }
   }
 
+  double _parseSizePx(String size) => _parseSize(size);
+
+  String _materialIconName(IconData icon) {
+    final m = RegExp(r"'([^']+)'").firstMatch(icon.toString());
+    return m?.group(1) ?? 'icon';
+  }
+
+  Future<void> _addProjectIcon(BuildContext context) async {
+    final icon = await Navigator.of(context).push<IconData>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (ctx) => const ProjectIconPickerPage(),
+      ),
+    );
+    if (!context.mounted || icon == null) return;
+
+    final defaultLabel = _materialIconName(icon);
+    final labelCtrl = TextEditingController(text: defaultLabel);
+
+    final label = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Label for this icon'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 48),
+            const SizedBox(height: 16),
+            TextField(
+              controller: labelCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Usage name',
+                hintText: 'e.g. Tab — Home, Toolbar — Search',
+                border: OutlineInputBorder(),
+              ),
+              autofocus: true,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, labelCtrl.text.trim().isEmpty ? defaultLabel : labelCtrl.text.trim()),
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+
+    if (!context.mounted || label == null) return;
+
+    final provider = Provider.of<DesignSystemProvider>(context, listen: false);
+    final i = provider.designSystem.icons;
+    final entry = models.ProjectIconEntry(
+      id: 'pi_${DateTime.now().microsecondsSinceEpoch}',
+      label: label,
+      codePoint: icon.codePoint,
+    );
+    _applyIcons(context, models.Icons(
+      sizes: i.sizes,
+      projectIcons: [...i.projectIcons, entry],
+    ));
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Added “$label” — see Preview')),
+    );
+  }
+
+  void _removeProjectIcon(BuildContext context, String id) {
+    final i = _getEffectiveIcons();
+    _applyIcons(context, models.Icons(
+      sizes: i.sizes,
+      projectIcons: i.projectIcons.where((e) => e.id != id).toList(),
+    ));
+  }
+
+  void _applyIcons(BuildContext context, models.Icons icons) {
+    _applyIconsUpdate(icons);
+  }
+
   void _showAddIconSizeDialog(BuildContext context) {
     final nameController = TextEditingController();
     final sizeController = TextEditingController();
@@ -197,33 +430,10 @@ class _IconsScreenState extends State<IconsScreen> {
           ElevatedButton(
             onPressed: () {
               if (nameController.text.isNotEmpty && sizeController.text.isNotEmpty) {
-                final provider = Provider.of<DesignSystemProvider>(context, listen: false);
-                final icons = provider.designSystem.icons;
+                final icons = _getEffectiveIcons();
                 final updatedSizes = Map<String, String>.from(icons.sizes);
                 updatedSizes[nameController.text] = sizeController.text;
-
-                provider.updateDesignSystem(models.DesignSystem(
-                  name: provider.designSystem.name,
-                  version: provider.designSystem.version,
-                  description: provider.designSystem.description,
-                  created: provider.designSystem.created,
-                  colors: provider.designSystem.colors,
-                  typography: provider.designSystem.typography,
-                  spacing: provider.designSystem.spacing,
-                  borderRadius: provider.designSystem.borderRadius,
-                  shadows: provider.designSystem.shadows,
-                  effects: provider.designSystem.effects,
-                  components: provider.designSystem.components,
-                  grid: provider.designSystem.grid,
-                  icons: models.Icons(sizes: updatedSizes),
-                  gradients: provider.designSystem.gradients,
-                  roles: provider.designSystem.roles,
-                  semanticTokens: provider.designSystem.semanticTokens,
-                  motionTokens: provider.designSystem.motionTokens,
-                  lastModified: provider.designSystem.lastModified,
-                  versionHistory: provider.designSystem.versionHistory,
-                ));
-
+                _applyIconsUpdate(models.Icons(sizes: updatedSizes, projectIcons: icons.projectIcons));
                 Navigator.of(context).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -276,36 +486,11 @@ class _IconsScreenState extends State<IconsScreen> {
           ElevatedButton(
             onPressed: () {
               if (nameController.text.isNotEmpty && sizeController.text.isNotEmpty) {
-                final provider = Provider.of<DesignSystemProvider>(context, listen: false);
-                final icons = provider.designSystem.icons;
+                final icons = _getEffectiveIcons();
                 final updatedSizes = Map<String, String>.from(icons.sizes);
-                if (name != nameController.text) {
-                  updatedSizes.remove(name);
-                }
+                if (name != nameController.text) updatedSizes.remove(name);
                 updatedSizes[nameController.text] = sizeController.text;
-
-                provider.updateDesignSystem(models.DesignSystem(
-                  name: provider.designSystem.name,
-                  version: provider.designSystem.version,
-                  description: provider.designSystem.description,
-                  created: provider.designSystem.created,
-                  colors: provider.designSystem.colors,
-                  typography: provider.designSystem.typography,
-                  spacing: provider.designSystem.spacing,
-                  borderRadius: provider.designSystem.borderRadius,
-                  shadows: provider.designSystem.shadows,
-                  effects: provider.designSystem.effects,
-                  components: provider.designSystem.components,
-                  grid: provider.designSystem.grid,
-                  icons: models.Icons(sizes: updatedSizes),
-                  gradients: provider.designSystem.gradients,
-                  roles: provider.designSystem.roles,
-                  semanticTokens: provider.designSystem.semanticTokens,
-                  motionTokens: provider.designSystem.motionTokens,
-                  lastModified: provider.designSystem.lastModified,
-                  versionHistory: provider.designSystem.versionHistory,
-                ));
-
+                _applyIconsUpdate(models.Icons(sizes: updatedSizes, projectIcons: icons.projectIcons));
                 Navigator.of(context).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
@@ -335,33 +520,10 @@ class _IconsScreenState extends State<IconsScreen> {
           ),
           ElevatedButton(
             onPressed: () {
-              final provider = Provider.of<DesignSystemProvider>(context, listen: false);
-              final icons = provider.designSystem.icons;
+              final icons = _getEffectiveIcons();
               final updatedSizes = Map<String, String>.from(icons.sizes);
               updatedSizes.remove(name);
-
-              provider.updateDesignSystem(models.DesignSystem(
-                name: provider.designSystem.name,
-                version: provider.designSystem.version,
-                description: provider.designSystem.description,
-                created: provider.designSystem.created,
-                colors: provider.designSystem.colors,
-                typography: provider.designSystem.typography,
-                spacing: provider.designSystem.spacing,
-                borderRadius: provider.designSystem.borderRadius,
-                shadows: provider.designSystem.shadows,
-                effects: provider.designSystem.effects,
-                components: provider.designSystem.components,
-                grid: provider.designSystem.grid,
-                icons: models.Icons(sizes: updatedSizes),
-                gradients: provider.designSystem.gradients,
-                roles: provider.designSystem.roles,
-                semanticTokens: provider.designSystem.semanticTokens,
-                motionTokens: provider.designSystem.motionTokens,
-                lastModified: provider.designSystem.lastModified,
-                versionHistory: provider.designSystem.versionHistory,
-              ));
-
+              _applyIconsUpdate(models.Icons(sizes: updatedSizes, projectIcons: icons.projectIcons));
               Navigator.of(context).pop();
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(

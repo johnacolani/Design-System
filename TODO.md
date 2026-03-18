@@ -38,19 +38,20 @@ Mark items as done by changing `- [ ]` to `- [x]`.
 
 ## 4. Tutorials (`lib/screens/tutorials_screen.dart`)
 
-- [ ] **Tutorial links** – Replace "link placeholder" with real URLs (e.g. docs, YouTube) using `url_launcher`, or add in-app tutorial content (e.g. markdown from `DocsService`).
+- [x] **Tutorial links** – Open external URLs via `url_launcher`; defaults point to Material / Flutter / React docs. Customize `resourceUrl` in code or add in-app markdown later via `DocsService`.
 
 ---
 
 ## 5. Demo Gallery (`lib/screens/demo_gallery_screen.dart`)
 
-- [ ] **Load demo projects** – Define demo design system JSON (e.g. Mobile UI kit, Admin dashboard, Landing page); on card tap load into `DesignSystemProvider` and navigate to dashboard or read-only preview.
+- [x] **Load demo projects** – `lib/data/demo_design_systems.dart` presets; tap loads into `DesignSystemProvider` and opens dashboard. Optional: one-tap “Save as project” after load.
 
 ---
 
-## 6. Figma Token Sync (`lib/screens/export_screen.dart`)
+## 6. Figma Token Sync (`lib/screens/export_screen.dart`, `lib/services/figma_tokens_export.dart`)
 
-- [ ] **Figma integration** – Implement Figma plugin/sync (import/export tokens, sync flow) or remove/relabel the "Figma Token Sync (coming soon)" section until ready.
+- [x] **Export for Figma** – Tokens Studio JSON + W3C DTCG copy; in-app steps + Tokens Studio link.
+- [ ] **Optional:** Two-way sync via Figma REST API (PAT, file key, variables write) — larger scope.
 
 ---
 

@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:provider/provider.dart';
+import '../data/design_library_components.dart';
+import '../providers/design_system_provider.dart';
+import '../models/design_system.dart' as models;
 
 class CupertinoPickerScreen extends StatefulWidget {
   final bool isColorPickerMode;
@@ -1551,10 +1555,104 @@ class CupertinoComponentsTab extends StatelessWidget {
   }
 
   void _addComponentToDesignSystem(BuildContext context, String componentName) {
+    final provider = Provider.of<DesignSystemProvider>(context, listen: false);
+    final comp = provider.designSystem.components;
+
+    Map<String, dynamic>? toAdd;
+    switch (componentName) {
+      case 'Buttons':
+        toAdd = DesignLibraryComponents.cupertinoButtons;
+        break;
+      case 'Navigation':
+        toAdd = DesignLibraryComponents.cupertinoNavigation;
+        break;
+      case 'Inputs':
+        toAdd = DesignLibraryComponents.cupertinoInputs;
+        break;
+      case 'Alerts & Actions':
+        toAdd = DesignLibraryComponents.cupertinoAlerts;
+        break;
+      default:
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$componentName — add from Components screen'), backgroundColor: Colors.blue),
+        );
+        return;
+    }
+
+    final updatedButtons = Map<String, dynamic>.from(comp.buttons);
+    final updatedNavigation = Map<String, dynamic>.from(comp.navigation);
+    final updatedInputs = Map<String, dynamic>.from(comp.inputs);
+    final updatedAlerts = Map<String, dynamic>.from(comp.alerts ?? {});
+    var added = 0;
+
+    if (componentName == 'Buttons') {
+      for (final e in toAdd.entries) {
+        if (!updatedButtons.containsKey(e.key)) {
+          updatedButtons[e.key] = Map<String, dynamic>.from(e.value);
+          added++;
+        }
+      }
+    } else if (componentName == 'Navigation') {
+      for (final e in toAdd.entries) {
+        if (!updatedNavigation.containsKey(e.key)) {
+          updatedNavigation[e.key] = Map<String, dynamic>.from(e.value);
+          added++;
+        }
+      }
+    } else if (componentName == 'Inputs') {
+      for (final e in toAdd.entries) {
+        if (!updatedInputs.containsKey(e.key)) {
+          updatedInputs[e.key] = Map<String, dynamic>.from(e.value);
+          added++;
+        }
+      }
+    } else if (componentName == 'Alerts & Actions') {
+      for (final e in toAdd.entries) {
+        if (!updatedAlerts.containsKey(e.key)) {
+          updatedAlerts[e.key] = Map<String, dynamic>.from(e.value);
+          added++;
+        }
+      }
+    }
+
+    final ds = provider.designSystem;
+    provider.updateDesignSystem(models.DesignSystem(
+      name: ds.name,
+      version: ds.version,
+      description: ds.description,
+      created: ds.created,
+      colors: ds.colors,
+      typography: ds.typography,
+      spacing: ds.spacing,
+      borderRadius: ds.borderRadius,
+      shadows: ds.shadows,
+      effects: ds.effects,
+      components: models.Components(
+        buttons: updatedButtons,
+        cards: comp.cards,
+        inputs: updatedInputs,
+        navigation: updatedNavigation,
+        avatars: comp.avatars,
+        modals: comp.modals,
+        tables: comp.tables,
+        progress: comp.progress,
+        alerts: updatedAlerts.isEmpty ? comp.alerts : updatedAlerts,
+      ),
+      grid: ds.grid,
+      icons: ds.icons,
+      gradients: ds.gradients,
+      roles: ds.roles,
+      semanticTokens: ds.semanticTokens,
+      motionTokens: ds.motionTokens,
+      lastModified: ds.lastModified,
+      versionHistory: ds.versionHistory,
+      componentVersions: ds.componentVersions,
+    ));
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('$componentName added to design system!'),
-        backgroundColor: Colors.green,
+        content: Text(added > 0 ? 'Added $added Cupertino $componentName — see Components & Preview' : 'Those $componentName are already in your project'),
+        backgroundColor: added > 0 ? Colors.green : Colors.blue,
       ),
     );
   }
@@ -1653,9 +1751,37 @@ class CupertinoTypographyTab extends StatelessWidget {
   }
 
   void _addTypographyToDesignSystem(BuildContext context, CupertinoTextStyle style) {
+    final provider = Provider.of<DesignSystemProvider>(context, listen: false);
+    final typo = provider.designSystem.typography;
+    final key = 'cupertino_${style.name.toLowerCase().replaceAll(' ', '_')}';
+    if (typo.textStyles.containsKey(key)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('“${style.name}” is already in your project — see Typography'),
+          backgroundColor: Colors.blue,
+        ),
+      );
+      return;
+    }
+    final lineHeightStr = style.fontSize > 0
+        ? (style.lineHeight / style.fontSize).toStringAsPrecision(3)
+        : '1.25';
+    final updated = Map<String, models.TextStyle>.from(typo.textStyles)
+      ..[key] = models.TextStyle(
+        fontFamily: typo.fontFamily.primary,
+        fontSize: '${style.fontSize.toInt()}px',
+        fontWeight: style.fontWeight,
+        lineHeight: lineHeightStr,
+      );
+    provider.updateTypography(models.Typography(
+      fontFamily: typo.fontFamily,
+      fontWeights: typo.fontWeights,
+      fontSizes: typo.fontSizes,
+      textStyles: updated,
+    ));
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('${style.name} added to design system!'),
+        content: Text('“${style.name}” added — see Typography & Preview'),
         backgroundColor: Colors.green,
       ),
     );

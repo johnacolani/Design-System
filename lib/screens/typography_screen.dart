@@ -41,6 +41,55 @@ class _TypographyScreenState extends State<TypographyScreen> {
   String? _previewPrimaryFont;
   String _searchQuery = '';
   String? _selectedContext;
+  String? _platformForSection;
+
+  void _applyTypographyUpdate(models.Typography t) {
+    final p = Provider.of<DesignSystemProvider>(context, listen: false);
+    if (_platformForSection != null) p.updateTypographyForPlatform(_platformForSection!, t);
+    else p.updateTypography(t);
+  }
+
+  models.Typography _getEffectiveTypography() {
+    final p = Provider.of<DesignSystemProvider>(context, listen: false);
+    if (_platformForSection != null) return p.designSystemForPlatform(_platformForSection!).typography;
+    return p.designSystem.typography;
+  }
+
+  Widget _buildPlatformSelector(DesignSystemProvider provider) {
+    final platforms = provider.targetPlatforms;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        border: Border(bottom: BorderSide(color: Theme.of(context).dividerColor)),
+      ),
+      child: Row(
+        children: [
+          Text('Platform:', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: platforms.map((platform) {
+                  final isSelected = _platformForSection == platform;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: FilterChip(
+                      label: Text(platform),
+                      selected: isSelected,
+                      onSelected: (selected) { if (selected) setState(() => _platformForSection = platform); },
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -50,6 +99,10 @@ class _TypographyScreenState extends State<TypographyScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final provider = Provider.of<DesignSystemProvider>(context);
+    final isMulti = provider.isMultiPlatform;
+    if (isMulti && _platformForSection == null) _platformForSection = provider.targetPlatforms.first;
+
     return DefaultTabController(
       length: 4,
       child: Scaffold(
@@ -72,12 +125,19 @@ class _TypographyScreenState extends State<TypographyScreen> {
         ),
         body: ScreenBodyPadding(
           verticalPadding: 0,
-          child: TabBarView(
+          child: Column(
             children: [
-              _buildFontFamilyTab(),
-              _buildFontWeightsTab(),
-              _buildFontSizesTab(),
-              _buildTextStylesTab(),
+              if (isMulti) _buildPlatformSelector(provider),
+              Expanded(
+                child: TabBarView(
+                  children: [
+                    _buildFontFamilyTab(),
+                    _buildFontWeightsTab(),
+                    _buildFontSizesTab(),
+                    _buildTextStylesTab(),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
@@ -105,7 +165,7 @@ class _TypographyScreenState extends State<TypographyScreen> {
 
   Widget _buildFontFamilyTab() {
     final provider = Provider.of<DesignSystemProvider>(context);
-    final typography = provider.designSystem.typography;
+    final typography = _getEffectiveTypography();
     final currentPrimary = _previewPrimaryFont ?? typography.fontFamily.primary;
 
     final filteredFonts = _googleFonts
@@ -140,7 +200,7 @@ class _TypographyScreenState extends State<TypographyScreen> {
                 const SizedBox(height: 16),
                 ElevatedButton.icon(
                   onPressed: () {
-                    provider.updateTypography(models.Typography(
+                    _applyTypographyUpdate(models.Typography(
                       fontFamily: models.FontFamily(
                         primary: _previewPrimaryFont!,
                         fallback: typography.fontFamily.fallback,
@@ -269,7 +329,7 @@ class _TypographyScreenState extends State<TypographyScreen> {
 
   Widget _buildFontWeightsTab() {
     final provider = Provider.of<DesignSystemProvider>(context);
-    final typography = provider.designSystem.typography;
+    final typography = _getEffectiveTypography();
     final currentFont = _previewPrimaryFont ?? typography.fontFamily.primary;
 
     return ListView(
@@ -318,7 +378,7 @@ class _TypographyScreenState extends State<TypographyScreen> {
 
   Widget _buildFontSizesTab() {
     final provider = Provider.of<DesignSystemProvider>(context);
-    final typography = provider.designSystem.typography;
+    final typography = _getEffectiveTypography();
     final currentFont = _previewPrimaryFont ?? typography.fontFamily.primary;
 
     return ListView(
@@ -367,7 +427,7 @@ class _TypographyScreenState extends State<TypographyScreen> {
 
   Widget _buildTextStylesTab() {
     final provider = Provider.of<DesignSystemProvider>(context);
-    final typography = provider.designSystem.typography;
+    final typography = _getEffectiveTypography();
     final currentFont = _previewPrimaryFont ?? typography.fontFamily.primary;
 
     return ListView(
@@ -442,7 +502,7 @@ class _TypographyScreenState extends State<TypographyScreen> {
         TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
         ElevatedButton(onPressed: () {
           final p = Provider.of<DesignSystemProvider>(context, listen: false);
-          final t = p.designSystem.typography;
+          final t = _getEffectiveTypography();
           final updated = Map<String, int>.from(t.fontWeights)..[name.text] = int.tryParse(val.text) ?? 400;
           p.updateTypography(models.Typography(fontFamily: t.fontFamily, fontWeights: updated, fontSizes: t.fontSizes, textStyles: t.textStyles));
           Navigator.pop(ctx);
@@ -460,7 +520,7 @@ class _TypographyScreenState extends State<TypographyScreen> {
         TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
         ElevatedButton(onPressed: () {
           final p = Provider.of<DesignSystemProvider>(context, listen: false);
-          final t = p.designSystem.typography;
+          final t = _getEffectiveTypography();
           final updated = Map<String, int>.from(t.fontWeights)..[key] = int.tryParse(valController.text) ?? currentVal;
           p.updateTypography(models.Typography(fontFamily: t.fontFamily, fontWeights: updated, fontSizes: t.fontSizes, textStyles: t.textStyles));
           Navigator.pop(ctx);
@@ -471,14 +531,14 @@ class _TypographyScreenState extends State<TypographyScreen> {
 
   void _deleteFontWeight(BuildContext context, String k) {
     final p = Provider.of<DesignSystemProvider>(context, listen: false);
-    final t = p.designSystem.typography;
+    final t = _getEffectiveTypography();
     final updated = Map<String, int>.from(t.fontWeights)..remove(k);
     p.updateTypography(models.Typography(fontFamily: t.fontFamily, fontWeights: updated, fontSizes: t.fontSizes, textStyles: t.textStyles));
   }
 
   void _resetFontWeightsToDefaults(BuildContext context) {
     final p = Provider.of<DesignSystemProvider>(context, listen: false);
-    final t = p.designSystem.typography;
+    final t = _getEffectiveTypography();
     p.updateTypography(models.Typography(
       fontFamily: t.fontFamily,
       fontWeights: Map<String, int>.from(models.Typography.empty().fontWeights),
@@ -491,7 +551,7 @@ class _TypographyScreenState extends State<TypographyScreen> {
 
   void _resetFontSizesToDefaults(BuildContext context) {
     final p = Provider.of<DesignSystemProvider>(context, listen: false);
-    final t = p.designSystem.typography;
+    final t = _getEffectiveTypography();
     p.updateTypography(models.Typography(
       fontFamily: t.fontFamily,
       fontWeights: t.fontWeights,
@@ -512,7 +572,7 @@ class _TypographyScreenState extends State<TypographyScreen> {
         TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
         ElevatedButton(onPressed: () {
           final p = Provider.of<DesignSystemProvider>(context, listen: false);
-          final t = p.designSystem.typography;
+          final t = _getEffectiveTypography();
           final updated = Map<String, models.FontSize>.from(t.fontSizes)..[name.text] = models.FontSize(value: '${size.text}px', lineHeight: '1.2');
           p.updateTypography(models.Typography(fontFamily: t.fontFamily, fontWeights: t.fontWeights, fontSizes: updated, textStyles: t.textStyles));
           Navigator.pop(ctx);
@@ -530,7 +590,7 @@ class _TypographyScreenState extends State<TypographyScreen> {
         TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
         ElevatedButton(onPressed: () {
           final p = Provider.of<DesignSystemProvider>(context, listen: false);
-          final t = p.designSystem.typography;
+          final t = _getEffectiveTypography();
           final updated = Map<String, models.FontSize>.from(t.fontSizes)..[key] = models.FontSize(value: '${sizeController.text}px', lineHeight: current.lineHeight);
           p.updateTypography(models.Typography(fontFamily: t.fontFamily, fontWeights: t.fontWeights, fontSizes: updated, textStyles: t.textStyles));
           Navigator.pop(ctx);
@@ -541,14 +601,14 @@ class _TypographyScreenState extends State<TypographyScreen> {
 
   void _deleteFontSize(BuildContext context, String k) {
     final p = Provider.of<DesignSystemProvider>(context, listen: false);
-    final t = p.designSystem.typography;
+    final t = _getEffectiveTypography();
     final updated = Map<String, models.FontSize>.from(t.fontSizes)..remove(k);
     p.updateTypography(models.Typography(fontFamily: t.fontFamily, fontWeights: t.fontWeights, fontSizes: updated, textStyles: t.textStyles));
   }
 
   void _showAddTextStyleDialog(BuildContext context) {
     final provider = Provider.of<DesignSystemProvider>(context, listen: false);
-    final t = provider.designSystem.typography;
+    final t = _getEffectiveTypography();
     final name = TextEditingController();
     String selectedFont = t.fontFamily.primary;
     String selectedWeightKey = t.fontWeights.isNotEmpty ? t.fontWeights.keys.first : 'regular';
@@ -631,7 +691,7 @@ class _TypographyScreenState extends State<TypographyScreen> {
                     fontWeight: weight,
                     lineHeight: lineHeight,
                   );
-                provider.updateTypography(models.Typography(
+                _applyTypographyUpdate(models.Typography(
                   fontFamily: t.fontFamily,
                   fontWeights: t.fontWeights,
                   fontSizes: t.fontSizes,
@@ -650,7 +710,7 @@ class _TypographyScreenState extends State<TypographyScreen> {
 
   void _deleteTextStyle(BuildContext context, String k) {
     final p = Provider.of<DesignSystemProvider>(context, listen: false);
-    final t = p.designSystem.typography;
+    final t = _getEffectiveTypography();
     final updated = Map<String, models.TextStyle>.from(t.textStyles)..remove(k);
     p.updateTypography(models.Typography(fontFamily: t.fontFamily, fontWeights: t.fontWeights, fontSizes: t.fontSizes, textStyles: updated));
   }
@@ -784,7 +844,7 @@ class _TypographyScreenState extends State<TypographyScreen> {
         TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
         ElevatedButton(onPressed: selectedName == null ? null : () {
           final p = Provider.of<DesignSystemProvider>(context, listen: false);
-          final t = p.designSystem.typography;
+          final t = _getEffectiveTypography();
           final updated = Map<String, models.TextStyle>.from(t.textStyles)..[selectedName!] = models.TextStyle(fontFamily: t.fontFamily.primary, fontSize: '${selectedStyle!.fontSize?.toInt()}px', fontWeight: selectedStyle!.fontWeight?.value ?? 400, lineHeight: '1.5');
           p.updateTypography(models.Typography(fontFamily: t.fontFamily, fontWeights: t.fontWeights, fontSizes: t.fontSizes, textStyles: updated));
           Navigator.pop(ctx);
@@ -795,7 +855,7 @@ class _TypographyScreenState extends State<TypographyScreen> {
 
   void _showEditTextStyleDialog(BuildContext context, String key, models.TextStyle style) {
     final provider = Provider.of<DesignSystemProvider>(context, listen: false);
-    final t = provider.designSystem.typography;
+    final t = _getEffectiveTypography();
     final nameController = TextEditingController(text: key);
     String selectedFont = (style.fontFamily == t.fontFamily.fallback) ? t.fontFamily.fallback : t.fontFamily.primary;
     String selectedWeightKey = 'regular';
@@ -900,7 +960,7 @@ class _TypographyScreenState extends State<TypographyScreen> {
                   color: style.color,
                   textDecoration: style.textDecoration,
                 );
-                provider.updateTypography(models.Typography(
+                _applyTypographyUpdate(models.Typography(
                   fontFamily: t.fontFamily,
                   fontWeights: t.fontWeights,
                   fontSizes: t.fontSizes,

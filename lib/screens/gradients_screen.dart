@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/design_system_provider.dart';
@@ -132,10 +134,10 @@ class _GradientsScreenState extends State<GradientsScreen> {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
                 gradient: LinearGradient(
-                  begin: _getGradientBegin(gradient.direction),
-                  end: _getGradientEnd(gradient.direction),
+                  begin: _linearGradientAlignments(gradient.direction).$1,
+                  end: _linearGradientAlignments(gradient.direction).$2,
                   colors: gradient.colors.map((c) => _parseColor(c)).toList(),
-                  stops: gradient.stops.map((s) => s / 100).toList(),
+                  stops: _normalizedStops(gradient),
                 ),
               ),
             ),
@@ -165,30 +167,83 @@ class _GradientsScreenState extends State<GradientsScreen> {
     );
   }
 
-  AlignmentGeometry _getGradientBegin(String direction) {
-    switch (direction.toLowerCase()) {
+  /// CSS-style angle: 0° = up, 90° = right (same as linear-gradient in CSS).
+  (Alignment, Alignment) _linearGradientAlignments(String direction) {
+    final d = direction.trim().toLowerCase();
+    final degMatch = RegExp(r'^(\d+(?:\.\d+)?)deg$').firstMatch(d);
+    if (degMatch != null) {
+      final deg = double.tryParse(degMatch.group(1)!);
+      if (deg != null) {
+        final rad = deg * math.pi / 180;
+        final dx = math.sin(rad);
+        final dy = -math.cos(rad);
+        return (Alignment(-dx, -dy), Alignment(dx, dy));
+      }
+    }
+    switch (d) {
       case 'to right':
-        return Alignment.centerLeft;
+        return (Alignment.centerLeft, Alignment.centerRight);
       case 'to bottom':
-        return Alignment.topCenter;
+        return (Alignment.topCenter, Alignment.bottomCenter);
       case 'to bottom right':
-        return Alignment.topLeft;
+        return (Alignment.topLeft, Alignment.bottomRight);
       default:
-        return Alignment.centerLeft;
+        return (Alignment.topLeft, Alignment.bottomRight);
     }
   }
 
-  AlignmentGeometry _getGradientEnd(String direction) {
-    switch (direction.toLowerCase()) {
+  List<double>? _normalizedStops(models.GradientValue g) {
+    if (g.colors.length < 2) return null;
+    if (g.stops.length != g.colors.length) return null;
+    return g.stops.map((s) => (s / 100).clamp(0.0, 1.0)).toList();
+  }
+
+  static const List<String> _directionPresets = [
+    'to right',
+    'to bottom',
+    'to bottom right',
+    '0deg',
+    '45deg',
+    '90deg',
+    '135deg',
+    '180deg',
+    '225deg',
+    '270deg',
+    '315deg',
+  ];
+
+  static String _directionMenuLabel(String v) {
+    switch (v) {
       case 'to right':
-        return Alignment.centerRight;
+        return 'To right';
       case 'to bottom':
-        return Alignment.bottomCenter;
+        return 'To bottom';
       case 'to bottom right':
-        return Alignment.bottomRight;
+        return 'To bottom right';
       default:
-        return Alignment.centerRight;
+        return v;
     }
+  }
+
+  /// Ensures [current] appears exactly once so DropdownButtonFormField does not assert.
+  List<DropdownMenuItem<String>> _directionDropdownItems(String current) {
+    final ordered = <String>[];
+    final seen = <String>{};
+    for (final p in _directionPresets) {
+      if (seen.add(p)) ordered.add(p);
+    }
+    final c = current.trim();
+    if (c.isNotEmpty && !seen.contains(c)) {
+      ordered.add(c);
+    }
+    return ordered
+        .map(
+          (v) => DropdownMenuItem<String>(
+            value: v,
+            child: Text(_directionMenuLabel(v)),
+          ),
+        )
+        .toList();
   }
 
   Color _parseColor(String colorString) {
@@ -244,20 +299,24 @@ class _GradientsScreenState extends State<GradientsScreen> {
                 ),
                 const SizedBox(height: 16),
                 const Text('Direction:'),
-                DropdownButtonFormField<String>(
-                  initialValue: selectedDirection,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                  ),
-                  items: const [
-                    DropdownMenuItem(value: 'to right', child: Text('To Right')),
-                    DropdownMenuItem(value: 'to bottom', child: Text('To Bottom')),
-                    DropdownMenuItem(value: 'to bottom right', child: Text('To Bottom Right')),
-                  ],
-                  onChanged: (value) {
-                    setDialogState(() {
-                      selectedDirection = value!;
-                    });
+                Builder(
+                  builder: (ctx) {
+                    final dirVal =
+                        selectedDirection.trim().isEmpty ? 'to right' : selectedDirection.trim();
+                    return DropdownButtonFormField<String>(
+                      value: dirVal,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                      ),
+                      items: _directionDropdownItems(dirVal),
+                      onChanged: (value) {
+                        if (value != null) {
+                          setDialogState(() {
+                            selectedDirection = value;
+                          });
+                        }
+                      },
+                    );
                   },
                 ),
                 const SizedBox(height: 16),
@@ -407,20 +466,24 @@ class _GradientsScreenState extends State<GradientsScreen> {
                 ),
                 const SizedBox(height: 16),
                 const Text('Direction:'),
-                DropdownButtonFormField<String>(
-                  initialValue: selectedDirection,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                  ),
-                  items: const [
-                    DropdownMenuItem(value: 'to right', child: Text('To Right')),
-                    DropdownMenuItem(value: 'to bottom', child: Text('To Bottom')),
-                    DropdownMenuItem(value: 'to bottom right', child: Text('To Bottom Right')),
-                  ],
-                  onChanged: (value) {
-                    setDialogState(() {
-                      selectedDirection = value!;
-                    });
+                Builder(
+                  builder: (ctx) {
+                    final dirVal =
+                        selectedDirection.trim().isEmpty ? 'to right' : selectedDirection.trim();
+                    return DropdownButtonFormField<String>(
+                      value: dirVal,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                      ),
+                      items: _directionDropdownItems(dirVal),
+                      onChanged: (value) {
+                        if (value != null) {
+                          setDialogState(() {
+                            selectedDirection = value;
+                          });
+                        }
+                      },
+                    );
                   },
                 ),
                 const SizedBox(height: 16),

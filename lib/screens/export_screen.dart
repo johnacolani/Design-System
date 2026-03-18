@@ -1,16 +1,19 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:file_picker/file_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'dart:convert';
-import 'dart:io';
 import '../providers/design_system_provider.dart';
 import '../providers/billing_provider.dart';
 import '../services/feature_gate_service.dart';
 import '../models/design_system.dart' as models;
 import '../services/project_service.dart';
 import '../services/token_engine.dart';
+import '../services/figma_tokens_export.dart';
 import '../services/package_generator_service.dart';
+import '../utils/download_helper.dart';
+import '../utils/export_file_platform.dart';
 import '../utils/screen_body_padding.dart';
 import '../widgets/billing/locked_badge.dart';
 import '../widgets/billing/upgrade_modal.dart';
@@ -66,6 +69,7 @@ class _ExportScreenState extends State<ExportScreen> {
                       segments: const [
                         ButtonSegment(value: 'tokens', label: Text('Tokens')),
                         ButtonSegment(value: 'json', label: Text('JSON')),
+                        ButtonSegment(value: 'figma', label: Text('Figma')),
                         ButtonSegment(value: 'flutter', label: Text('Flutter')),
                         ButtonSegment(value: 'kotlin', label: Text('Kotlin')),
                         ButtonSegment(value: 'swift', label: Text('Swift')),
@@ -131,7 +135,7 @@ class _ExportScreenState extends State<ExportScreen> {
               ],
             ),
           ),
-          _buildFigmaComingSoon(context),
+          if (_selectedFormat == 'figma') _buildFigmaSyncHelp(context),
         ],
         ),
       )
@@ -263,7 +267,10 @@ class _ExportScreenState extends State<ExportScreen> {
           'margin': designSystem.grid.margin,
           'breakpoints': designSystem.grid.breakpoints,
         },
-        'icons': designSystem.icons.sizes,
+        'icons': {
+          'sizes': designSystem.icons.sizes,
+          'projectIcons': designSystem.icons.projectIcons.map((e) => e.toJson()).toList(),
+        },
         'gradients': designSystem.gradients.values.map((key, g) => MapEntry(key, {
               'type': g.type,
               'direction': g.direction,
@@ -461,17 +468,27 @@ class _ExportScreenState extends State<ExportScreen> {
       final provider = Provider.of<DesignSystemProvider>(context, listen: false);
       final ds = provider.designSystem;
       final zipBytes = PackageGeneratorService.buildPackage(ds);
-      final name = _sanitizeFileName(ds.name);
-      final path = await FilePicker.platform.saveFile(
-        dialogTitle: 'Save design system package',
-        fileName: '${name}_design_system.zip',
-        type: FileType.custom,
-        allowedExtensions: ['zip'],
-      );
-      if (path != null) {
-        final file = File(path);
-        await file.writeAsBytes(zipBytes);
+      final name = _exportBaseName(ds.name);
+      final fileName = '${name}_design_system.zip';
+      if (kIsWeb) {
+        downloadBytes(zipBytes, fileName);
         if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Download started. Unzip for tokens/, theme/, components/, documentation/'),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      } else {
+        final ok = await saveExportBytes(
+          zipBytes,
+          'Save design system package',
+          fileName,
+          'zip',
+        );
+        if (context.mounted && ok) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Package saved. Unzip to get tokens/, theme/, components/, documentation/'),
@@ -490,40 +507,91 @@ class _ExportScreenState extends State<ExportScreen> {
     }
   }
 
-  Widget _buildFigmaComingSoon(BuildContext context) {
+  Widget _buildFigmaSyncHelp(BuildContext context) {
+    final ds = Provider.of<DesignSystemProvider>(context, listen: false).designSystem;
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.blue.shade50,
+        color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.35),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.blue.shade200),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.design_services, color: Colors.blue.shade700, size: 32),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Figma Token Sync (coming soon)',
+          Row(
+            children: [
+              Icon(Icons.hub, color: Theme.of(context).colorScheme.primary, size: 28),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Figma token sync',
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: Colors.blue.shade900,
                       ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'Import tokens from Figma, sync changes, and export back. Many designers work in Figma—this will make the platform even more powerful.',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.blue.shade800),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-          Chip(label: const Text('Future'), backgroundColor: Colors.blue.shade100),
+          const SizedBox(height: 12),
+          Text(
+            'Export is compatible with Tokens Studio (and similar plugins). Your colors, spacing, radius, typography, shadows, and motion tokens are mapped to Figma token types.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(height: 1.35),
+          ),
+          const SizedBox(height: 12),
+          _figmaStep(context, '1', 'Generate export above, then Copy or Save as JSON.'),
+          _figmaStep(context, '2', 'In Figma: install Tokens Studio for Figma (Community plugin).'),
+          _figmaStep(context, '3', 'Plugin → Load / Import → paste JSON or choose this file.'),
+          _figmaStep(context, '4', 'Apply token sets to local styles or variables as the plugin guides you.'),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              OutlinedButton.icon(
+                onPressed: () async {
+                  final w3c = FigmaTokensExport.exportW3cDtcg(ds);
+                  await Clipboard.setData(ClipboardData(text: w3c));
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('W3C DTCG JSON copied (for other token tools)')),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.copy, size: 18),
+                label: const Text('Copy W3C DTCG JSON'),
+              ),
+              TextButton.icon(
+                onPressed: () async {
+                  final u = Uri.parse('https://tokens.studio/');
+                  if (await canLaunchUrl(u)) {
+                    await launchUrl(u, mode: LaunchMode.externalApplication);
+                  }
+                },
+                icon: const Icon(Icons.open_in_new, size: 18),
+                label: const Text('Tokens Studio'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _figmaStep(BuildContext context, String n, String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CircleAvatar(
+            radius: 12,
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            child: Text(n, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+          ),
+          const SizedBox(width: 10),
+          Expanded(child: Text(text, style: Theme.of(context).textTheme.bodySmall)),
         ],
       ),
     );
@@ -539,35 +607,42 @@ class _ExportScreenState extends State<ExportScreen> {
       final provider = Provider.of<DesignSystemProvider>(context, listen: false);
       final designSystem = provider.designSystem;
 
-      String? outputFile;
-      String defaultFileName = _sanitizeFileName(designSystem.name);
-
       if (_selectedFormat == 'json') {
-        outputFile = await ProjectService.saveProject(designSystem);
+        await ProjectService.saveProject(designSystem);
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Project saved successfully!'), backgroundColor: Colors.green),
           );
         }
       } else {
-        // For code exports, use file picker
-        String? path = await FilePicker.platform.saveFile(
-          dialogTitle: 'Save ${_selectedFormat.toUpperCase()} Export',
-          fileName: '${defaultFileName}_${_selectedFormat == 'tokens' ? 'tokens' : 'theme'}.${_getFileExtension()}',
-          type: FileType.custom,
-          allowedExtensions: [_getFileExtension()],
-        );
-
-        if (path != null) {
-          final file = File(path);
-          await file.writeAsString(_exportedCode);
-          outputFile = path;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('File saved successfully!'),
-              backgroundColor: Colors.green,
-            ),
+        final ext = _getFileExtension();
+        final base = _exportBaseName(designSystem.name);
+        final fileName = '${base}_${_exportFileNameSuffix()}.$ext';
+        if (kIsWeb) {
+          downloadFile(_exportedCode, fileName);
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Download started — check your downloads folder'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        } else {
+          final ok = await saveExportText(
+            _exportedCode,
+            'Save ${_selectedFormat.toUpperCase()} Export',
+            fileName,
+            ext,
           );
+          if (context.mounted && ok) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('File saved successfully!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
         }
       }
     } catch (e) {
@@ -577,6 +652,17 @@ class _ExportScreenState extends State<ExportScreen> {
           backgroundColor: Colors.red,
         ),
       );
+    }
+  }
+
+  String _exportFileNameSuffix() {
+    switch (_selectedFormat) {
+      case 'tokens':
+        return 'tokens';
+      case 'figma':
+        return 'figma_tokens';
+      default:
+        return 'theme';
     }
   }
 
@@ -594,6 +680,8 @@ class _ExportScreenState extends State<ExportScreen> {
         return 'ts';
       case 'css':
         return 'css';
+      case 'figma':
+        return 'json';
       default:
         return 'txt';
     }
@@ -604,5 +692,10 @@ class _ExportScreenState extends State<ExportScreen> {
         .replaceAll(RegExp(r'[<>:"/\\|?*]'), '_')
         .replaceAll(' ', '_')
         .toLowerCase();
+  }
+
+  String _exportBaseName(String name) {
+    final s = _sanitizeFileName(name.trim());
+    return s.isEmpty ? 'design_system' : s;
   }
 }

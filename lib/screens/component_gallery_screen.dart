@@ -183,7 +183,7 @@ class _ComponentPreview extends StatelessWidget {
       case 'navigation':
         return _buildNavigationPreview();
       case 'avatars':
-        return _buildAvatarPreview();
+        return _buildAvatarPreview(context);
       case 'modals':
         return _buildModalPreview();
       case 'tables':
@@ -277,44 +277,83 @@ class _ComponentPreview extends StatelessWidget {
     );
   }
 
-  Widget _buildAvatarPreview() {
+  Widget _buildAvatarPreview(BuildContext context) {
     final size = _parsePx(data['size'] ?? data['height'] ?? 40);
+    final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
+    Widget circleAvatar(double d) {
+      return ClipOval(
+        child: Material(
+          color: Theme.of(context).colorScheme.primaryContainer,
+          child: SizedBox(
+            width: d,
+            height: d,
+            child: Center(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  initial,
+                  style: TextStyle(
+                    fontSize: d * 0.42,
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).colorScheme.onPrimaryContainer,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        CircleAvatar(radius: size / 2, child: Text(name.isNotEmpty ? name[0].toUpperCase() : '?')),
+        circleAvatar(size),
         if (size < 56) ...[
           const SizedBox(width: 8),
-          CircleAvatar(radius: 28, backgroundColor: Colors.blue.shade100, child: const Icon(Icons.person, color: Colors.blue)),
+          ClipOval(
+            child: Material(
+              color: Colors.blue.shade100,
+              child: SizedBox(
+                width: 56,
+                height: 56,
+                child: Icon(Icons.person, color: Colors.blue.shade700, size: 28),
+              ),
+            ),
+          ),
         ],
       ],
     );
   }
 
   Widget _buildModalPreview() {
-    final radius = _parsePx(data['borderRadius']);
+    final radius = _parsePx(data['borderRadius'] ?? 12);
+    final title = (data['modalTitle'] ?? data['title'] ?? name).toString();
+    final body = (data['bodyText'] ?? data['body'] ?? 'Modal body text').toString();
+    final cancel = (data['cancelLabel'] ?? 'Cancel').toString();
+    final confirm = (data['confirmLabel'] ?? data['primaryLabel'] ?? 'OK').toString();
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border.all(color: Colors.grey.shade300),
         borderRadius: BorderRadius.circular(radius),
-        boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 8, offset: const Offset(0, 4))],
+        boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 4))],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+          Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12), maxLines: 2, overflow: TextOverflow.ellipsis),
           const SizedBox(height: 8),
-          const Text('Modal body content', style: TextStyle(fontSize: 11)),
+          Text(body, style: const TextStyle(fontSize: 11), maxLines: 3, overflow: TextOverflow.ellipsis),
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              TextButton(onPressed: () {}, child: const Text('Cancel')),
+              TextButton(onPressed: () {}, child: Text(cancel)),
               const SizedBox(width: 8),
-              ElevatedButton(onPressed: () {}, child: const Text('OK')),
+              ElevatedButton(onPressed: () {}, child: Text(confirm)),
             ],
           ),
         ],
@@ -323,25 +362,41 @@ class _ComponentPreview extends StatelessWidget {
   }
 
   Widget _buildTablePreview() {
+    final h1 = (data['col1Header'] ?? data['header1'] ?? 'Name').toString();
+    final h2 = (data['col2Header'] ?? data['header2'] ?? 'Status').toString();
+    final c11 = (data['cell11'] ?? data['sample1a'] ?? '—').toString();
+    final c12 = (data['cell12'] ?? data['sample1b'] ?? '—').toString();
+    final c21 = (data['cell21'] ?? data['sample2a'] ?? '—').toString();
+    final c22 = (data['cell22'] ?? data['sample2b'] ?? '—').toString();
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: DataTable(
         headingRowHeight: 32,
         dataRowMinHeight: 28,
         columnSpacing: 16,
-        columns: const [
-          DataColumn(label: Text('Col 1', style: TextStyle(fontSize: 11))),
-          DataColumn(label: Text('Col 2', style: TextStyle(fontSize: 11))),
+        columns: [
+          DataColumn(label: Text(h1, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600))),
+          DataColumn(label: Text(h2, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600))),
         ],
         rows: [
-          DataRow(cells: [DataCell(Text(name, style: const TextStyle(fontSize: 11))), const DataCell(Text('—', style: TextStyle(fontSize: 11)))]),
-          const DataRow(cells: [DataCell(Text('Row 2', style: TextStyle(fontSize: 11))), DataCell(Text('—', style: TextStyle(fontSize: 11)))]),
+          DataRow(cells: [DataCell(Text(c11, style: const TextStyle(fontSize: 11))), DataCell(Text(c12, style: const TextStyle(fontSize: 11)))]),
+          DataRow(cells: [DataCell(Text(c21, style: const TextStyle(fontSize: 11))), DataCell(Text(c22, style: const TextStyle(fontSize: 11)))]),
         ],
       ),
     );
   }
 
   Widget _buildProgressPreview() {
+    final indeterminate = data['progressIndeterminate'] == true || data['indeterminate'] == true || data['indeterminate'] == 'true';
+    double? value;
+    if (!indeterminate) {
+      final raw = data['progressValue'] ?? data['value'];
+      if (raw != null && raw.toString().isNotEmpty) {
+        final n = double.tryParse(raw.toString());
+        if (n != null) value = n > 1 ? (n / 100).clamp(0.0, 1.0) : n.clamp(0.0, 1.0);
+      }
+    }
+    final caption = (data['progressCaption'] ?? data['caption'] ?? name).toString();
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -349,32 +404,70 @@ class _ComponentPreview extends StatelessWidget {
         SizedBox(
           width: 160,
           child: LinearProgressIndicator(
-            value: 0.6,
+            value: value,
             backgroundColor: Colors.grey.shade200,
             valueColor: AlwaysStoppedAnimation<Color>(Colors.blue.shade700),
           ),
         ),
         const SizedBox(height: 6),
-        Text(name, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+        Text(caption, style: TextStyle(fontSize: 11, color: Colors.grey.shade600), maxLines: 2, overflow: TextOverflow.ellipsis),
       ],
     );
   }
 
   Widget _buildAlertPreview() {
-    final radius = _parsePx(data['borderRadius']);
+    final radius = _parsePx(data['borderRadius'] ?? 8);
+    final variant = (data['alertVariant'] ?? data['variant'] ?? 'info').toString().toLowerCase();
+    late final IconData ic;
+    late final Color bg;
+    late final Color border;
+    late final Color fg;
+    if (variant == 'error' || variant == 'danger') {
+      ic = Icons.error_outline;
+      bg = Colors.red.shade50;
+      border = Colors.red.shade700;
+      fg = Colors.red.shade900;
+    } else if (variant == 'success') {
+      ic = Icons.check_circle_outline;
+      bg = Colors.green.shade50;
+      border = Colors.green.shade700;
+      fg = Colors.green.shade900;
+    } else if (variant == 'warning') {
+      ic = Icons.warning_amber_rounded;
+      bg = Colors.amber.shade50;
+      border = Colors.amber.shade800;
+      fg = Colors.amber.shade900;
+    } else {
+      ic = Icons.info_outline;
+      bg = Colors.blue.shade50;
+      border = Colors.blue.shade700;
+      fg = Colors.blue.shade900;
+    }
+    final title = (data['alertTitle'] ?? '').toString();
+    final message = (data['alertMessage'] ?? data['message'] ?? name).toString();
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.amber.shade50,
-        border: Border(left: BorderSide(color: Colors.amber.shade700, width: 4)),
+        color: bg,
+        border: Border(left: BorderSide(color: border, width: 4)),
         borderRadius: BorderRadius.circular(radius),
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.info_outline, size: 20, color: Colors.amber.shade800),
+          Icon(ic, size: 20, color: fg),
           const SizedBox(width: 8),
-          Expanded(child: Text(name, style: TextStyle(fontSize: 12, color: Colors.amber.shade900))),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (title.isNotEmpty) Text(title, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: fg)),
+                if (title.isNotEmpty) const SizedBox(height: 2),
+                Text(message, style: TextStyle(fontSize: 12, color: fg), maxLines: 3, overflow: TextOverflow.ellipsis),
+              ],
+            ),
+          ),
         ],
       ),
     );

@@ -91,7 +91,34 @@ class DashboardScreen extends StatelessWidget {
           },
           tooltip: 'Home',
         ),
-        title: Text(designSystem.name.isEmpty ? 'Design System' : designSystem.name),
+        title: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(designSystem.name.isEmpty ? 'Design System' : designSystem.name),
+            if (provider.isMultiPlatform)
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: SegmentedButton<String>(
+                  segments: provider.targetPlatforms
+                      .map((p) => ButtonSegment<String>(
+                            value: p,
+                            label: Text(p == 'ios' ? 'iOS' : p == 'android' ? 'Android' : 'Web'),
+                          ))
+                      .toList(),
+                  selected: {provider.currentPlatform ?? provider.targetPlatforms.first},
+                  onSelectionChanged: (Set<String> sel) {
+                    provider.setCurrentPlatform(sel.first);
+                  },
+                  style: ButtonStyle(
+                    padding: WidgetStateProperty.all(const EdgeInsets.symmetric(horizontal: 8, vertical: 4)),
+                    visualDensity: VisualDensity.compact,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+              ),
+          ],
+        ),
         actions: [
           Consumer<UserProvider>(
             builder: (context, userProvider, _) {

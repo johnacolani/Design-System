@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import '../data/demo_design_systems.dart';
 import '../models/design_system.dart' as models;
 import '../services/project_service.dart';
 
@@ -8,13 +9,65 @@ class DesignSystemProvider extends ChangeNotifier {
   bool _hasProject = false;
   /// When set, saveProject() writes to this path instead of default location (desktop/mobile only).
   String? _currentProjectPath;
+  /// When multi-platform, which platform section is being viewed/edited ('ios'|'android'|'web').
+  String? _currentPlatform;
 
-  models.DesignSystem get designSystem => _designSystem;
+  /// Raw design system (base + platform overrides map). Use for save/load.
+  models.DesignSystem get rawDesignSystem => _designSystem;
+  /// Design system for the current platform (base merged with platform override when multi-platform). All screens use this.
+  models.DesignSystem get effectiveDesignSystem =>
+      _currentPlatform != null &&
+              _designSystem.platformOverrides != null &&
+              _designSystem.platformOverrides!.containsKey(_currentPlatform)
+          ? _designSystem.withPlatformOverride(_currentPlatform!)
+          : _designSystem;
   bool get hasProject => _hasProject;
   String? get currentProjectPath => _currentProjectPath;
+  List<String> get targetPlatforms => _designSystem.targetPlatforms;
+  String? get currentPlatform => _currentPlatform;
+  bool get isMultiPlatform => _designSystem.isMultiPlatform;
+  /// Same as [effectiveDesignSystem] — use for all read/edit flows so platform section is correct.
+  models.DesignSystem get designSystem => effectiveDesignSystem;
+
+  /// Design system merged for a specific platform (for token screens that show one section per platform).
+  models.DesignSystem designSystemForPlatform(String platform) =>
+      _designSystem.platformOverrides != null && _designSystem.platformOverrides!.containsKey(platform)
+          ? _designSystem.withPlatformOverride(platform)
+          : _designSystem;
+
+  void _setPlatformOverride(String platform, models.PlatformOverride override) {
+    _designSystem = _designSystem.copyWith(
+      platformOverrides: {...?_designSystem.platformOverrides, platform: override},
+      lastModified: DateTime.now().toIso8601String(),
+    );
+  }
+
+  void updateColorsForPlatform(String platform, models.Colors colors) {
+    final o = _designSystem.platformOverrides?[platform] ?? const models.PlatformOverride();
+    _setPlatformOverride(platform, o.copyWith(colors: colors));
+    notifyListeners();
+  }
+
+  void updateTypographyForPlatform(String platform, models.Typography typography) {
+    final o = _designSystem.platformOverrides?[platform] ?? const models.PlatformOverride();
+    _setPlatformOverride(platform, o.copyWith(typography: typography));
+    notifyListeners();
+  }
+
+  void updateIconsForPlatform(String platform, models.Icons icons) {
+    final o = _designSystem.platformOverrides?[platform] ?? const models.PlatformOverride();
+    _setPlatformOverride(platform, o.copyWith(icons: icons));
+    notifyListeners();
+  }
 
   void setCurrentProjectPath(String? path) {
     _currentProjectPath = path;
+    notifyListeners();
+  }
+
+  void setCurrentPlatform(String? platform) {
+    if (_currentPlatform == platform) return;
+    _currentPlatform = platform;
     notifyListeners();
   }
 
@@ -22,7 +75,9 @@ class DesignSystemProvider extends ChangeNotifier {
     required String name,
     required String description,
     Color? primaryColor,
+    List<String>? targetPlatforms,
   }) {
+    final platforms = targetPlatforms ?? const ['web'];
     _designSystem = models.DesignSystem(
       name: name,
       version: '1.0.0',
@@ -50,7 +105,11 @@ class DesignSystemProvider extends ChangeNotifier {
         ),
       ],
       componentVersions: {},
+      targetPlatforms: platforms,
+      platformOverrides: platforms.length > 1 ? {} : null,
     );
+
+    _currentPlatform = platforms.length > 1 ? platforms.first : null;
 
     // Set primary color if provided
     if (primaryColor != null) {
@@ -66,160 +125,93 @@ class DesignSystemProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void updateDesignSystem(models.DesignSystem designSystem) {
-    // Preserve version history and update lastModified
-    _designSystem = models.DesignSystem(
-      name: designSystem.name,
-      version: designSystem.version,
-      description: designSystem.description,
-      created: designSystem.created,
-      colors: designSystem.colors,
-      typography: designSystem.typography,
-      spacing: designSystem.spacing,
-      borderRadius: designSystem.borderRadius,
-      shadows: designSystem.shadows,
-      effects: designSystem.effects,
-      components: designSystem.components,
-      grid: designSystem.grid,
-      icons: designSystem.icons,
-      gradients: designSystem.gradients,
-      roles: designSystem.roles,
-      semanticTokens: designSystem.semanticTokens,
-      motionTokens: designSystem.motionTokens,
-      lastModified: DateTime.now().toIso8601String(),
-      versionHistory: designSystem.versionHistory ?? _designSystem.versionHistory,
-      componentVersions: designSystem.componentVersions ?? _designSystem.componentVersions,
+  void _applyToCurrentPlatform(models.PlatformOverride Function(models.PlatformOverride? o) update) {
+    if (_currentPlatform == null) return;
+    final o = _designSystem.platformOverrides?[_currentPlatform];
+    final next = update(o);
+    _designSystem = _designSystem.copyWith(
+      platformOverrides: {...?_designSystem.platformOverrides, _currentPlatform!: next},
     );
+  }
+
+  void updateDesignSystem(models.DesignSystem designSystem) {
+    if (_currentPlatform == null) {
+      _designSystem = designSystem.copyWith(
+        targetPlatforms: _designSystem.targetPlatforms,
+        platformOverrides: _designSystem.platformOverrides,
+        lastModified: DateTime.now().toIso8601String(),
+        versionHistory: designSystem.versionHistory ?? _designSystem.versionHistory,
+        componentVersions: designSystem.componentVersions ?? _designSystem.componentVersions,
+      );
+    } else {
+      _designSystem = _designSystem.copyWith(
+        platformOverrides: {
+          ...?_designSystem.platformOverrides,
+          _currentPlatform!: models.PlatformOverride(
+            colors: designSystem.colors,
+            typography: designSystem.typography,
+            spacing: designSystem.spacing,
+            borderRadius: designSystem.borderRadius,
+            shadows: designSystem.shadows,
+            effects: designSystem.effects,
+            components: designSystem.components,
+            grid: designSystem.grid,
+            icons: designSystem.icons,
+            gradients: designSystem.gradients,
+            roles: designSystem.roles,
+            semanticTokens: designSystem.semanticTokens,
+            motionTokens: designSystem.motionTokens,
+            componentVersions: designSystem.componentVersions,
+          ),
+        },
+        lastModified: DateTime.now().toIso8601String(),
+      );
+    }
     notifyListeners();
   }
 
   void updateColors(models.Colors colors) {
-    _designSystem = models.DesignSystem(
-      name: _designSystem.name,
-      version: _designSystem.version,
-      description: _designSystem.description,
-      created: _designSystem.created,
-      colors: colors,
-      typography: _designSystem.typography,
-      spacing: _designSystem.spacing,
-      borderRadius: _designSystem.borderRadius,
-      shadows: _designSystem.shadows,
-      effects: _designSystem.effects,
-      components: _designSystem.components,
-      grid: _designSystem.grid,
-      icons: _designSystem.icons,
-      gradients: _designSystem.gradients,
-      roles: _designSystem.roles,
-      semanticTokens: _designSystem.semanticTokens,
-      motionTokens: _designSystem.motionTokens,
-      lastModified: _designSystem.lastModified,
-      versionHistory: _designSystem.versionHistory,
-      componentVersions: _designSystem.componentVersions,
-    );
+    if (_currentPlatform == null) {
+      _designSystem = _designSystem.copyWith(colors: colors);
+    } else {
+      _applyToCurrentPlatform((o) => (o ?? const models.PlatformOverride()).copyWith(colors: colors));
+    }
     notifyListeners();
   }
 
   void updateTypography(models.Typography typography) {
-    _designSystem = models.DesignSystem(
-      name: _designSystem.name,
-      version: _designSystem.version,
-      description: _designSystem.description,
-      created: _designSystem.created,
-      colors: _designSystem.colors,
-      typography: typography,
-      spacing: _designSystem.spacing,
-      borderRadius: _designSystem.borderRadius,
-      shadows: _designSystem.shadows,
-      effects: _designSystem.effects,
-      components: _designSystem.components,
-      grid: _designSystem.grid,
-      icons: _designSystem.icons,
-      gradients: _designSystem.gradients,
-      roles: _designSystem.roles,
-      semanticTokens: _designSystem.semanticTokens,
-      motionTokens: _designSystem.motionTokens,
-      lastModified: DateTime.now().toIso8601String(),
-      versionHistory: _designSystem.versionHistory,
-      componentVersions: _designSystem.componentVersions,
-    );
+    if (_currentPlatform == null) {
+      _designSystem = _designSystem.copyWith(typography: typography);
+    } else {
+      _applyToCurrentPlatform((o) => (o ?? const models.PlatformOverride()).copyWith(typography: typography));
+    }
     notifyListeners();
   }
 
   void updateSpacing(models.Spacing spacing) {
-    _designSystem = models.DesignSystem(
-      name: _designSystem.name,
-      version: _designSystem.version,
-      description: _designSystem.description,
-      created: _designSystem.created,
-      colors: _designSystem.colors,
-      typography: _designSystem.typography,
-      spacing: spacing,
-      borderRadius: _designSystem.borderRadius,
-      shadows: _designSystem.shadows,
-      effects: _designSystem.effects,
-      components: _designSystem.components,
-      grid: _designSystem.grid,
-      icons: _designSystem.icons,
-      gradients: _designSystem.gradients,
-      roles: _designSystem.roles,
-      semanticTokens: _designSystem.semanticTokens,
-      motionTokens: _designSystem.motionTokens,
-      lastModified: _designSystem.lastModified,
-      versionHistory: _designSystem.versionHistory,
-      componentVersions: _designSystem.componentVersions,
-    );
+    if (_currentPlatform == null) {
+      _designSystem = _designSystem.copyWith(spacing: spacing);
+    } else {
+      _applyToCurrentPlatform((o) => (o ?? const models.PlatformOverride()).copyWith(spacing: spacing));
+    }
     notifyListeners();
   }
 
   void updateSemanticTokens(models.SemanticTokens semanticTokens) {
-    _designSystem = models.DesignSystem(
-      name: _designSystem.name,
-      version: _designSystem.version,
-      description: _designSystem.description,
-      created: _designSystem.created,
-      colors: _designSystem.colors,
-      typography: _designSystem.typography,
-      spacing: _designSystem.spacing,
-      borderRadius: _designSystem.borderRadius,
-      shadows: _designSystem.shadows,
-      effects: _designSystem.effects,
-      components: _designSystem.components,
-      grid: _designSystem.grid,
-      icons: _designSystem.icons,
-      gradients: _designSystem.gradients,
-      roles: _designSystem.roles,
-      semanticTokens: semanticTokens,
-      motionTokens: _designSystem.motionTokens,
-      lastModified: _designSystem.lastModified,
-      versionHistory: _designSystem.versionHistory,
-      componentVersions: _designSystem.componentVersions,
-    );
+    if (_currentPlatform == null) {
+      _designSystem = _designSystem.copyWith(semanticTokens: semanticTokens);
+    } else {
+      _applyToCurrentPlatform((o) => (o ?? const models.PlatformOverride()).copyWith(semanticTokens: semanticTokens));
+    }
     notifyListeners();
   }
 
   void updateMotionTokens(models.MotionTokens motionTokens) {
-    _designSystem = models.DesignSystem(
-      name: _designSystem.name,
-      version: _designSystem.version,
-      description: _designSystem.description,
-      created: _designSystem.created,
-      colors: _designSystem.colors,
-      typography: _designSystem.typography,
-      spacing: _designSystem.spacing,
-      borderRadius: _designSystem.borderRadius,
-      shadows: _designSystem.shadows,
-      effects: _designSystem.effects,
-      components: _designSystem.components,
-      grid: _designSystem.grid,
-      icons: _designSystem.icons,
-      gradients: _designSystem.gradients,
-      roles: _designSystem.roles,
-      semanticTokens: _designSystem.semanticTokens,
-      motionTokens: motionTokens,
-      lastModified: _designSystem.lastModified,
-      versionHistory: _designSystem.versionHistory,
-      componentVersions: _designSystem.componentVersions,
-    );
+    if (_currentPlatform == null) {
+      _designSystem = _designSystem.copyWith(motionTokens: motionTokens);
+    } else {
+      _applyToCurrentPlatform((o) => (o ?? const models.PlatformOverride()).copyWith(motionTokens: motionTokens));
+    }
     notifyListeners();
   }
 
@@ -231,29 +223,7 @@ class DesignSystemProvider extends ChangeNotifier {
       changes: changes,
       description: description,
     ));
-    
-    _designSystem = models.DesignSystem(
-      name: _designSystem.name,
-      version: version,
-      description: _designSystem.description,
-      created: _designSystem.created,
-      colors: _designSystem.colors,
-      typography: _designSystem.typography,
-      spacing: _designSystem.spacing,
-      borderRadius: _designSystem.borderRadius,
-      shadows: _designSystem.shadows,
-      effects: _designSystem.effects,
-      components: _designSystem.components,
-      grid: _designSystem.grid,
-      icons: _designSystem.icons,
-      gradients: _designSystem.gradients,
-      roles: _designSystem.roles,
-      semanticTokens: _designSystem.semanticTokens,
-      motionTokens: _designSystem.motionTokens,
-      lastModified: DateTime.now().toIso8601String(),
-      versionHistory: history,
-      componentVersions: _designSystem.componentVersions,
-    );
+    _designSystem = _designSystem.copyWith(version: version, versionHistory: history, lastModified: DateTime.now().toIso8601String());
     notifyListeners();
   }
 
@@ -263,39 +233,26 @@ class DesignSystemProvider extends ChangeNotifier {
     final versions = Map<String, String>.from(_designSystem.componentVersions ?? {});
     final current = int.tryParse(versions[key] ?? '1') ?? 1;
     versions[key] = '${current + 1}';
-    _designSystem = models.DesignSystem(
-      name: _designSystem.name,
-      version: _designSystem.version,
-      description: _designSystem.description,
-      created: _designSystem.created,
-      colors: _designSystem.colors,
-      typography: _designSystem.typography,
-      spacing: _designSystem.spacing,
-      borderRadius: _designSystem.borderRadius,
-      shadows: _designSystem.shadows,
-      effects: _designSystem.effects,
-      components: _designSystem.components,
-      grid: _designSystem.grid,
-      icons: _designSystem.icons,
-      gradients: _designSystem.gradients,
-      roles: _designSystem.roles,
-      semanticTokens: _designSystem.semanticTokens,
-      motionTokens: _designSystem.motionTokens,
-      lastModified: DateTime.now().toIso8601String(),
-      versionHistory: _designSystem.versionHistory,
-      componentVersions: versions,
-    );
+    if (_currentPlatform == null) {
+      _designSystem = _designSystem.copyWith(componentVersions: versions, lastModified: DateTime.now().toIso8601String());
+    } else {
+      _applyToCurrentPlatform((o) => (o ?? const models.PlatformOverride()).copyWith(componentVersions: versions));
+      _designSystem = _designSystem.copyWith(lastModified: DateTime.now().toIso8601String());
+    }
     notifyListeners();
   }
 
   int getComponentVersion(String category, String componentName) {
     final key = '$category.$componentName';
-    final v = _designSystem.componentVersions?[key];
+    final v = effectiveDesignSystem.componentVersions?[key];
     return int.tryParse(v ?? '1') ?? 1;
   }
 
   void loadProject(models.DesignSystem designSystem) {
     _designSystem = designSystem;
+    _currentPlatform = designSystem.isMultiPlatform && designSystem.targetPlatforms.isNotEmpty
+        ? designSystem.targetPlatforms.first
+        : null;
     _hasProject = true;
     notifyListeners();
   }
@@ -312,7 +269,8 @@ class DesignSystemProvider extends ChangeNotifier {
   Future<void> loadProjectFromPath(String filePath) async {
     final designSystem = await ProjectService.loadProject(filePath);
     loadProject(designSystem);
-    if (!kIsWeb) setCurrentProjectPath(filePath);
+    // Track storage key/path on all platforms so delete + reset works on web too.
+    setCurrentProjectPath(filePath);
   }
 
   /// Get list of all saved projects
@@ -330,6 +288,13 @@ class DesignSystemProvider extends ChangeNotifier {
     _designSystem = models.DesignSystem.empty();
     _hasProject = false;
     _currentProjectPath = null;
+    _currentPlatform = null;
     notifyListeners();
+  }
+
+  /// Load a built-in demo preset ([DemoDesignSystems] ids). Not tied to a file until user saves.
+  void loadDemoDesignSystem(String demoId) {
+    loadProject(DemoDesignSystems.byId(demoId));
+    setCurrentProjectPath(null);
   }
 }

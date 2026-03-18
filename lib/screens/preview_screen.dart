@@ -460,7 +460,23 @@ class _PreviewScreenState extends State<PreviewScreen> {
   }
 
   pw.Widget _buildPdfIconsDetailed(models.DesignSystem ds) {
-    return pw.Wrap(spacing: 15, children: ds.icons.sizes.entries.map((e) => pw.Text('${e.key}: ${e.value}', style: pw.TextStyle(fontSize: 10))).toList());
+    final parts = <pw.Widget>[];
+    if (ds.icons.projectIcons.isNotEmpty) {
+      parts.add(pw.Text('Project icons', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)));
+      for (final e in ds.icons.projectIcons) {
+        parts.add(pw.Padding(
+          padding: const pw.EdgeInsets.only(left: 8, top: 2),
+          child: pw.Text('• ${e.label} (codePoint 0x${e.codePoint.toRadixString(16)})', style: const pw.TextStyle(fontSize: 9)),
+        ));
+      }
+      parts.add(pw.SizedBox(height: 8));
+    }
+    parts.add(pw.Text('Sizes', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)));
+    parts.add(pw.Wrap(
+      spacing: 15,
+      children: ds.icons.sizes.entries.map((e) => pw.Text('${e.key}: ${e.value}', style: pw.TextStyle(fontSize: 10))).toList(),
+    ));
+    return pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: parts);
   }
 
   pw.Widget _buildPdfGradientsDetailed(models.DesignSystem ds) {
@@ -1656,10 +1672,15 @@ class _PreviewScreenState extends State<PreviewScreen> {
                          ds.components.cards.isNotEmpty ||
                          ds.components.navigation.isNotEmpty ||
                          ds.components.avatars.isNotEmpty;
+    final hasProjectIcons = ds.icons.projectIcons.isNotEmpty;
+    final hasIconSizes = ds.icons.sizes.isNotEmpty;
 
-    if (!hasComponents) return _buildPlaceholder('Component Library');
+    if (!hasComponents && !hasProjectIcons && !hasIconSizes) {
+      return _buildPlaceholder('Component Library');
+    }
 
     final baseRadius = _parsePx(ds.borderRadius.base);
+    final previewIconSize = _parsePx(ds.icons.sizes['md'] ?? '24px');
 
     return _buildSectionCard('Components & Assets', Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1669,23 +1690,67 @@ class _PreviewScreenState extends State<PreviewScreen> {
         _buildComponentCategory('Cards', ds.components.cards, baseRadius),
         _buildComponentCategory('Navigation', ds.components.navigation, baseRadius),
         _buildComponentCategory('Avatars', ds.components.avatars, 100),
-        const SizedBox(height: 16),
-        const Text('Icon Sizes', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 16,
-          runSpacing: 16,
-          children: ds.icons.sizes.entries.map((e) {
-            final size = _parsePx(e.value);
-            return Column(
-              children: [
-                Icon(Icons.star, size: size, color: Colors.grey.shade700),
-                const SizedBox(height: 4),
-                Text('${e.key} (${e.value})', style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
-              ],
-            );
-          }).toList(),
-        ),
+        if (hasProjectIcons) ...[
+          const SizedBox(height: 8),
+          const Text('Project icons', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+          const SizedBox(height: 4),
+          Text(
+            'Icons defined for this product (Icons screen)',
+            style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 16,
+            runSpacing: 16,
+            children: ds.icons.projectIcons.map((e) {
+              final id = IconData(e.codePoint, fontFamily: 'MaterialIcons');
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(id, size: previewIconSize, color: Colors.grey.shade800),
+                  ),
+                  const SizedBox(height: 6),
+                  SizedBox(
+                    width: 88,
+                    child: Text(
+                      e.label,
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: Colors.grey.shade700),
+                    ),
+                  ),
+                ],
+              );
+            }).toList(),
+          ),
+        ],
+        if (hasIconSizes) ...[
+          const SizedBox(height: 16),
+          const Text('Icon Sizes', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 16,
+            runSpacing: 16,
+            children: ds.icons.sizes.entries.map((e) {
+              final size = _parsePx(e.value);
+              return Column(
+                children: [
+                  Icon(Icons.star, size: size, color: Colors.grey.shade700),
+                  const SizedBox(height: 4),
+                  Text('${e.key} (${e.value})', style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                ],
+              );
+            }).toList(),
+          ),
+        ],
       ],
     ));
   }

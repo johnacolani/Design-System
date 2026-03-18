@@ -679,7 +679,22 @@ pw.Widget _buildPdfComponentsFull(models.DesignSystem ds) {
 }
 
 pw.Widget _buildPdfIconsDetailed(models.DesignSystem ds) {
-  return pw.Wrap(spacing: 15, children: ds.icons.sizes.entries.map((e) => pw.Text('${e.key}: ${e.value}', style: pw.TextStyle(fontSize: 10))).toList());
+  final parts = <pw.Widget>[];
+  if (ds.icons.projectIcons.isNotEmpty) {
+    parts.add(pw.Text('Project icons', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)));
+    for (final e in ds.icons.projectIcons) {
+      parts.add(pw.Padding(
+        padding: const pw.EdgeInsets.only(left: 8, top: 2),
+        child: pw.Text('• ${e.label} (0x${e.codePoint.toRadixString(16)})', style: const pw.TextStyle(fontSize: 9)),
+      ));
+    }
+    parts.add(pw.SizedBox(height: 8));
+  }
+  parts.add(pw.Wrap(
+    spacing: 15,
+    children: ds.icons.sizes.entries.map((e) => pw.Text('${e.key}: ${e.value}', style: pw.TextStyle(fontSize: 10))).toList(),
+  ));
+  return pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: parts);
 }
 
 pw.Widget _buildPdfGradientsDetailed(models.DesignSystem ds) {
