@@ -18,73 +18,59 @@ class ColorsScreen extends StatefulWidget {
 class _ColorsScreenState extends State<ColorsScreen> {
   String _selectedCategory = 'primary';
   Color? _editDialogSelectedColor;
-  /// When multi-platform, which platform section is shown (iOS / Android / Web).
-  String? _platformForSection;
+  final GlobalKey<PopupMenuButtonState<String>> _categoryMenuKey = GlobalKey<PopupMenuButtonState<String>>();
+  bool _contentReady = false;
 
-  void _applyColorsUpdate(models.Colors newColors) {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() => _contentReady = true);
+    });
+  }
+
+  void _applyColorsUpdateForGroup(TokenDisplayGroup group, models.Colors newColors) {
     final p = Provider.of<DesignSystemProvider>(context, listen: false);
-    if (_platformForSection != null) {
-      p.updateColorsForPlatform(_platformForSection!, newColors);
-    } else {
+    if (group.platforms.length == 1 && !p.isMultiPlatform) {
       p.updateColors(newColors);
+    } else {
+      p.updateColorsForGroup(group, newColors);
     }
   }
 
-  models.Colors _getEffectiveColors() {
+  models.Colors _getColorsForGroup(TokenDisplayGroup group) {
     final p = Provider.of<DesignSystemProvider>(context, listen: false);
-    if (_platformForSection != null) return p.designSystemForPlatform(_platformForSection!).colors;
-    return p.designSystem.colors;
+    if (group.platforms.length == 1 && !p.isMultiPlatform) return p.designSystem.colors;
+    return p.designSystemForPlatform(group.primaryPlatform).colors;
   }
 
-  Widget _buildPlatformSelector(DesignSystemProvider provider) {
-    final platforms = provider.targetPlatforms;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-        border: Border(bottom: BorderSide(color: Theme.of(context).dividerColor)),
-      ),
-      child: Row(
-        children: [
-          Text('Platform:', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
-          const SizedBox(width: 12),
-          Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: platforms.map((platform) {
-                  final isSelected = _platformForSection == platform;
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: FilterChip(
-                      label: Text(platform),
-                      selected: isSelected,
-                      onSelected: (selected) {
-                        if (selected) setState(() => _platformForSection = platform);
-                      },
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+  String _categoryDisplayName(List<Map<String, dynamic>> categories, String key) {
+    for (final c in categories) {
+      if (c['key'] == key && c['name'] != null) return c['name'] as String;
+    }
+    final fallbacks = <String, String>{
+      'primary': 'Primary Colors', 'semantic': 'Semantic Colors',
+      'blue': 'Blue Palette', 'green': 'Green Palette', 'orange': 'Orange Palette',
+      'purple': 'Purple Palette', 'red': 'Red Palette', 'grey': 'Grey Palette',
+    };
+    return fallbacks[key] ?? key;
   }
 
   @override
   Widget build(BuildContext context) {
-    final provider = Provider.of<DesignSystemProvider>(context);
-    final isMulti = provider.isMultiPlatform;
-    if (isMulti && _platformForSection == null) {
-      _platformForSection = provider.targetPlatforms.first;
+    if (!_contentReady) {
+      return Scaffold(
+        appBar: AppBar(
+          leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.of(context).pop()),
+          title: const Text('Colors'),
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      );
     }
-    final effectiveColors = isMulti && _platformForSection != null
-        ? provider.designSystemForPlatform(_platformForSection!).colors
-        : provider.designSystem.colors;
-    final colors = effectiveColors;
+    final provider = Provider.of<DesignSystemProvider>(context);
+    final groups = provider.designTokenDisplayGroups;
+    final firstGroup = groups.isNotEmpty ? groups.first : null;
+    final colors = firstGroup != null ? _getColorsForGroup(firstGroup) : provider.designSystem.colors;
 
     final categories = [
       {'key': 'primary', 'name': 'Primary Colors', 'color': Colors.deepPurple},
@@ -157,7 +143,12 @@ class _ColorsScreenState extends State<ColorsScreen> {
         title: const Text('Colors'),
         actions: [
           PopupMenuButton<String>(
+            key: _categoryMenuKey,
             onSelected: (category) {
+              if (category == 'add_category') {
+                if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Use color palettes (Blue, Green, etc.) from the menu, or add colors to Primary/Semantic.')));
+                return;
+              }
               setState(() {
                 _selectedCategory = category;
               });
@@ -190,73 +181,176 @@ class _ColorsScreenState extends State<ColorsScreen> {
               ),
             ],
           ),
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () {
-              _showAddColorDialog(context, _selectedCategory);
-            },
-          ),
+          if (firstGroup != null)
+            IconButton(
+              icon: const Icon(Icons.add),
+              onPressed: () => _showAddColorDialog(context, _selectedCategory, firstGroup!),
+            ),
         ],
       ),
       body: ScreenBodyPadding(
         verticalPadding: 0,
-        child: Column(
-          children: [
-            if (isMulti) _buildPlatformSelector(provider),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              color: accentColor.withOpacity(0.1),
-              child: Row(
-                children: [
-                  Container(
-                    width: 4,
-                    height: 24,
-                    decoration: BoxDecoration(
-                      color: accentColor,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
+        child: groups.length >= 2
+            ? _buildTwoColumnLayout(context, provider, groups, categories, accentColor)
+            : _buildSingleColumnLayout(context, firstGroup!, colors, currentCategory, categories, accentColor),
+      ),
+    );
+  }
+
+  Widget _buildSingleColumnLayout(
+    BuildContext context,
+    TokenDisplayGroup group,
+    models.Colors colors,
+    Map<String, dynamic> currentCategory,
+    List<Map<String, dynamic>> categories,
+    Color accentColor,
+  ) {
+    return Column(
+      children: [
+        InkWell(
+          onTap: () => _categoryMenuKey.currentState?.showButtonMenu(),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            color: accentColor.withOpacity(0.1),
+            child: Row(
+              children: [
+                Container(
+                  width: 4,
+                  height: 24,
+                  decoration: BoxDecoration(color: accentColor, borderRadius: BorderRadius.circular(2)),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    _categoryDisplayName(categories, _selectedCategory),
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      categories.firstWhere((c) => c['key'] == _selectedCategory)['name'] as String,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                    ),
+                ),
+                Icon(Icons.arrow_drop_down, color: Colors.grey[700]),
+              ],
+            ),
+          ),
+        ),
+        Expanded(
+          child: currentCategory.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.palette_outlined, size: 64, color: Colors.grey[400]),
+                      const SizedBox(height: 16),
+                      Text('No colors in this category', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.grey[600])),
+                      const SizedBox(height: 8),
+                      ElevatedButton.icon(
+                        onPressed: () => _showAddColorDialog(context, _selectedCategory, group),
+                        icon: const Icon(Icons.add),
+                        label: const Text('Add Color'),
+                      ),
+                    ],
+                  ),
+                )
+              : _buildColorsGroupedByTypeWithGroup(context, currentCategory, _selectedCategory, group),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTwoColumnLayout(
+    BuildContext context,
+    DesignSystemProvider provider,
+    List<TokenDisplayGroup> groups,
+    List<Map<String, dynamic>> categories,
+    Color accentColor,
+  ) {
+    return Column(
+      children: [
+        InkWell(
+          onTap: () => _categoryMenuKey.currentState?.showButtonMenu(),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            color: accentColor.withOpacity(0.1),
+            child: Row(
+              children: [
+                Container(
+                  width: 4,
+                  height: 24,
+                  decoration: BoxDecoration(color: accentColor, borderRadius: BorderRadius.circular(2)),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    _categoryDisplayName(categories, _selectedCategory),
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                Icon(Icons.arrow_drop_down, color: Colors.grey[700]),
+              ],
+            ),
+          ),
+        ),
+        Expanded(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: _buildColorsColumnForGroup(context, groups[0], categories, accentColor)),
+              Container(width: 1, color: Theme.of(context).dividerColor),
+              Expanded(child: _buildColorsColumnForGroup(context, groups[1], categories, accentColor)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildColorsColumnForGroup(
+    BuildContext context,
+    TokenDisplayGroup group,
+    List<Map<String, dynamic>> categories,
+    Color accentColor,
+  ) {
+    final colors = _getColorsForGroup(group);
+    Map<String, dynamic> currentCategory;
+    switch (_selectedCategory) {
+      case 'primary': currentCategory = colors.primary; break;
+      case 'semantic': currentCategory = colors.semantic; break;
+      case 'blue': currentCategory = colors.blue ?? {}; break;
+      case 'green': currentCategory = colors.green ?? {}; break;
+      case 'orange': currentCategory = colors.orange ?? {}; break;
+      case 'purple': currentCategory = colors.purple ?? {}; break;
+      case 'red': currentCategory = colors.red ?? {}; break;
+      case 'grey': currentCategory = colors.grey ?? {}; break;
+      default: currentCategory = {};
+    }
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            group.label,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 12),
+          if (currentCategory.isEmpty)
+            Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.palette_outlined, size: 48, color: Colors.grey[400]),
+                  const SizedBox(height: 12),
+                  Text('No colors', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[600])),
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    onPressed: () => _showAddColorDialog(context, _selectedCategory, group),
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Add Color'),
                   ),
                 ],
               ),
-            ),
-            Expanded(
-              child: currentCategory.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.palette_outlined, size: 64, color: Colors.grey[400]),
-                          const SizedBox(height: 16),
-                          Text(
-                            'No colors in this category',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  color: Colors.grey[600],
-                                ),
-                          ),
-                          const SizedBox(height: 8),
-                          ElevatedButton.icon(
-                            onPressed: () {
-                              _showAddColorDialog(context, _selectedCategory);
-                            },
-                            icon: const Icon(Icons.add),
-                            label: const Text('Add Color'),
-                          ),
-                        ],
-                      ),
-                    )
-                  : _buildColorsGroupedByType(context, currentCategory),
-            ),
-          ],
-        ),
+            )
+          else
+            _buildColorsGroupedByTypeWithGroup(context, currentCategory, _selectedCategory, group),
+        ],
       ),
     );
   }
@@ -265,8 +359,9 @@ class _ColorsScreenState extends State<ColorsScreen> {
     BuildContext context,
     String name,
     dynamic colorData,
-    String category,
-  ) {
+    String category, [
+    TokenDisplayGroup? group,
+  ]) {
     Color color;
     String description = '';
 
@@ -287,7 +382,8 @@ class _ColorsScreenState extends State<ColorsScreen> {
       ),
       child: InkWell(
         onTap: () {
-          _showEditColorDialog(context, name, colorData, category);
+          if (group != null) _showEditColorDialog(context, name, colorData, category, group);
+          else _showEditColorDialog(context, name, colorData, category, Provider.of<DesignSystemProvider>(context, listen: false).designTokenDisplayGroups.first);
         },
         borderRadius: BorderRadius.circular(8),
         child: Padding(
@@ -344,10 +440,11 @@ class _ColorsScreenState extends State<ColorsScreen> {
               PopupMenuButton<String>(
                 icon: const Icon(Icons.more_vert, size: 20),
                 onSelected: (value) {
+                  final g = group ?? Provider.of<DesignSystemProvider>(context, listen: false).designTokenDisplayGroups.first;
                   if (value == 'edit') {
-                    _showEditColorDialog(context, name, colorData, category);
+                    _showEditColorDialog(context, name, colorData, category, g);
                   } else if (value == 'delete') {
-                    _deleteColor(context, name, category);
+                    _deleteColor(context, name, category, g);
                   }
                 },
                 itemBuilder: (context) => [
@@ -457,7 +554,11 @@ class _ColorsScreenState extends State<ColorsScreen> {
     return list;
   }
 
-  Widget _buildColorsGroupedByType(BuildContext context, Map<String, dynamic> category) {
+  Widget _buildColorsGroupedByTypeWithGroup(BuildContext context, Map<String, dynamic> category, String categoryKey, TokenDisplayGroup group) {
+    return _buildColorsGroupedByType(context, category, group);
+  }
+
+  Widget _buildColorsGroupedByType(BuildContext context, Map<String, dynamic> category, [TokenDisplayGroup? group]) {
     final groups = _groupColorsByPrefix(category);
     if (groups.isEmpty) return const SizedBox.shrink();
     final orderedKeys = <String>[];
@@ -488,6 +589,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
               _capitalizeGroupTitle(keys[i]),
               groups[keys[i]]!,
               _selectedCategory,
+              group,
             ),
           ],
         ],
@@ -548,6 +650,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
     String title,
     List<MapEntry<String, dynamic>> entries,
     String category,
+    TokenDisplayGroup? group,
   ) {
     return Container(
       decoration: BoxDecoration(
@@ -566,7 +669,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
             ),
             child: Text(title, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
           ),
-          ...entries.map((e) => _buildColorRow(context, e.key, e.value, category)),
+          ...entries.map((e) => _buildColorRow(context, e.key, e.value, category, group)),
         ],
       ),
     );
@@ -604,8 +707,8 @@ class _ColorsScreenState extends State<ColorsScreen> {
     return luminance > 128 ? Colors.black : Colors.white; // Adjusted threshold for 0-255 range
   }
 
-  void _showAddColorDialog(BuildContext context, String category) {
-    _showAddColorDialogWithColor(context, category, Colors.blue, '', '');
+  void _showAddColorDialog(BuildContext context, String category, TokenDisplayGroup group) {
+    _showAddColorDialogWithColor(context, category, Colors.blue, '', '', group);
   }
 
   void _showAddColorDialogWithColor(
@@ -614,6 +717,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
     Color initialColor,
     String initialName,
     String initialDescription,
+    TokenDisplayGroup group,
   ) {
     showDialog(
       context: context,
@@ -761,6 +865,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
                                   primaryToLight ?? {},
                                   suggestions ?? [],
                                   category,
+                                  group,
                                 );
                               }
                               
@@ -966,6 +1071,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
                         primaryToLight,
                         suggestions,
                         category,
+                        group,
                       );
                       Navigator.of(stContext).pop();
                       
@@ -1040,6 +1146,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
     String name,
     dynamic colorData,
     String category,
+    TokenDisplayGroup group,
   ) {
     _editDialogSelectedColor = colorData is Map && colorData['color'] != null
         ? colorData['color'] as Color
@@ -1159,6 +1266,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
                     newNameController.text,
                     _editDialogSelectedColor ?? Colors.grey,
                     newDescriptionController.text,
+                    group,
                   );
                   Navigator.of(stContext).pop();
                 }
@@ -1180,10 +1288,11 @@ class _ColorsScreenState extends State<ColorsScreen> {
     Map<String, String> primaryToLight,
     List<ColorSuggestion> suggestions,
     String category,
+    TokenDisplayGroup group,
   ) {
     if (!context.mounted) return;
     
-    final colors = _getEffectiveColors();
+    final colors = _getColorsForGroup(group);
     final colorHex = _colorToHex(color);
 
     // Build color data map with all scales
@@ -1223,7 +1332,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
           }
         });
         
-        _applyColorsUpdate(models.Colors(
+        _applyColorsUpdateForGroup(group,models.Colors(
           primary: updatedCategory,
           semantic: colors.semantic,
           blue: colors.blue,
@@ -1265,7 +1374,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
           }
         });
         
-        _applyColorsUpdate(models.Colors(
+        _applyColorsUpdateForGroup(group,models.Colors(
           primary: colors.primary,
           semantic: updatedCategory,
           blue: colors.blue,
@@ -1282,7 +1391,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
         break;
       default:
         // For other categories, just add the color
-        _addColor(context, category, name, color, description);
+        _addColor(context, category, name, color, description, group);
         return;
     }
 
@@ -1303,9 +1412,10 @@ class _ColorsScreenState extends State<ColorsScreen> {
     String name,
     Color color,
     String description,
+    TokenDisplayGroup group,
   ) {
     if (!context.mounted) return;
-    final colors = _getEffectiveColors();
+    final colors = _getColorsForGroup(group);
     final colorHex = _colorToHex(color);
 
     final colorData = {
@@ -1319,7 +1429,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
       case 'primary':
         updatedCategory = Map<String, dynamic>.from(colors.primary);
         updatedCategory[name] = colorData;
-        _applyColorsUpdate(models.Colors(
+        _applyColorsUpdateForGroup(group,models.Colors(
           primary: updatedCategory,
           semantic: colors.semantic,
           blue: colors.blue,
@@ -1337,7 +1447,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
       case 'semantic':
         updatedCategory = Map<String, dynamic>.from(colors.semantic);
         updatedCategory[name] = colorData;
-        _applyColorsUpdate(models.Colors(
+        _applyColorsUpdateForGroup(group,models.Colors(
           primary: colors.primary,
           semantic: updatedCategory,
           blue: colors.blue,
@@ -1359,7 +1469,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
         if (category == 'blue') {
           final tempMap = Map<String, dynamic>.from(colors.blue ?? {});
           tempMap[name] = colorData;
-          _applyColorsUpdate(models.Colors(
+          _applyColorsUpdateForGroup(group,models.Colors(
             primary: colors.primary,
             semantic: colors.semantic,
             blue: tempMap,
@@ -1376,7 +1486,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
         } else if (category == 'green') {
           final tempMap = Map<String, dynamic>.from(colors.green ?? {});
           tempMap[name] = colorData;
-          _applyColorsUpdate(models.Colors(
+          _applyColorsUpdateForGroup(group,models.Colors(
             primary: colors.primary,
             semantic: colors.semantic,
             blue: colors.blue,
@@ -1393,7 +1503,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
         } else if (category == 'orange') {
           final tempMap = Map<String, dynamic>.from(colors.orange ?? {});
           tempMap[name] = colorData;
-          _applyColorsUpdate(models.Colors(
+          _applyColorsUpdateForGroup(group,models.Colors(
             primary: colors.primary,
             semantic: colors.semantic,
             blue: colors.blue,
@@ -1410,7 +1520,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
         } else if (category == 'purple') {
           final tempMap = Map<String, dynamic>.from(colors.purple ?? {});
           tempMap[name] = colorData;
-          _applyColorsUpdate(models.Colors(
+          _applyColorsUpdateForGroup(group,models.Colors(
             primary: colors.primary,
             semantic: colors.semantic,
             blue: colors.blue,
@@ -1427,7 +1537,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
         } else if (category == 'red') {
           final tempMap = Map<String, dynamic>.from(colors.red ?? {});
           tempMap[name] = colorData;
-          _applyColorsUpdate(models.Colors(
+          _applyColorsUpdateForGroup(group,models.Colors(
             primary: colors.primary,
             semantic: colors.semantic,
             blue: colors.blue,
@@ -1444,7 +1554,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
         } else if (category == 'grey') {
           final tempMap = Map<String, dynamic>.from(colors.grey ?? {});
           tempMap[name] = colorData;
-          _applyColorsUpdate(models.Colors(
+          _applyColorsUpdateForGroup(group,models.Colors(
             primary: colors.primary,
             semantic: colors.semantic,
             blue: colors.blue,
@@ -1479,9 +1589,10 @@ class _ColorsScreenState extends State<ColorsScreen> {
     String newName,
     Color color,
     String description,
+    TokenDisplayGroup group,
   ) {
     if (!context.mounted) return;
-    final colors = _getEffectiveColors();
+    final colors = _getColorsForGroup(group);
     final colorHex = _colorToHex(color);
 
     final colorData = {
@@ -1498,7 +1609,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
           updatedCategory.remove(oldName);
         }
         updatedCategory[newName] = colorData;
-        _applyColorsUpdate(models.Colors(
+        _applyColorsUpdateForGroup(group,models.Colors(
           primary: updatedCategory,
           semantic: colors.semantic,
           blue: colors.blue,
@@ -1519,7 +1630,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
           updatedCategory.remove(oldName);
         }
         updatedCategory[newName] = colorData;
-        _applyColorsUpdate(models.Colors(
+        _applyColorsUpdateForGroup(group,models.Colors(
           primary: colors.primary,
           semantic: updatedCategory,
           blue: colors.blue,
@@ -1543,7 +1654,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
             tempMap.remove(oldName);
           }
           tempMap[newName] = colorData;
-          _applyColorsUpdate(models.Colors(
+          _applyColorsUpdateForGroup(group,models.Colors(
             primary: colors.primary,
             semantic: colors.semantic,
             blue: tempMap,
@@ -1563,7 +1674,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
             tempMap.remove(oldName);
           }
           tempMap[newName] = colorData;
-          _applyColorsUpdate(models.Colors(
+          _applyColorsUpdateForGroup(group,models.Colors(
             primary: colors.primary,
             semantic: colors.semantic,
             blue: colors.blue,
@@ -1583,7 +1694,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
             tempMap.remove(oldName);
           }
           tempMap[newName] = colorData;
-          _applyColorsUpdate(models.Colors(
+          _applyColorsUpdateForGroup(group,models.Colors(
             primary: colors.primary,
             semantic: colors.semantic,
             blue: colors.blue,
@@ -1603,7 +1714,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
             tempMap.remove(oldName);
           }
           tempMap[newName] = colorData;
-          _applyColorsUpdate(models.Colors(
+          _applyColorsUpdateForGroup(group,models.Colors(
             primary: colors.primary,
             semantic: colors.semantic,
             blue: colors.blue,
@@ -1623,7 +1734,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
             tempMap.remove(oldName);
           }
           tempMap[newName] = colorData;
-          _applyColorsUpdate(models.Colors(
+          _applyColorsUpdateForGroup(group,models.Colors(
             primary: colors.primary,
             semantic: colors.semantic,
             blue: colors.blue,
@@ -1643,7 +1754,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
             tempMap.remove(oldName);
           }
           tempMap[newName] = colorData;
-          _applyColorsUpdate(models.Colors(
+          _applyColorsUpdateForGroup(group,models.Colors(
             primary: colors.primary,
             semantic: colors.semantic,
             blue: colors.blue,
@@ -1671,7 +1782,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
     }
   }
 
-  void _deleteColor(BuildContext context, String name, String category) {
+  void _deleteColor(BuildContext context, String name, String category, TokenDisplayGroup group) {
     if (!context.mounted) return;
     showDialog(
       context: context,
@@ -1688,14 +1799,14 @@ class _ColorsScreenState extends State<ColorsScreen> {
               if (!context.mounted) return;
               Navigator.of(dialogContext).pop();
               
-              final colors = _getEffectiveColors();
+              final colors = _getColorsForGroup(group);
 
               Map<String, dynamic> updatedCategory;
               switch (category) {
                 case 'primary':
                   updatedCategory = Map<String, dynamic>.from(colors.primary);
                   updatedCategory.remove(name);
-                  _applyColorsUpdate(models.Colors(
+                  _applyColorsUpdateForGroup(group,models.Colors(
                     primary: updatedCategory,
                     semantic: colors.semantic,
                     blue: colors.blue,
@@ -1713,7 +1824,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
                 case 'semantic':
                   updatedCategory = Map<String, dynamic>.from(colors.semantic);
                   updatedCategory.remove(name);
-                  _applyColorsUpdate(models.Colors(
+                  _applyColorsUpdateForGroup(group,models.Colors(
                     primary: colors.primary,
                     semantic: updatedCategory,
                     blue: colors.blue,
@@ -1734,7 +1845,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
                   if (category == 'blue') {
                     final tempMap = Map<String, dynamic>.from(colors.blue ?? {});
                     tempMap.remove(name);
-                    _applyColorsUpdate(models.Colors(
+                    _applyColorsUpdateForGroup(group,models.Colors(
                       primary: colors.primary,
                       semantic: colors.semantic,
                       blue: tempMap,
@@ -1751,7 +1862,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
                   } else if (category == 'green') {
                     final tempMap = Map<String, dynamic>.from(colors.green ?? {});
                     tempMap.remove(name);
-                    _applyColorsUpdate(models.Colors(
+                    _applyColorsUpdateForGroup(group,models.Colors(
                       primary: colors.primary,
                       semantic: colors.semantic,
                       blue: colors.blue,
@@ -1768,7 +1879,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
                   } else if (category == 'orange') {
                     final tempMap = Map<String, dynamic>.from(colors.orange ?? {});
                     tempMap.remove(name);
-                    _applyColorsUpdate(models.Colors(
+                    _applyColorsUpdateForGroup(group,models.Colors(
                       primary: colors.primary,
                       semantic: colors.semantic,
                       blue: colors.blue,
@@ -1785,7 +1896,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
                   } else if (category == 'purple') {
                     final tempMap = Map<String, dynamic>.from(colors.purple ?? {});
                     tempMap.remove(name);
-                    _applyColorsUpdate(models.Colors(
+                    _applyColorsUpdateForGroup(group,models.Colors(
                       primary: colors.primary,
                       semantic: colors.semantic,
                       blue: colors.blue,
@@ -1802,7 +1913,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
                   } else if (category == 'red') {
                     final tempMap = Map<String, dynamic>.from(colors.red ?? {});
                     tempMap.remove(name);
-                    _applyColorsUpdate(models.Colors(
+                    _applyColorsUpdateForGroup(group,models.Colors(
                       primary: colors.primary,
                       semantic: colors.semantic,
                       blue: colors.blue,
@@ -1819,7 +1930,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
                   } else if (category == 'grey') {
                     final tempMap = Map<String, dynamic>.from(colors.grey ?? {});
                     tempMap.remove(name);
-                    _applyColorsUpdate(models.Colors(
+                    _applyColorsUpdateForGroup(group,models.Colors(
                       primary: colors.primary,
                       semantic: colors.semantic,
                       blue: colors.blue,

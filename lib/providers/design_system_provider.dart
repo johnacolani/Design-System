@@ -4,6 +4,14 @@ import '../data/demo_design_systems.dart';
 import '../models/design_system.dart' as models;
 import '../services/project_service.dart';
 
+/// Groups platforms for design token UI: single column for one platform, or iOS vs Android & Web (Material).
+class TokenDisplayGroup {
+  const TokenDisplayGroup({required this.label, required this.platforms});
+  final String label;
+  final List<String> platforms;
+  String get primaryPlatform => platforms.isNotEmpty ? platforms.first : 'web';
+}
+
 class DesignSystemProvider extends ChangeNotifier {
   models.DesignSystem _designSystem = models.DesignSystem.empty();
   bool _hasProject = false;
@@ -34,6 +42,46 @@ class DesignSystemProvider extends ChangeNotifier {
       _designSystem.platformOverrides != null && _designSystem.platformOverrides!.containsKey(platform)
           ? _designSystem.withPlatformOverride(platform)
           : _designSystem;
+
+  /// For design token screens: one group = one column; two groups = iOS (Cupertino) + Android & Web (Material).
+  List<TokenDisplayGroup> get designTokenDisplayGroups {
+    final p = _designSystem.targetPlatforms;
+    if (p.isEmpty) return [const TokenDisplayGroup(label: 'Web', platforms: ['web'])];
+    if (p.length == 1) {
+      final label = p.first == 'ios' ? 'iOS' : p.first == 'android' ? 'Android' : 'Web';
+      return [TokenDisplayGroup(label: label, platforms: p)];
+    }
+    final ios = p.where((e) => e.toLowerCase() == 'ios').toList();
+    final material = p.where((e) => e.toLowerCase() == 'android' || e.toLowerCase() == 'web').toList();
+    if (ios.isEmpty) {
+      final label = material.length > 1 ? 'Android & Web' : (material.first == 'android' ? 'Android' : 'Web');
+      return [TokenDisplayGroup(label: label, platforms: material)];
+    }
+    if (material.isEmpty) return [TokenDisplayGroup(label: 'iOS', platforms: ios)];
+    final materialLabel = material.length > 1 ? 'Android & Web (Material)' : (material.first == 'android' ? 'Android (Material)' : 'Web (Material)');
+    return [
+      const TokenDisplayGroup(label: 'iOS (Cupertino)', platforms: ['ios']),
+      TokenDisplayGroup(label: materialLabel, platforms: material),
+    ];
+  }
+
+  void updateColorsForGroup(TokenDisplayGroup group, models.Colors colors) {
+    for (final platform in group.platforms) {
+      updateColorsForPlatform(platform, colors);
+    }
+  }
+
+  void updateTypographyForGroup(TokenDisplayGroup group, models.Typography typography) {
+    for (final platform in group.platforms) {
+      updateTypographyForPlatform(platform, typography);
+    }
+  }
+
+  void updateIconsForGroup(TokenDisplayGroup group, models.Icons icons) {
+    for (final platform in group.platforms) {
+      updateIconsForPlatform(platform, icons);
+    }
+  }
 
   void _setPlatformOverride(String platform, models.PlatformOverride override) {
     _designSystem = _designSystem.copyWith(

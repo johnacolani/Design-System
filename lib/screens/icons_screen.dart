@@ -13,49 +13,49 @@ class IconsScreen extends StatefulWidget {
 }
 
 class _IconsScreenState extends State<IconsScreen> {
-  String? _platformForSection;
+  TokenDisplayGroup? _selectedGroup;
+  bool _contentReady = false;
 
-  void _applyIconsUpdate(models.Icons icons) {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() => _contentReady = true);
+    });
+  }
+
+  void _applyIconsUpdateForGroup(TokenDisplayGroup group, models.Icons icons) {
     final p = Provider.of<DesignSystemProvider>(context, listen: false);
-    if (_platformForSection != null) {
-      p.updateIconsForPlatform(_platformForSection!, icons);
-    } else {
+    if (group.platforms.length == 1 && !p.isMultiPlatform) {
       final d = p.designSystem;
       p.updateDesignSystem(models.DesignSystem(
-        name: d.name,
-        version: d.version,
-        description: d.description,
-        created: d.created,
-        colors: d.colors,
-        typography: d.typography,
-        spacing: d.spacing,
-        borderRadius: d.borderRadius,
-        shadows: d.shadows,
-        effects: d.effects,
-        components: d.components,
-        grid: d.grid,
-        icons: icons,
-        gradients: d.gradients,
-        roles: d.roles,
-        semanticTokens: d.semanticTokens,
-        motionTokens: d.motionTokens,
-        lastModified: d.lastModified,
-        versionHistory: d.versionHistory,
-        componentVersions: d.componentVersions,
-        targetPlatforms: d.targetPlatforms,
-        platformOverrides: d.platformOverrides,
+        name: d.name, version: d.version, description: d.description, created: d.created,
+        colors: d.colors, typography: d.typography, spacing: d.spacing, borderRadius: d.borderRadius,
+        shadows: d.shadows, effects: d.effects, components: d.components, grid: d.grid,
+        icons: icons, gradients: d.gradients, roles: d.roles, semanticTokens: d.semanticTokens,
+        motionTokens: d.motionTokens, lastModified: d.lastModified, versionHistory: d.versionHistory,
+        componentVersions: d.componentVersions, targetPlatforms: d.targetPlatforms, platformOverrides: d.platformOverrides,
       ));
+    } else {
+      p.updateIconsForGroup(group, icons);
     }
   }
 
-  models.Icons _getEffectiveIcons() {
+  models.Icons _getIconsForGroup(TokenDisplayGroup group) {
     final p = Provider.of<DesignSystemProvider>(context, listen: false);
-    if (_platformForSection != null) return p.designSystemForPlatform(_platformForSection!).icons;
-    return p.designSystem.icons;
+    if (group.platforms.length == 1 && !p.isMultiPlatform) return p.designSystem.icons;
+    return p.designSystemForPlatform(group.primaryPlatform).icons;
   }
 
-  Widget _buildPlatformSelector(DesignSystemProvider provider) {
-    final platforms = provider.targetPlatforms;
+  TokenDisplayGroup _effectiveGroup(BuildContext context) {
+    final p = Provider.of<DesignSystemProvider>(context, listen: false);
+    final groups = p.designTokenDisplayGroups;
+    return _selectedGroup ?? groups.first;
+  }
+
+  Widget _buildGroupSelector(DesignSystemProvider provider) {
+    final groups = provider.designTokenDisplayGroups;
+    if (groups.length < 2) return const SizedBox.shrink();
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
@@ -67,22 +67,18 @@ class _IconsScreenState extends State<IconsScreen> {
           Text('Platform:', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
           const SizedBox(width: 12),
           Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: platforms.map((platform) {
-                  final isSelected = _platformForSection == platform;
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: FilterChip(
-                      label: Text(platform),
-                      selected: isSelected,
-                      onSelected: (selected) { if (selected) setState(() => _platformForSection = platform); },
-                    ),
-                  );
-                }).toList(),
-              ),
+            child: Row(
+              children: groups.map((g) {
+                final isSelected = _selectedGroup == g;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: FilterChip(
+                    label: Text(g.label),
+                    selected: isSelected,
+                    onSelected: (selected) { if (selected) setState(() => _selectedGroup = g); },
+                  ),
+                );
+              }).toList(),
             ),
           ),
         ],
@@ -92,10 +88,16 @@ class _IconsScreenState extends State<IconsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_contentReady) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Icons')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
     final provider = Provider.of<DesignSystemProvider>(context);
-    final isMulti = provider.isMultiPlatform;
-    if (isMulti && _platformForSection == null) _platformForSection = provider.targetPlatforms.first;
-    final icons = isMulti && _platformForSection != null ? _getEffectiveIcons() : provider.designSystem.icons;
+    final groups = provider.designTokenDisplayGroups;
+    if (groups.isNotEmpty && _selectedGroup == null) _selectedGroup = groups.first;
+    final icons = _getIconsForGroup(_effectiveGroup(context));
 
     return Scaffold(
       appBar: AppBar(
@@ -114,7 +116,7 @@ class _IconsScreenState extends State<IconsScreen> {
         child: ListView(
           padding: const EdgeInsets.symmetric(vertical: 16),
           children: [
-          if (isMulti) _buildPlatformSelector(provider),
+          _buildGroupSelector(provider),
           Text(
             'Project icons',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
@@ -383,7 +385,7 @@ class _IconsScreenState extends State<IconsScreen> {
   }
 
   void _removeProjectIcon(BuildContext context, String id) {
-    final i = _getEffectiveIcons();
+    final i = _getIconsForGroup(_effectiveGroup(context));
     _applyIcons(context, models.Icons(
       sizes: i.sizes,
       projectIcons: i.projectIcons.where((e) => e.id != id).toList(),
@@ -391,7 +393,7 @@ class _IconsScreenState extends State<IconsScreen> {
   }
 
   void _applyIcons(BuildContext context, models.Icons icons) {
-    _applyIconsUpdate(icons);
+    _applyIconsUpdateForGroup(_effectiveGroup(context), icons);
   }
 
   void _showAddIconSizeDialog(BuildContext context) {
@@ -430,10 +432,10 @@ class _IconsScreenState extends State<IconsScreen> {
           ElevatedButton(
             onPressed: () {
               if (nameController.text.isNotEmpty && sizeController.text.isNotEmpty) {
-                final icons = _getEffectiveIcons();
+                final icons = _getIconsForGroup(_effectiveGroup(context));
                 final updatedSizes = Map<String, String>.from(icons.sizes);
                 updatedSizes[nameController.text] = sizeController.text;
-                _applyIconsUpdate(models.Icons(sizes: updatedSizes, projectIcons: icons.projectIcons));
+                _applyIconsUpdateForGroup(_effectiveGroup(context),models.Icons(sizes: updatedSizes, projectIcons: icons.projectIcons));
                 Navigator.of(context).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -486,11 +488,11 @@ class _IconsScreenState extends State<IconsScreen> {
           ElevatedButton(
             onPressed: () {
               if (nameController.text.isNotEmpty && sizeController.text.isNotEmpty) {
-                final icons = _getEffectiveIcons();
+                final icons = _getIconsForGroup(_effectiveGroup(context));
                 final updatedSizes = Map<String, String>.from(icons.sizes);
                 if (name != nameController.text) updatedSizes.remove(name);
                 updatedSizes[nameController.text] = sizeController.text;
-                _applyIconsUpdate(models.Icons(sizes: updatedSizes, projectIcons: icons.projectIcons));
+                _applyIconsUpdateForGroup(_effectiveGroup(context),models.Icons(sizes: updatedSizes, projectIcons: icons.projectIcons));
                 Navigator.of(context).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
@@ -520,10 +522,10 @@ class _IconsScreenState extends State<IconsScreen> {
           ),
           ElevatedButton(
             onPressed: () {
-              final icons = _getEffectiveIcons();
+              final icons = _getIconsForGroup(_effectiveGroup(context));
               final updatedSizes = Map<String, String>.from(icons.sizes);
               updatedSizes.remove(name);
-              _applyIconsUpdate(models.Icons(sizes: updatedSizes, projectIcons: icons.projectIcons));
+              _applyIconsUpdateForGroup(_effectiveGroup(context),models.Icons(sizes: updatedSizes, projectIcons: icons.projectIcons));
               Navigator.of(context).pop();
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
