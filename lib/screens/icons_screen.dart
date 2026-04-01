@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/design_system_provider.dart';
 import '../models/design_system.dart' as models;
 import '../utils/screen_body_padding.dart';
+import '../widgets/dynamic_material_icon.dart';
 import '../widgets/project_icon_picker_page.dart';
 
 class IconsScreen extends StatefulWidget {
@@ -164,10 +165,9 @@ class _IconsScreenState extends State<IconsScreen> {
               spacing: 10,
               runSpacing: 10,
               children: icons.projectIcons.map((e) {
-                final iconData = IconData(e.codePoint, fontFamily: 'MaterialIcons');
                 final md = _parseSizePx(icons.sizes['md'] ?? '24px');
                 return Chip(
-                  avatar: Icon(iconData, size: md * 0.85),
+                  avatar: DynamicMaterialIcon(codePoint: e.codePoint, size: md * 0.85),
                   label: SizedBox(
                     width: 120,
                     child: Text(

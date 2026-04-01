@@ -12,6 +12,7 @@ import '../models/design_system.dart' as models;
 import '../models/design_system_wrapper.dart';
 import '../utils/design_system_pdf_builder.dart';
 import '../utils/screen_body_padding.dart';
+import '../widgets/dynamic_material_icon.dart';
 
 class PreviewScreen extends StatefulWidget {
   const PreviewScreen({super.key});
@@ -1703,7 +1704,6 @@ class _PreviewScreenState extends State<PreviewScreen> {
             spacing: 16,
             runSpacing: 16,
             children: ds.icons.projectIcons.map((e) {
-              final id = IconData(e.codePoint, fontFamily: 'MaterialIcons');
               return Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -1714,7 +1714,11 @@ class _PreviewScreenState extends State<PreviewScreen> {
                       border: Border.all(color: Colors.grey.shade300),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Icon(id, size: previewIconSize, color: Colors.grey.shade800),
+                    child: DynamicMaterialIcon(
+                      codePoint: e.codePoint,
+                      size: previewIconSize,
+                      color: Colors.grey.shade800,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   SizedBox(
