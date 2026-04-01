@@ -671,6 +671,55 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Widget _buildStep3ColorScheme() {
     final width = MediaQuery.sizeOf(context).width;
     final horizontalPadding = (width * 0.20).clamp(24.0, double.infinity);
+    final useSideBySide = width >= 880;
+
+    final schemeCards = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildSchemeOption(
+          'Monochromatic',
+          'Single color, varied shades. Minimalist.',
+          Icons.gradient,
+          Colors.blue,
+        ),
+        const SizedBox(height: 10),
+        _buildSchemeOption(
+          'Analogous',
+          'Neighboring hues on the wheel. Harmonious.',
+          Icons.linear_scale,
+          Colors.green,
+        ),
+        const SizedBox(height: 10),
+        _buildSchemeOption(
+          'Complementary',
+          'Opposite on the wheel. Bold contrast.',
+          Icons.compare_arrows,
+          Colors.orange,
+        ),
+        const SizedBox(height: 10),
+        _buildSchemeOption(
+          'Triadic',
+          'Three evenly spaced. Vibrant.',
+          Icons.change_circle,
+          Colors.purple,
+        ),
+        const SizedBox(height: 10),
+        _buildSchemeOption(
+          'Split Complementary',
+          'Base plus two near the complement. Balanced.',
+          Icons.splitscreen,
+          Colors.teal,
+        ),
+        const SizedBox(height: 10),
+        _buildSchemeOption(
+          'Tetradic',
+          'Four colors in a rectangle. Rich variety.',
+          Icons.grid_4x4,
+          Colors.pink,
+        ),
+      ],
+    );
+
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -711,49 +760,22 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       color: Colors.grey[600],
                     ),
               ),
-              const SizedBox(height: 32),
-              _buildSchemeOption(
-                'Monochromatic',
-                'Single color with different shades and tints. Clean and minimalist.',
-                Icons.gradient,
-                Colors.blue,
-              ),
-              const SizedBox(height: 16),
-              _buildSchemeOption(
-                'Analogous',
-                'Colors next to each other on the color wheel. Harmonious and soothing.',
-                Icons.linear_scale,
-                Colors.green,
-              ),
-              const SizedBox(height: 16),
-              _buildSchemeOption(
-                'Complementary',
-                'Opposite colors on the color wheel. Bold and eye-catching.',
-                Icons.compare_arrows,
-                Colors.orange,
-              ),
-              const SizedBox(height: 16),
-              _buildSchemeOption(
-                'Triadic',
-                'Three evenly spaced colors. Vibrant and energetic.',
-                Icons.change_circle,
-                Colors.purple,
-              ),
-              const SizedBox(height: 16),
-              _buildSchemeOption(
-                'Split Complementary',
-                'Base color with two adjacent to its complement. Balanced contrast.',
-                Icons.splitscreen,
-                Colors.teal,
-              ),
-              const SizedBox(height: 16),
-              _buildSchemeOption(
-                'Tetradic',
-                'Four colors forming a rectangle. Rich and diverse palette.',
-                Icons.grid_4x4,
-                Colors.pink,
-              ),
-              const SizedBox(height: 48),
+              const SizedBox(height: 24),
+              if (useSideBySide)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(flex: 5, child: schemeCards),
+                    const SizedBox(width: 24),
+                    Expanded(flex: 4, child: _buildColorWheelReference(context)),
+                  ],
+                )
+              else ...[
+                schemeCards,
+                const SizedBox(height: 24),
+                _buildColorWheelReference(context),
+              ],
+              const SizedBox(height: 40),
               Row(
                 children: [
                   Expanded(
@@ -792,6 +814,44 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 
+  /// Infographic: how each harmony appears on the color wheel (assets/images/colorwheel.png).
+  Widget _buildColorWheelReference(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Color schemes on the wheel',
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: Colors.grey.shade800,
+              ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Match each option to how colors sit on the wheel.',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Colors.grey[600],
+                height: 1.35,
+              ),
+        ),
+        const SizedBox(height: 12),
+        Material(
+          color: Colors.white,
+          elevation: 1,
+          shadowColor: Colors.black.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(14),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(14),
+            child: Image.asset(
+              'assets/images/colorwheel.png',
+              fit: BoxFit.contain,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   /// Sample colors for each scheme type (for the "Choose your color scheme" preview swatches).
   List<Color> _sampleColorsForScheme(String schemeTitle, Color baseColor) {
     switch (schemeTitle) {
@@ -821,9 +881,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       },
       borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.1) : Colors.white,
+          color: isSelected ? color.withValues(alpha: 0.1) : Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected ? color : Colors.grey[300]!,
@@ -831,49 +891,55 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ),
         ),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
+                color: color.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(icon, color: color),
+              child: Icon(icon, color: color, size: 22),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                      fontSize: 16,
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                      fontSize: 14.5,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 2),
                   Text(
                     description,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: 11,
+                      height: 1.25,
                       color: Colors.grey[600],
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  // Sample color swatches for this scheme
+                  const SizedBox(height: 6),
                   Row(
                     children: sampleColors.take(5).map((c) => Container(
-                      margin: const EdgeInsets.only(right: 6),
-                      width: 20,
-                      height: 20,
+                      margin: const EdgeInsets.only(right: 4),
+                      width: 14,
+                      height: 14,
                       decoration: BoxDecoration(
                         color: c,
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.white, width: 1),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.15),
+                            color: Colors.black.withValues(alpha: 0.12),
                             blurRadius: 2,
                             offset: const Offset(0, 1),
                           ),
@@ -885,7 +951,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               ),
             ),
             if (isSelected)
-              Icon(Icons.check_circle, color: color),
+              Padding(
+                padding: const EdgeInsets.only(left: 4),
+                child: Icon(Icons.check_circle, color: color, size: 22),
+              ),
           ],
         ),
       ),
