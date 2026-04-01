@@ -14,7 +14,7 @@ firebase login
 
 ### Step 3: Build Flutter Web App
 ```bash
-flutter build web --release
+flutter build web --release --no-tree-shake-icons
 ```
 
 This creates the production build in `build/web/` directory.
@@ -44,7 +44,7 @@ firebase deploy --only hosting
 
 ```bash
 # Build Flutter web app for production
-flutter build web --release
+flutter build web --release --no-tree-shake-icons
 
 # This will create optimized files in build/web/
 ```
@@ -79,7 +79,7 @@ When you make changes:
 
 ```bash
 # 1. Build again
-flutter build web --release
+flutter build web --release --no-tree-shake-icons
 
 # 2. Deploy
 firebase deploy --only hosting
@@ -112,7 +112,7 @@ npm install -g firebase-tools
 ### Error: "Build failed"
 - Check Flutter version: `flutter --version`
 - Clean build: `flutter clean && flutter pub get`
-- Try building again: `flutter build web --release`
+- Try building again: `flutter build web --release --no-tree-shake-icons`
 
 ### Error: "Deploy failed"
 - Check Firebase login: `firebase login`
@@ -126,7 +126,7 @@ Create a file `deploy.sh` (or `deploy.bat` for Windows):
 ```bash
 #!/bin/bash
 echo "Building Flutter web app..."
-flutter build web --release
+flutter build web --release --no-tree-shake-icons
 
 echo "Deploying to Firebase Hosting..."
 firebase deploy --only hosting
@@ -138,7 +138,7 @@ Windows batch file (`deploy.bat`):
 ```batch
 @echo off
 echo Building Flutter web app...
-flutter build web --release
+flutter build web --release --no-tree-shake-icons
 
 echo Deploying to Firebase Hosting...
 firebase deploy --only hosting
@@ -158,7 +158,7 @@ echo Deployment complete!
 **Ready to deploy?** Run these commands:
 
 ```bash
-flutter build web --release
+flutter build web --release --no-tree-shake-icons
 firebase deploy --only hosting
 ```
 

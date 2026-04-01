@@ -261,46 +261,15 @@ class ProfileScreen extends StatelessWidget {
               ],
             ),
 
-            // Logout button
+            // Sign out — prominent, theme-aware card button
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: () {
-                    userProvider.logout();
-                    Navigator.of(context).pop();
-                  },
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      color: Colors.red.shade50,
-                      border: Border.all(color: Colors.red.shade200, width: 1),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.logout_rounded,
-                          size: 20,
-                          color: Colors.red.shade700,
-                        ),
-                        const SizedBox(width: 10),
-                        Text(
-                          'Log out',
-                          style: TextStyle(
-                            color: Colors.red.shade700,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+              child: _buildSignOutButton(
+                context,
+                onTap: () {
+                  userProvider.logout();
+                  Navigator.of(context).pop();
+                },
               ),
             ),
           ],
@@ -384,6 +353,115 @@ class ProfileScreen extends StatelessWidget {
       subtitle: subtitle != null ? Text(subtitle) : null,
       trailing: trailing,
       onTap: onTap,
+    );
+  }
+
+  Widget _buildSignOutButton(
+    BuildContext context, {
+    required VoidCallback onTap,
+  }) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    final radius = BorderRadius.circular(18);
+
+    return Semantics(
+      button: true,
+      label: 'Sign out',
+      child: SizedBox(
+        width: double.infinity,
+        child: Material(
+          color: Colors.transparent,
+          clipBehavior: Clip.none,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: radius,
+            splashColor: cs.error.withValues(alpha: 0.14),
+            highlightColor: cs.error.withValues(alpha: 0.08),
+            child: Ink(
+              decoration: BoxDecoration(
+                borderRadius: radius,
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color.lerp(cs.errorContainer, cs.surface, 0.12) ?? cs.errorContainer,
+                    cs.errorContainer,
+                  ],
+                ),
+                border: Border.all(
+                  color: cs.error.withValues(alpha: 0.22),
+                  width: 1.2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: cs.error.withValues(alpha: 0.16),
+                    blurRadius: 22,
+                    offset: const Offset(0, 8),
+                    spreadRadius: -6,
+                  ),
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 14,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(11),
+                      decoration: BoxDecoration(
+                        color: cs.surface.withValues(alpha: 0.96),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: cs.error.withValues(alpha: 0.18),
+                            blurRadius: 12,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        Icons.logout_rounded,
+                        size: 22,
+                        color: cs.error,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Sign out',
+                          style: tt.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: cs.onErrorContainer,
+                            letterSpacing: 0.15,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          'End your session on this device',
+                          textAlign: TextAlign.start,
+                          style: tt.bodySmall?.copyWith(
+                            color: cs.onErrorContainer.withValues(alpha: 0.72),
+                            height: 1.25,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 

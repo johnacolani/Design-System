@@ -713,8 +713,8 @@ flutter build apk --release
 # iOS
 flutter build ios --release
 
-# Web
-flutter build web --release
+# Web (use --no-tree-shake-icons when deploying to Firebase Hosting; see WEB_BUILD.md)
+flutter build web --release --no-tree-shake-icons
 
 # Windows
 flutter build windows --release

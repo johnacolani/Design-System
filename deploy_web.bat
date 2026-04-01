@@ -22,7 +22,7 @@ call flutter clean
 
 echo.
 echo Building Flutter web...
-call flutter build web --release
+call flutter build web --release --no-tree-shake-icons
 
 echo.
 echo Deploying to Firebase Hosting...
