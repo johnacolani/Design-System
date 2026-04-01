@@ -1,13 +1,21 @@
+import 'package:flutter/foundation.dart'
+    show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:google_sign_in_all_platforms/google_sign_in_all_platforms.dart'
+    as gsi_desktop;
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../config/google_oauth_desktop.dart';
 import '../models/user.dart';
 import '../services/firebase_service.dart';
 
 class UserProvider extends ChangeNotifier {
   User? _currentUser;
   bool _isLoading = false;
+
+  /// Lazily created for Windows/Linux OAuth (browser + localhost callback).
+  gsi_desktop.GoogleSignIn? _desktopGoogleSignIn;
 
   User? get currentUser => _currentUser;
   /// True when we have a non-guest user in memory. Avoids touching Firebase during build
@@ -17,6 +25,26 @@ class UserProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isPremium => _currentUser?.isPremium ?? false;
   UserRole get userRole => _currentUser?.role ?? UserRole.free;
+
+  /// Official [GoogleSignIn] supports Android, iOS, macOS, web only — not Windows/Linux.
+  bool get _useGoogleAuthDesktop =>
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.windows ||
+          defaultTargetPlatform == TargetPlatform.linux);
+
+  gsi_desktop.GoogleSignIn _googleSignInDesktopInstance() {
+    return _desktopGoogleSignIn ??= gsi_desktop.GoogleSignIn(
+      params: gsi_desktop.GoogleSignInParams(
+        clientId: GoogleOAuthDesktopConfig.clientId,
+        clientSecret: GoogleOAuthDesktopConfig.clientSecret,
+        scopes: const [
+          'openid',
+          'https://www.googleapis.com/auth/userinfo.profile',
+          'https://www.googleapis.com/auth/userinfo.email',
+        ],
+      ),
+    );
+  }
 
   /// Initialize: start as guest, then restore session if Firebase has a saved user.
   void initialize() {
@@ -104,100 +132,132 @@ class UserProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Windows / Linux: OAuth via browser + localhost (see [GoogleOAuthDesktopConfig]).
+  Future<void> _signInWithGoogleDesktop() async {
+    if (!GoogleOAuthDesktopConfig.isConfigured) {
+      throw GoogleSignInDesktopNotConfigured();
+    }
+
+    final googleSignIn = _googleSignInDesktopInstance();
+    try {
+      await googleSignIn.signOut();
+    } catch (e) {
+      debugPrint('Desktop Google signOut (ignored): $e');
+    }
+
+    final gsi_desktop.GoogleSignInCredentials? creds = await googleSignIn.signIn();
+    if (creds == null) {
+      return;
+    }
+
+    if (creds.accessToken.isEmpty &&
+        (creds.idToken == null || creds.idToken!.isEmpty)) {
+      throw Exception('Google did not return an access token or id token');
+    }
+
+    final credential = firebase_auth.GoogleAuthProvider.credential(
+      accessToken: creds.accessToken,
+      idToken: creds.idToken,
+    );
+
+    final userCredential = await FirebaseService.auth.signInWithCredential(credential);
+
+    if (userCredential.user == null) {
+      throw Exception('Failed to sign in with Google: No user returned');
+    }
+
+    await _ensureFirestoreUserForGoogleSignIn(userCredential.user!);
+    await _loadUserFromFirebase(userCredential.user!);
+  }
+
+  /// Creates or updates Firestore user doc after Google + Firebase Auth succeeds.
+  Future<void> _ensureFirestoreUserForGoogleSignIn(
+    firebase_auth.User firebaseUser, {
+    String? displayNameFallback,
+    String? emailFallback,
+    String? photoUrlFallback,
+  }) async {
+    final userDoc =
+        await FirebaseService.usersCollection.doc(firebaseUser.uid).get();
+
+    if (!userDoc.exists) {
+      final userData = {
+        'name': firebaseUser.displayName ?? displayNameFallback ?? 'User',
+        'email': firebaseUser.email ?? emailFallback ?? '',
+        'avatarUrl': firebaseUser.photoURL ?? photoUrlFallback,
+        'role': 'free',
+        'createdAt': FieldValue.serverTimestamp(),
+        'lastLoginAt': FieldValue.serverTimestamp(),
+        'isPremium': false,
+        'projectsCreated': 0,
+      };
+
+      await FirebaseService.usersCollection.doc(firebaseUser.uid).set(userData);
+    } else {
+      await FirebaseService.usersCollection.doc(firebaseUser.uid).update({
+        'lastLoginAt': FieldValue.serverTimestamp(),
+      });
+    }
+  }
+
   /// Sign in with Google
   Future<void> signInWithGoogle() async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      // Configure Google Sign-In
-      // IMPORTANT: For web, you MUST add the client ID to web/index.html:
-      // <meta name="google-signin-client_id" content="YOUR_CLIENT_ID.apps.googleusercontent.com">
-      // 
-      // To get your Web Client ID:
-      // 1. Go to: https://console.firebase.google.com/project/my-flutter-apps-f87ea/authentication/providers
-      // 2. Click on "Google" provider
-      // 3. Under "Web SDK configuration", copy the "Web client ID"
-      // 4. Replace YOUR_WEB_CLIENT_ID in web/index.html line 43 with your actual client ID
-      //
-      // Alternatively, uncomment the clientId parameter below and add your client ID here
-      final GoogleSignIn googleSignIn = GoogleSignIn(
-        scopes: ['email', 'profile'],
-        // Uncomment and add your web client ID here if meta tag doesn't work:
-        // clientId: '47033728900-xxxxx.apps.googleusercontent.com',
-      );
-      
-      // Sign out any previous session first (helps with web and prevents cached auth issues)
-      try {
-        await googleSignIn.signOut();
-      } catch (e) {
-        // Ignore sign out errors (user might not be signed in)
-        debugPrint('Sign out error (ignored): $e');
-      }
-      
-      // Trigger the authentication flow
-      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+      if (_useGoogleAuthDesktop) {
+        await _signInWithGoogleDesktop();
+      } else {
+        // Android, iOS, macOS, Web — official google_sign_in plugin.
+        // Web: add client ID to web/index.html (google-signin-client_id meta tag).
+        final GoogleSignIn googleSignIn = GoogleSignIn(
+          scopes: ['email', 'profile'],
+        );
 
-      if (googleUser == null) {
-        // User canceled the sign-in
-        _isLoading = false;
-        notifyListeners();
-        return;
-      }
-
-      // Obtain the auth details from the request
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-
-      if (googleAuth.accessToken == null && googleAuth.idToken == null) {
-        throw Exception('Failed to obtain Google authentication tokens');
-      }
-
-      // Create a new credential
-      final credential = firebase_auth.GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-
-      // Sign in to Firebase with the Google credential
-      final userCredential = await FirebaseService.auth.signInWithCredential(credential);
-
-      if (userCredential.user != null) {
-        // Check if user exists in Firestore
-        final userDoc = await FirebaseService.usersCollection
-            .doc(userCredential.user!.uid)
-            .get();
-
-        if (!userDoc.exists) {
-          // Create new user document
-          final userData = {
-            'name': userCredential.user!.displayName ?? googleUser.displayName ?? 'User',
-            'email': userCredential.user!.email ?? googleUser.email,
-            'avatarUrl': userCredential.user!.photoURL ?? googleUser.photoUrl,
-            'role': 'free',
-            'createdAt': FieldValue.serverTimestamp(),
-            'lastLoginAt': FieldValue.serverTimestamp(),
-            'isPremium': false,
-            'projectsCreated': 0,
-          };
-
-          await FirebaseService.usersCollection
-              .doc(userCredential.user!.uid)
-              .set(userData);
-        } else {
-          // Update last login
-          await FirebaseService.usersCollection
-              .doc(userCredential.user!.uid)
-              .update({'lastLoginAt': FieldValue.serverTimestamp()});
+        try {
+          await googleSignIn.signOut();
+        } catch (e) {
+          debugPrint('Sign out error (ignored): $e');
         }
 
-        await _loadUserFromFirebase(userCredential.user!);
-      } else {
-        throw Exception('Failed to sign in with Google: No user returned');
+        final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+
+        if (googleUser == null) {
+          _isLoading = false;
+          notifyListeners();
+          return;
+        }
+
+        final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+        if (googleAuth.accessToken == null && googleAuth.idToken == null) {
+          throw Exception('Failed to obtain Google authentication tokens');
+        }
+
+        final credential = firebase_auth.GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
+
+        final userCredential =
+            await FirebaseService.auth.signInWithCredential(credential);
+
+        if (userCredential.user != null) {
+          await _ensureFirestoreUserForGoogleSignIn(
+            userCredential.user!,
+            displayNameFallback: googleUser.displayName,
+            emailFallback: googleUser.email,
+            photoUrlFallback: googleUser.photoUrl,
+          );
+          await _loadUserFromFirebase(userCredential.user!);
+        } else {
+          throw Exception('Failed to sign in with Google: No user returned');
+        }
       }
     } catch (e) {
       _isLoading = false;
       notifyListeners();
-      // Log the error for debugging
       debugPrint('Google Sign-In Error: $e');
       rethrow;
     }
@@ -283,16 +343,21 @@ class UserProvider extends ChangeNotifier {
     }
   }
 
-  /// Logout user
+  /// Logout user (Firebase + Google). Sets [currentUser] to guest — not null — so
+  /// the app does not treat a signed-out session as "uninitialized" and callers
+  /// should also clear [DesignSystemProvider] / [TokensProvider] so no prior work stays visible.
   Future<void> logout() async {
     try {
       await FirebaseService.auth.signOut();
       final GoogleSignIn googleSignIn = GoogleSignIn();
       await googleSignIn.signOut();
+      if (_desktopGoogleSignIn != null) {
+        await _desktopGoogleSignIn!.signOut();
+      }
     } catch (e) {
       // Ignore errors
     }
-    _currentUser = null;
+    _currentUser = User.guest();
     notifyListeners();
   }
 

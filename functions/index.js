@@ -33,6 +33,43 @@ if (!admin.apps.length) {
 const db = admin.firestore();
 
 /**
+ * Turn Stripe SDK errors into safe, actionable messages for the client.
+ * (Otherwise Firebase surfaces them as generic "internal" to the app.)
+ */
+function stripeErrorToUserMessage(err) {
+  if (!err) {
+    return "Could not start checkout. Please try again.";
+  }
+  const type = err.type || "";
+  const code = err.code || "";
+  const raw = err.message || "";
+
+  if (type === "StripeAuthenticationError" || code === "api_key_invalid") {
+    return "Payment service is not configured (invalid Stripe API key). The app owner must set STRIPE_SECRET_KEY in Firebase.";
+  }
+  if (type === "StripeInvalidRequestError") {
+    const m = raw.toLowerCase();
+    if (m.includes("no such price") || m.includes("resource_missing")) {
+      return "This plan's Stripe price ID is wrong or missing. Check STRIPE_PRICE_ID_PRO / STRIPE_PRICE_ID_TEAM and your Stripe product catalog.";
+    }
+    if (raw.length > 0 && raw.length < 280) {
+      return `Checkout could not be created: ${raw}`;
+    }
+    return "Invalid request to Stripe. Check price IDs and Checkout settings.";
+  }
+  if (type === "StripeAPIError" || type === "StripeConnectionError") {
+    return "Could not reach Stripe. Check your connection and try again.";
+  }
+  if (type === "StripePermissionError") {
+    return "Stripe API key does not have permission for this action.";
+  }
+  if (raw.length > 0 && raw.length < 200) {
+    return raw;
+  }
+  return "Could not start checkout. Please try again in a moment.";
+}
+
+/**
  * Callable: createCheckoutSession
  * Body: { plan: 'pro' | 'team', successUrl?: string, cancelUrl?: string }
  * Returns: { url: string } (Stripe Checkout URL)
@@ -65,16 +102,30 @@ exports.createCheckoutSession = onCall(
     const stripe = new Stripe(stripeSecretKey.value(), { apiVersion: "2024-11-20.acacia" });
     const priceId = plan === "team" ? priceIdTeam.value() : priceIdPro.value();
 
-    const session = await stripe.checkout.sessions.create({
-      mode: "subscription",
-      line_items: [{ price: priceId, quantity: 1 }],
-      success_url: successUrl,
-      cancel_url: cancelUrl,
-      client_reference_id: uid,
-      subscription_data: {
-        metadata: { plan, firebase_uid: uid },
-      },
-    });
+    let session;
+    try {
+      session = await stripe.checkout.sessions.create({
+        mode: "subscription",
+        line_items: [{ price: priceId, quantity: 1 }],
+        success_url: successUrl,
+        cancel_url: cancelUrl,
+        client_reference_id: uid,
+        subscription_data: {
+          metadata: { plan, firebase_uid: uid },
+        },
+      });
+    } catch (err) {
+      console.error("createCheckoutSession Stripe error:", err);
+      const userMsg = stripeErrorToUserMessage(err);
+      throw new HttpsError("failed-precondition", userMsg);
+    }
+
+    if (!session || !session.url) {
+      throw new HttpsError(
+        "failed-precondition",
+        "Stripe did not return a checkout URL. Check the Stripe Dashboard and Cloud Function logs."
+      );
+    }
 
     return { url: session.url };
   }

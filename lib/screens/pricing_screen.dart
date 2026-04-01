@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../providers/user_provider.dart';
 import '../providers/billing_provider.dart';
 import '../widgets/billing/plan_card.dart';
 import '../widgets/billing/feature_row.dart';
 import 'upgrade_screen.dart';
 import 'auth_screen.dart';
+
+const _kContactSalesEmail = 'johnacolani@gmail.com';
 
 /// Pricing + Plans page (in-app and marketing). Free, Pro, Team with feature table and CTAs.
 class PricingScreen extends StatelessWidget {
@@ -216,12 +219,29 @@ class PricingScreen extends StatelessWidget {
     );
   }
 
-  void _contactSales(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Contact sales: sales@designsystem.example.com'),
-        duration: Duration(seconds: 4),
-      ),
-    );
+  Future<void> _contactSales(BuildContext context) async {
+    final subject = Uri.encodeComponent('Design System Builder — Team plan');
+    final uri = Uri.parse('mailto:$_kContactSalesEmail?subject=$subject');
+    try {
+      final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!launched && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Email us at $_kContactSalesEmail'),
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not open email app. Contact: $_kContactSalesEmail'),
+            duration: const Duration(seconds: 5),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    }
   }
 }

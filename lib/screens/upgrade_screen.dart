@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_functions/cloud_functions.dart';
@@ -5,6 +6,24 @@ import 'package:url_launcher/url_launcher.dart';
 import '../config/stripe_config.dart';
 import '../providers/user_provider.dart';
 import '../providers/billing_provider.dart';
+
+/// Maps [FirebaseFunctionsException] to text users understand (avoids bare "internal").
+String _messageForPaymentError(Object error) {
+  if (error is FirebaseFunctionsException) {
+    final code = error.code;
+    final msg = (error.message ?? '').trim();
+    if (code == 'internal' || msg.toLowerCase() == 'internal') {
+      return 'Payment could not start. This often means Stripe is not set up in Firebase '
+          '(API key, price IDs) or the service was temporarily unavailable. '
+          'Try again later or contact support if it keeps happening.';
+    }
+    if (msg.isNotEmpty) {
+      return msg;
+    }
+    return 'Could not start checkout (code: $code). Please try again.';
+  }
+  return 'Could not reach the payment service. Check your connection and try again.';
+}
 
 /// Upgrade flow: select plan, then redirect to Stripe Checkout.
 /// After payment, Stripe webhook updates Firestore; BillingProvider reflects it.
@@ -85,18 +104,22 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
           });
         }
       }
-    } on FirebaseFunctionsException catch (e) {
+    } on FirebaseFunctionsException catch (e, st) {
+      debugPrint('createCheckoutSession: ${e.code} ${e.message} ${e.details}');
+      debugPrint('$st');
       if (mounted) {
         setState(() {
           _loading = false;
-          _message = e.message ?? 'Something went wrong. Try again.';
+          _message = _messageForPaymentError(e);
         });
       }
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('createCheckoutSession: $e');
+      debugPrint('$st');
       if (mounted) {
         setState(() {
           _loading = false;
-          _message = 'Something went wrong. Try again.';
+          _message = _messageForPaymentError(e);
         });
       }
     }

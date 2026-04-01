@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
+import '../providers/design_system_provider.dart';
+import '../providers/tokens_provider.dart';
 import '../models/user.dart';
 import '../utils/screen_body_padding.dart';
 import 'settings_screen.dart';
@@ -266,8 +268,12 @@ class ProfileScreen extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
               child: _buildSignOutButton(
                 context,
-                onTap: () {
-                  userProvider.logout();
+                onTap: () async {
+                  await userProvider.logout();
+                  if (!context.mounted) return;
+                  Provider.of<DesignSystemProvider>(context, listen: false).reset();
+                  Provider.of<TokensProvider>(context, listen: false).invalidate();
+                  if (!context.mounted) return;
                   Navigator.of(context).pop();
                 },
               ),

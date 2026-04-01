@@ -109,6 +109,20 @@ flutter run -d macos
 
 Google Sign-In should then complete and navigate to the home screen. Email/password sign-in works without this step.
 
+## Windows & Linux desktop
+
+The official `google_sign_in` plugin does **not** support Windows or Linux. The app uses **`google_sign_in_all_platforms`** there: it opens the system browser for OAuth and listens on **localhost** for the redirect.
+
+1. In [Google Cloud Console](https://console.cloud.google.com/apis/credentials) (same project as Firebase), create an OAuth client of type **Web application** (or use an existing Web client).
+2. Under **Authorized redirect URIs**, add **`http://localhost:8000`** (the default port used by the plugin).
+3. Run or build with the Web client ID and secret:
+
+```bash
+flutter run -d windows --dart-define=GOOGLE_OAUTH_CLIENT_ID=YOUR_ID.apps.googleusercontent.com --dart-define=GOOGLE_OAUTH_CLIENT_SECRET=YOUR_SECRET
+```
+
+Details are in `lib/config/google_oauth_desktop.dart`. Without these defines, the app throws a clear error when you tap Google Sign-In on Windows/Linux.
+
 ## Need Help?
 
 If you're still having issues:
