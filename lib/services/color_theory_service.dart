@@ -88,18 +88,22 @@ class ColorTheoryService {
     ];
   }
 
-  /// Generate tetradic color scheme (four colors forming a rectangle)
+  /// Tetradic (rectangular / double-complementary): four hues forming a rectangle on the wheel.
+  ///
+  /// Two complementary pairs: [base ↔ base+180°] and [base+60° ↔ base+240°].
+  /// Order is always **[seed, +60°, complement, +240°]** so index **0** is the user’s chosen base.
   static List<Color> generateTetradic(Color baseColor) {
     final hsl = HSLColor.fromColor(baseColor);
-    final hue1 = (hsl.hue + 60) % 360;
-    final hue2 = (hsl.hue + 180) % 360;
-    final hue3 = (hsl.hue + 240) % 360;
-    
+    const double offset = 60.0;
+    final hueNear = (hsl.hue + offset) % 360;
+    final hueComplement = (hsl.hue + 180) % 360;
+    final hueNearComplement = (hsl.hue + 180 + offset) % 360;
+
     return [
       baseColor,
-      hsl.withHue(hue1).toColor(),
-      hsl.withHue(hue2).toColor(),
-      hsl.withHue(hue3).toColor(),
+      hsl.withHue(hueNear).toColor(),
+      hsl.withHue(hueComplement).toColor(),
+      hsl.withHue(hueNearComplement).toColor(),
     ];
   }
 

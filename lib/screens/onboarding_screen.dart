@@ -127,7 +127,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         default:
           _generatedColors = [_baseColor];
       }
-      _selectedPrimaryColor = _generatedColors.isNotEmpty ? _generatedColors[_generatedColors.length ~/ 2] : _baseColor;
+      // Default primary = user's chosen base (step 4). Do not use "middle" index:
+      // e.g. tetradic length 4 would wrongly pick index 2 (complement), not the seed color.
+      _selectedPrimaryColor = _baseColor;
     });
   }
 
@@ -1288,7 +1290,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Center(
-                child: Icon(Icons.preview, size: 56, color: accentColor),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: Image.asset(
+                    'assets/images/preview.png',
+                    height: 100,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) => Icon(
+                      Icons.palette_outlined,
+                      size: 56,
+                      color: accentColor,
+                    ),
+                  ),
+                ),
               ),
               const SizedBox(height: 24),
               Text(
@@ -1327,7 +1341,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       spacing: 12,
                       runSpacing: 12,
                       children: _generatedColors.map((color) {
-                        final isSelected = _selectedPrimaryColor == color;
+                        final primary = _selectedPrimaryColor ?? _baseColor;
+                        final isSelected = color == primary;
                         return GestureDetector(
                           onTap: () {
                             setState(() => _selectedPrimaryColor = color);
