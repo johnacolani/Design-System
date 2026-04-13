@@ -31,6 +31,7 @@ import 'version_history_screen.dart';
 import 'motion_tokens_screen.dart';
 import 'docs_screen.dart';
 import 'component_gallery_screen.dart';
+import 'platform_pickers_dialogs_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -472,6 +473,18 @@ class DashboardScreen extends StatelessWidget {
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(builder: (_) => const PreviewScreen()),
+                    );
+                  },
+                ),
+                _buildFeatureCard(
+                  context,
+                  icon: Icons.date_range,
+                  title: 'Pickers & dialogs',
+                  description: 'Material & Cupertino date/time + alerts',
+                  color: Colors.lightBlue,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const PlatformPickersDialogsScreen()),
                     );
                   },
                 ),
