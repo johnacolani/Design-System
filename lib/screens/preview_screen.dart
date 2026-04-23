@@ -11,9 +11,11 @@ import 'package:google_fonts/google_fonts.dart';
 import '../providers/design_system_provider.dart';
 import '../models/design_system.dart' as models;
 import '../models/design_system_wrapper.dart';
+import '../utils/design_system_html_builder.dart';
 import '../utils/design_system_pdf_builder.dart';
 import '../utils/screen_body_padding.dart';
 import '../widgets/dynamic_material_icon.dart';
+import '../utils/html_downloader_stub.dart' if (dart.library.html) '../utils/html_downloader_web.dart' as html_downloader;
 
 /// Visual shell for the preview page (aligned with clean design-doc pages like ServiceFlow).
 class _PreviewDocTheme {
@@ -39,6 +41,7 @@ class PreviewScreen extends StatefulWidget {
 
 class _PreviewScreenState extends State<PreviewScreen> {
   bool _isExportingPdf = false;
+  bool _isExportingHtml = false;
   final ScrollController _scrollController = ScrollController();
   final GlobalKey _keyColors = GlobalKey();
   final GlobalKey _keyTypography = GlobalKey();
@@ -111,6 +114,30 @@ class _PreviewScreenState extends State<PreviewScreen> {
       }
     } finally {
       if (mounted) setState(() => _isExportingPdf = false);
+    }
+  }
+
+  Future<void> _exportAsHtml() async {
+    if (!mounted || _isExportingHtml) return;
+    setState(() => _isExportingHtml = true);
+    try {
+      final provider = Provider.of<DesignSystemProvider>(context, listen: false);
+      final designSystem = provider.designSystem;
+      final html = buildDesignSystemHtml(designSystem);
+      final fileName = '${designSystem.name.isEmpty ? 'Design_System' : designSystem.name.replaceAll(' ', '_')}_Design_System.html';
+      await html_downloader.downloadHtmlFile(fileName, html);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('HTML exported successfully!'), backgroundColor: Colors.green),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      final msg = kIsWeb ? 'HTML export failed: $e' : 'HTML export is currently supported on web.';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(msg), backgroundColor: Colors.red),
+      );
+    } finally {
+      if (mounted) setState(() => _isExportingHtml = false);
     }
   }
 
@@ -647,6 +674,13 @@ class _PreviewScreenState extends State<PreviewScreen> {
             surfaceTintColor: Colors.transparent,
             title: Text('Preview', style: GoogleFonts.roboto(fontWeight: FontWeight.w600, color: _PreviewDocTheme.pageFg)),
             actions: [
+              IconButton(
+                icon: _isExportingHtml
+                    ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.language),
+                onPressed: _isExportingHtml ? null : _exportAsHtml,
+                tooltip: 'Export HTML',
+              ),
               IconButton(
                 icon: _isExportingPdf ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.picture_as_pdf),
                 onPressed: _isExportingPdf ? null : _exportAsPdf,
