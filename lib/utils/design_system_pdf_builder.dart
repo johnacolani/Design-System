@@ -9,6 +9,24 @@ import 'package:pdf/widgets.dart' as pw;
 import '../models/design_system.dart' as models;
 import '../models/design_system_wrapper.dart';
 
+final PdfColor _pdfPageFg = PdfColor.fromInt(0xFF1A1917);
+final PdfColor _pdfTextSecondary = PdfColor.fromInt(0xFF5C5A56);
+final PdfColor _pdfAccent = PdfColor.fromInt(0xFF6FA8A1);
+final PdfColor _pdfCardBorder = PdfColor.fromInt(0xFFE8E4DC);
+final PdfColor _pdfAccentSoft = PdfColor.fromInt(0xFFA5D4CC);
+
+pw.TextStyle _pdfHeaderStyle() => pw.TextStyle(
+  fontSize: 18,
+  fontWeight: pw.FontWeight.bold,
+  color: _pdfAccent,
+);
+
+pw.TextStyle _pdfSubHeaderStyle() => pw.TextStyle(
+  fontWeight: pw.FontWeight.bold,
+  fontSize: 12,
+  color: _pdfPageFg,
+);
+
 /// Top-level entry for [compute]. Builds the full design system PDF and returns bytes.
 /// Use on mobile/desktop where compute runs in a separate isolate.
 Future<Uint8List> generatePdfBytesFromJson(Map<String, dynamic> json) async {
@@ -28,13 +46,9 @@ Future<Uint8List> generatePdfBytesFromJsonChunked(Map<String, dynamic> json) asy
 
 Future<pw.Document> _buildDocumentChunked(models.DesignSystem ds) async {
   final pdf = pw.Document();
-  final titleStyle = pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold);
-  final headerStyle = pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900);
+  final titleStyle = pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, color: _pdfPageFg);
+  final headerStyle = _pdfHeaderStyle();
   const safeMaxPages = 99999;
-
-  final introPage = await _buildColorsIntroChunked(ds, titleStyle, headerStyle);
-  pdf.addPage(pw.MultiPage(pageFormat: PdfPageFormat.a4, margin: const pw.EdgeInsets.all(40), maxPages: 5, build: (pw.Context context) => introPage));
-  await Future.delayed(const Duration(milliseconds: 10));
 
   final allSwatches = <(String groupTitle, MapEntry<String, dynamic>)>[];
   for (final g in _getPdfColorGroups(ds)) {
@@ -42,14 +56,28 @@ Future<pw.Document> _buildDocumentChunked(models.DesignSystem ds) async {
       allSwatches.add((g.$1, e));
     }
   }
-  for (var i = 0; i < allSwatches.length; i += _swatchesPerPage) {
+  final totalColorPages = (allSwatches.length / _swatchesPerPage).ceil();
+  final firstColorChunk = allSwatches.isEmpty
+      ? <(String groupTitle, MapEntry<String, dynamic>)>[]
+      : allSwatches.sublist(0, allSwatches.length < _swatchesPerPage ? allSwatches.length : _swatchesPerPage);
+
+  final introPage = await _buildColorsIntroChunked(ds, titleStyle, headerStyle, firstColorChunk, totalColorPages);
+  pdf.addPage(pw.MultiPage(pageFormat: PdfPageFormat.a4, margin: const pw.EdgeInsets.all(40), maxPages: 5, build: (pw.Context context) => introPage));
+  await Future.delayed(const Duration(milliseconds: 10));
+
+  for (var i = _swatchesPerPage; i < allSwatches.length; i += _swatchesPerPage) {
     final end = (i + _swatchesPerPage < allSwatches.length) ? i + _swatchesPerPage : allSwatches.length;
     final chunk = allSwatches.sublist(i, end);
     pdf.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.all(40),
-        build: (pw.Context context) => _buildPdfColorGridPageFlat(chunk, headerStyle, pageIndex: i ~/ _swatchesPerPage, totalPages: (allSwatches.length / _swatchesPerPage).ceil()),
+        build: (pw.Context context) => _buildPdfColorGridPageFlat(
+          chunk,
+          headerStyle,
+          pageIndex: i ~/ _swatchesPerPage,
+          totalPages: totalColorPages,
+        ),
       ),
     );
     await Future.delayed(const Duration(milliseconds: 3));
@@ -82,17 +110,37 @@ Future<pw.Document> _buildDocumentChunked(models.DesignSystem ds) async {
   return pdf;
 }
 
-Future<List<pw.Widget>> _buildColorsIntroChunked(models.DesignSystem ds, pw.TextStyle titleStyle, pw.TextStyle headerStyle) async {
+Future<List<pw.Widget>> _buildColorsIntroChunked(
+  models.DesignSystem ds,
+  pw.TextStyle titleStyle,
+  pw.TextStyle headerStyle,
+  List<(String groupTitle, MapEntry<String, dynamic>)> firstColorChunk,
+  int totalColorPages,
+) async {
   await Future.delayed(const Duration(milliseconds: 5));
-  return [
+  final widgets = <pw.Widget>[
     pw.Header(level: 0, child: pw.Text(ds.name, style: titleStyle)),
-    if (ds.description.isNotEmpty) pw.Padding(padding: const pw.EdgeInsets.only(bottom: 12), child: pw.Text(ds.description, style: pw.TextStyle(fontSize: 11, color: PdfColors.grey700))),
-    pw.Text('Version ${ds.version}', style: pw.TextStyle(fontSize: 10, color: PdfColors.grey600)),
+    if (ds.description.isNotEmpty) pw.Padding(padding: const pw.EdgeInsets.only(bottom: 12), child: pw.Text(ds.description, style: pw.TextStyle(fontSize: 11, color: _pdfTextSecondary))),
+    pw.Text('Version ${ds.version}', style: pw.TextStyle(fontSize: 10, color: _pdfTextSecondary)),
     pw.SizedBox(height: 20),
-    pw.Text('1. Core Colors', style: headerStyle),
-    pw.SizedBox(height: 10),
-    pw.Text('Color palettes follow on the next pages (Primary, Analogous, etc.).', style: pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
   ];
+  if (firstColorChunk.isEmpty) {
+    widgets.addAll([
+      pw.Text('1. Core Colors', style: headerStyle),
+      pw.SizedBox(height: 10),
+      pw.Text('No color tokens found.', style: pw.TextStyle(fontSize: 10, color: _pdfTextSecondary)),
+    ]);
+  } else {
+    widgets.add(
+      _buildPdfColorGridPageFlat(
+        firstColorChunk,
+        headerStyle,
+        pageIndex: 0,
+        totalPages: totalColorPages,
+      ),
+    );
+  }
+  return widgets;
 }
 
 // Order matches Design System Preview: 1 Core Colors, 2 Typography, 3 Layout & Shape, 4 Shadows, 5 Visual Effects, 6 Components & Assets, 7 Advanced Tokens.
@@ -111,13 +159,13 @@ Future<List<pw.Widget>> _buildPage3LayoutAndShapeChunked(models.DesignSystem ds,
   return [
     pw.Text('3. Layout & Shape', style: headerStyle),
     pw.SizedBox(height: 10),
-    pw.Text('Spacing & Grid', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
+    pw.Text('Spacing & Grid', style: _pdfSubHeaderStyle()),
     pw.SizedBox(height: 6),
     _buildPdfSpacingDetailed(ds),
     pw.SizedBox(height: 10),
     _buildPdfGridDetailed(ds),
     pw.SizedBox(height: 20),
-    pw.Text('Border Radius', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
+    pw.Text('Border Radius', style: _pdfSubHeaderStyle()),
     pw.SizedBox(height: 6),
     _buildPdfBorderRadiusFull(ds),
   ];
@@ -146,11 +194,11 @@ Future<List<pw.Widget>> _buildPage6ComponentsChunked(models.DesignSystem ds, pw.
   return [
     pw.Text('6. Components & Assets', style: headerStyle),
     pw.SizedBox(height: 10),
-    pw.Text('Component Library', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
+    pw.Text('Component Library', style: _pdfSubHeaderStyle()),
     pw.SizedBox(height: 6),
     _buildPdfComponentsFull(ds),
     pw.SizedBox(height: 20),
-    pw.Text('Iconography', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
+    pw.Text('Iconography', style: _pdfSubHeaderStyle()),
     pw.SizedBox(height: 6),
     _buildPdfIconsDetailed(ds),
   ];
@@ -161,23 +209,23 @@ Future<List<pw.Widget>> _buildPage7AdvancedTokensChunked(models.DesignSystem ds,
   return [
     pw.Text('7. Advanced Tokens', style: headerStyle),
     pw.SizedBox(height: 10),
-    pw.Text('Gradients', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
+    pw.Text('Gradients', style: _pdfSubHeaderStyle()),
     pw.SizedBox(height: 6),
     _buildPdfGradientsDetailed(ds),
     pw.SizedBox(height: 16),
-    pw.Text('Roles', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
+    pw.Text('Roles', style: _pdfSubHeaderStyle()),
     pw.SizedBox(height: 6),
     _buildPdfRolesDetailed(ds),
     pw.SizedBox(height: 16),
-    pw.Text('Semantic Tokens', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
+    pw.Text('Semantic Tokens', style: _pdfSubHeaderStyle()),
     pw.SizedBox(height: 6),
     _buildPdfSemanticTokensFull(ds),
     pw.SizedBox(height: 16),
-    pw.Text('Motion Tokens', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
+    pw.Text('Motion Tokens', style: _pdfSubHeaderStyle()),
     pw.SizedBox(height: 6),
     _buildPdfMotionTokensFull(ds),
     pw.SizedBox(height: 16),
-    pw.Text('Version History', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
+    pw.Text('Version History', style: _pdfSubHeaderStyle()),
     pw.SizedBox(height: 6),
     _buildPdfVersionHistory(ds),
   ];
@@ -185,9 +233,20 @@ Future<List<pw.Widget>> _buildPage7AdvancedTokensChunked(models.DesignSystem ds,
 
 pw.Document _buildDocument(models.DesignSystem ds) {
   final pdf = pw.Document();
-  final titleStyle = pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold);
-  final headerStyle = pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900);
+  final titleStyle = pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, color: _pdfPageFg);
+  final headerStyle = _pdfHeaderStyle();
   const safeMaxPages = 99999;
+
+  final allSwatches = <(String groupTitle, MapEntry<String, dynamic>)>[];
+  for (final g in _getPdfColorGroups(ds)) {
+    for (final e in g.$2.entries) {
+      allSwatches.add((g.$1, e));
+    }
+  }
+  final totalColorPages = (allSwatches.length / _swatchesPerPage).ceil();
+  final firstColorChunk = allSwatches.isEmpty
+      ? <(String groupTitle, MapEntry<String, dynamic>)>[]
+      : allSwatches.sublist(0, allSwatches.length < _swatchesPerPage ? allSwatches.length : _swatchesPerPage);
 
   pdf.addPage(pw.MultiPage(
     pageFormat: PdfPageFormat.a4,
@@ -195,28 +254,26 @@ pw.Document _buildDocument(models.DesignSystem ds) {
     maxPages: 5,
     build: (pw.Context context) => [
       pw.Header(level: 0, child: pw.Text(ds.name, style: titleStyle)),
-      if (ds.description.isNotEmpty) pw.Padding(padding: const pw.EdgeInsets.only(bottom: 12), child: pw.Text(ds.description, style: pw.TextStyle(fontSize: 11, color: PdfColors.grey700))),
-      pw.Text('Version ${ds.version}', style: pw.TextStyle(fontSize: 10, color: PdfColors.grey600)),
+      if (ds.description.isNotEmpty) pw.Padding(padding: const pw.EdgeInsets.only(bottom: 12), child: pw.Text(ds.description, style: pw.TextStyle(fontSize: 11, color: _pdfTextSecondary))),
+      pw.Text('Version ${ds.version}', style: pw.TextStyle(fontSize: 10, color: _pdfTextSecondary)),
       pw.SizedBox(height: 20),
-      pw.Text('1. Core Colors', style: headerStyle),
-      pw.SizedBox(height: 10),
-      pw.Text('Color palettes follow on the next pages (Primary, Analogous, etc.).', style: pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
+      if (firstColorChunk.isEmpty) ...[
+        pw.Text('1. Core Colors', style: headerStyle),
+        pw.SizedBox(height: 10),
+        pw.Text('No color tokens found.', style: pw.TextStyle(fontSize: 10, color: _pdfTextSecondary)),
+      ] else ...[
+        _buildPdfColorGridPageFlat(firstColorChunk, headerStyle, pageIndex: 0, totalPages: totalColorPages),
+      ],
     ],
   ));
-  final allSwatches = <(String groupTitle, MapEntry<String, dynamic>)>[];
-  for (final g in _getPdfColorGroups(ds)) {
-    for (final e in g.$2.entries) {
-      allSwatches.add((g.$1, e));
-    }
-  }
-  for (var i = 0; i < allSwatches.length; i += _swatchesPerPage) {
+  for (var i = _swatchesPerPage; i < allSwatches.length; i += _swatchesPerPage) {
     final end = (i + _swatchesPerPage < allSwatches.length) ? i + _swatchesPerPage : allSwatches.length;
     final chunk = allSwatches.sublist(i, end);
     pdf.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.all(40),
-        build: (pw.Context context) => _buildPdfColorGridPageFlat(chunk, headerStyle, pageIndex: i ~/ _swatchesPerPage, totalPages: (allSwatches.length / _swatchesPerPage).ceil()),
+        build: (pw.Context context) => _buildPdfColorGridPageFlat(chunk, headerStyle, pageIndex: i ~/ _swatchesPerPage, totalPages: totalColorPages),
       ),
     );
   }
@@ -237,13 +294,13 @@ pw.Document _buildDocument(models.DesignSystem ds) {
     build: (pw.Context context) => [
       pw.Text('3. Layout & Shape', style: headerStyle),
       pw.SizedBox(height: 10),
-      pw.Text('Spacing & Grid', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
+      pw.Text('Spacing & Grid', style: _pdfSubHeaderStyle()),
       pw.SizedBox(height: 6),
       _buildPdfSpacingDetailed(ds),
       pw.SizedBox(height: 10),
       _buildPdfGridDetailed(ds),
       pw.SizedBox(height: 20),
-      pw.Text('Border Radius', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
+      pw.Text('Border Radius', style: _pdfSubHeaderStyle()),
       pw.SizedBox(height: 6),
       _buildPdfBorderRadiusFull(ds),
     ],
@@ -275,11 +332,11 @@ pw.Document _buildDocument(models.DesignSystem ds) {
     build: (pw.Context context) => [
       pw.Text('6. Components & Assets', style: headerStyle),
       pw.SizedBox(height: 10),
-      pw.Text('Component Library', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
+      pw.Text('Component Library', style: _pdfSubHeaderStyle()),
       pw.SizedBox(height: 6),
       _buildPdfComponentsFull(ds),
       pw.SizedBox(height: 20),
-      pw.Text('Iconography', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
+      pw.Text('Iconography', style: _pdfSubHeaderStyle()),
       pw.SizedBox(height: 6),
       _buildPdfIconsDetailed(ds),
     ],
@@ -291,23 +348,23 @@ pw.Document _buildDocument(models.DesignSystem ds) {
     build: (pw.Context context) => [
       pw.Text('7. Advanced Tokens', style: headerStyle),
       pw.SizedBox(height: 10),
-      pw.Text('Gradients', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
+      pw.Text('Gradients', style: _pdfSubHeaderStyle()),
       pw.SizedBox(height: 6),
       _buildPdfGradientsDetailed(ds),
       pw.SizedBox(height: 16),
-      pw.Text('Roles', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
+      pw.Text('Roles', style: _pdfSubHeaderStyle()),
       pw.SizedBox(height: 6),
       _buildPdfRolesDetailed(ds),
       pw.SizedBox(height: 16),
-      pw.Text('Semantic Tokens', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
+      pw.Text('Semantic Tokens', style: _pdfSubHeaderStyle()),
       pw.SizedBox(height: 6),
       _buildPdfSemanticTokensFull(ds),
       pw.SizedBox(height: 16),
-      pw.Text('Motion Tokens', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
+      pw.Text('Motion Tokens', style: _pdfSubHeaderStyle()),
       pw.SizedBox(height: 6),
       _buildPdfMotionTokensFull(ds),
       pw.SizedBox(height: 16),
-      pw.Text('Version History', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
+      pw.Text('Version History', style: _pdfSubHeaderStyle()),
       pw.SizedBox(height: 6),
       _buildPdfVersionHistory(ds),
     ],
@@ -316,6 +373,13 @@ pw.Document _buildDocument(models.DesignSystem ds) {
 }
 
 double _parsePx(String s) => double.tryParse(s.replaceAll('px', '')) ?? 14.0;
+
+String _pdfHex(String raw) {
+  final h = raw.replaceAll('#', '').trim().toUpperCase();
+  if (h.length == 6) return '#$h';
+  if (h.length == 8) return '#${h.substring(2)}';
+  return raw;
+}
 
 PdfColor _parsePdfColor(String hex) {
   try {
@@ -442,10 +506,10 @@ int _pdfNaturalCompare(String a, String b) {
 
 pw.Widget _buildPdfColorsFull(models.DesignSystem ds) {
   final groups = _getPdfColorGroups(ds);
-  if (groups.isEmpty) return pw.Text('No colors defined.', style: pw.TextStyle(fontSize: 10, color: PdfColors.grey600));
+  if (groups.isEmpty) return pw.Text('No colors defined.', style: pw.TextStyle(fontSize: 10, color: _pdfTextSecondary));
   final sections = <pw.Widget>[];
   for (final g in groups) {
-    sections.add(pw.Text(g.$1, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)));
+    sections.add(pw.Text(g.$1, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12, color: _pdfPageFg)));
     sections.add(pw.SizedBox(height: 6));
     sections.add(_buildPdfSwatchGroup(g.$2));
     sections.add(pw.SizedBox(height: 16));
@@ -453,9 +517,9 @@ pw.Widget _buildPdfColorsFull(models.DesignSystem ds) {
   return pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: sections);
 }
 
-/// Number of color swatches per PDF page (4 columns x 8 rows).
-const int _swatchesPerPage = 32;
-const int _swatchColumns = 4;
+/// Number of color swatches per PDF page (3 columns x 4 rows).
+const int _swatchesPerPage = 12;
+const int _swatchColumns = 3;
 
 pw.Widget _buildPdfSwatchGroup(Map<String, dynamic> colors) {
   return pw.Wrap(
@@ -511,21 +575,41 @@ List<pw.Widget> _buildPdfColorGridRows(List<MapEntry<String, dynamic>> entries) 
       rowChildren.add(
         pw.Expanded(
           child: pw.Padding(
-            padding: const pw.EdgeInsets.only(right: 8, bottom: 10),
-            child: pw.Column(
-              mainAxisSize: pw.MainAxisSize.min,
-              children: [
-                pw.Container(
-                  width: 44,
-                  height: 44,
-                  decoration: pw.BoxDecoration(
-                    color: _parsePdfColor(val.toString()),
-                    border: pw.Border.all(width: 0.5),
+            padding: const pw.EdgeInsets.only(right: 10, bottom: 10),
+            child: pw.Container(
+              decoration: pw.BoxDecoration(
+                border: pw.Border.all(color: _pdfCardBorder, width: 0.8),
+                borderRadius: pw.BorderRadius.circular(8),
+              ),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+                children: [
+                  pw.Container(
+                    height: 44,
+                    decoration: pw.BoxDecoration(
+                      color: _parsePdfColor(val.toString()),
+                      borderRadius: const pw.BorderRadius.only(
+                        topLeft: pw.Radius.circular(8),
+                        topRight: pw.Radius.circular(8),
+                      ),
+                    ),
                   ),
-                ),
-                pw.SizedBox(height: 2),
-                pw.Text(e.key.length > 18 ? '${e.key.substring(0, 15)}…' : e.key, style: const pw.TextStyle(fontSize: 6)),
-              ],
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.fromLTRB(6, 5, 6, 6),
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text(
+                          e.key.length > 20 ? '${e.key.substring(0, 17)}...' : e.key,
+                          style: pw.TextStyle(fontSize: 7, color: _pdfTextSecondary),
+                        ),
+                        pw.SizedBox(height: 2),
+                        pw.Text(_pdfHex(val.toString()), style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: _pdfPageFg)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -540,7 +624,7 @@ pw.Widget _buildPdfTypographyFull(models.DesignSystem ds) {
   final t = ds.typography;
   final children = <pw.Widget>[
     pw.Text('Font family: ${t.fontFamily.primary}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11)),
-    if (t.fontFamily.fallback.isNotEmpty) pw.Text('Fallback: ${t.fontFamily.fallback}', style: pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
+    if (t.fontFamily.fallback.isNotEmpty) pw.Text('Fallback: ${t.fontFamily.fallback}', style: pw.TextStyle(fontSize: 10, color: _pdfTextSecondary)),
     pw.SizedBox(height: 10),
   ];
   if (t.fontWeights.isNotEmpty) {
@@ -573,13 +657,13 @@ pw.Widget _buildPdfTypographyFull(models.DesignSystem ds) {
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
-          pw.Text(e.key, style: pw.TextStyle(fontSize: 8, color: PdfColors.grey700)),
+          pw.Text(e.key, style: pw.TextStyle(fontSize: 8, color: _pdfTextSecondary)),
           pw.Text('Sample in ${e.key}', style: pw.TextStyle(fontSize: 10)),
         ],
       ),
     )));
   }
-  if (children.length <= 3) children.add(pw.Text('No typography defined.', style: pw.TextStyle(fontSize: 10, color: PdfColors.grey600)));
+  if (children.length <= 3) children.add(pw.Text('No typography defined.', style: pw.TextStyle(fontSize: 10, color: _pdfTextSecondary)));
   return pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: children);
 }
 
@@ -594,8 +678,8 @@ pw.Widget _buildPdfSpacingDetailed(models.DesignSystem ds) {
           width: size / 2,
           height: size / 2,
           decoration: pw.BoxDecoration(
-            color: PdfColors.blue100,
-            border: pw.Border.all(color: PdfColors.blue300, width: 0.5),
+            color: _pdfAccentSoft,
+            border: pw.Border.all(color: _pdfAccent, width: 0.5),
           ),
         ),
         pw.Text(e.key, style: const pw.TextStyle(fontSize: 6)),
@@ -629,7 +713,7 @@ pw.Widget _buildPdfBorderRadiusFull(models.DesignSystem ds) {
           width: 36,
           height: 36,
           decoration: pw.BoxDecoration(
-            border: pw.Border.all(color: PdfColors.blue),
+            border: pw.Border.all(color: _pdfAccent),
             borderRadius: pw.BorderRadius.circular(e.$2 == '9999px' ? 18 : (_parsePx(e.$2) / 2).clamp(0.0, 18.0)),
           ),
         ),
@@ -668,13 +752,13 @@ pw.Widget _buildPdfComponentsFull(models.DesignSystem ds) {
       return pw.Container(
         margin: const pw.EdgeInsets.only(bottom: 4),
         padding: const pw.EdgeInsets.all(5),
-        decoration: pw.BoxDecoration(border: pw.Border.all(color: PdfColors.grey300), borderRadius: pw.BorderRadius.circular(radius)),
+        decoration: pw.BoxDecoration(border: pw.Border.all(color: _pdfCardBorder), borderRadius: pw.BorderRadius.circular(radius)),
         child: pw.Text('${e.key}${desc.isNotEmpty ? ': $desc' : ''}', style: const pw.TextStyle(fontSize: 8)),
       );
     }));
     children.add(pw.SizedBox(height: 12));
   }
-  if (children.isEmpty) children.add(pw.Text('No components defined.', style: pw.TextStyle(fontSize: 10, color: PdfColors.grey600)));
+  if (children.isEmpty) children.add(pw.Text('No components defined.', style: pw.TextStyle(fontSize: 10, color: _pdfTextSecondary)));
   return pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: children);
 }
 
@@ -721,7 +805,7 @@ pw.Widget _buildPdfEffectsDetailed(models.DesignSystem ds) {
       lines.add(pw.Text('  ${entry.key}: ${entry.value}', style: const pw.TextStyle(fontSize: 9)));
     }
   }
-  if (lines.isEmpty) lines.add(pw.Text('No effects defined.', style: pw.TextStyle(fontSize: 10, color: PdfColors.grey600)));
+  if (lines.isEmpty) lines.add(pw.Text('No effects defined.', style: pw.TextStyle(fontSize: 10, color: _pdfTextSecondary)));
   return pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: lines);
 }
 
@@ -744,7 +828,7 @@ pw.Widget _buildPdfSemanticTokensFull(models.DesignSystem ds) {
   addSection('Spacing', st.spacing);
   addSection('Shadow', st.shadow);
   addSection('Border radius', st.borderRadius);
-  if (children.isEmpty) children.add(pw.Text('No semantic tokens defined.', style: pw.TextStyle(fontSize: 10, color: PdfColors.grey600)));
+  if (children.isEmpty) children.add(pw.Text('No semantic tokens defined.', style: pw.TextStyle(fontSize: 10, color: _pdfTextSecondary)));
   return pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: children);
 }
 
@@ -766,26 +850,26 @@ pw.Widget _buildPdfMotionTokensFull(models.DesignSystem ds) {
       children.add(pw.Text('  ${e.key}: ${e.value}', style: const pw.TextStyle(fontSize: 9)));
     }
   }
-  if (children.isEmpty) children.add(pw.Text('No motion tokens defined.', style: pw.TextStyle(fontSize: 10, color: PdfColors.grey600)));
+  if (children.isEmpty) children.add(pw.Text('No motion tokens defined.', style: pw.TextStyle(fontSize: 10, color: _pdfTextSecondary)));
   return pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: children);
 }
 
 pw.Widget _buildPdfVersionHistory(models.DesignSystem ds) {
   final history = ds.versionHistory ?? [];
-  if (history.isEmpty) return pw.Text('No version history.', style: pw.TextStyle(fontSize: 10, color: PdfColors.grey600));
+  if (history.isEmpty) return pw.Text('No version history.', style: pw.TextStyle(fontSize: 10, color: _pdfTextSecondary));
   return pw.Column(
     crossAxisAlignment: pw.CrossAxisAlignment.start,
     children: history.take(15).map((v) {
       return pw.Container(
         margin: const pw.EdgeInsets.only(bottom: 6),
         padding: const pw.EdgeInsets.all(6),
-        decoration: pw.BoxDecoration(border: pw.Border.all(color: PdfColors.grey300), borderRadius: pw.BorderRadius.circular(4)),
+        decoration: pw.BoxDecoration(border: pw.Border.all(color: _pdfCardBorder), borderRadius: pw.BorderRadius.circular(4)),
         child: pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
-            pw.Text('${v.version} — ${v.date}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9)),
+            pw.Text('${v.version} - ${v.date}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9)),
             if (v.changes.isNotEmpty) pw.Text(v.changes.join('; '), style: const pw.TextStyle(fontSize: 8)),
-            if (v.description != null && v.description!.isNotEmpty) pw.Text(v.description!, style: pw.TextStyle(fontSize: 8, color: PdfColors.grey700)),
+            if (v.description != null && v.description!.isNotEmpty) pw.Text(v.description!, style: pw.TextStyle(fontSize: 8, color: _pdfTextSecondary)),
           ],
         ),
       );

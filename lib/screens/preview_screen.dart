@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart' show compute, kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -14,6 +15,21 @@ import '../utils/design_system_pdf_builder.dart';
 import '../utils/screen_body_padding.dart';
 import '../widgets/dynamic_material_icon.dart';
 
+/// Visual shell for the preview page (aligned with clean design-doc pages like ServiceFlow).
+class _PreviewDocTheme {
+  static const Color pageBg = Color(0xFFF5F2EB);
+  static const Color pageFg = Color(0xFF1A1917);
+  static const Color textSecondary = Color(0xFF5C5A56);
+  static const Color textTertiary = Color(0xFF6D6A65);
+  static const Color accent = Color(0xFF6FA8A1);
+  static const Color card = Color(0xFFFFFCF7);
+  static const Color cardMuted = Color(0xFFFAF7F2);
+  static Color get cardBorder => pageFg.withValues(alpha: 0.08);
+  static List<BoxShadow> cardShadow = [
+    BoxShadow(color: pageFg.withValues(alpha: 0.06), blurRadius: 12, offset: const Offset(0, 2)),
+  ];
+}
+
 class PreviewScreen extends StatefulWidget {
   const PreviewScreen({super.key});
 
@@ -23,6 +39,32 @@ class PreviewScreen extends StatefulWidget {
 
 class _PreviewScreenState extends State<PreviewScreen> {
   bool _isExportingPdf = false;
+  final ScrollController _scrollController = ScrollController();
+  final GlobalKey _keyColors = GlobalKey();
+  final GlobalKey _keyTypography = GlobalKey();
+  final GlobalKey _keyLayout = GlobalKey();
+  final GlobalKey _keyShadows = GlobalKey();
+  final GlobalKey _keyEffects = GlobalKey();
+  final GlobalKey _keyComponents = GlobalKey();
+  final GlobalKey _keyAdvanced = GlobalKey();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollToSection(GlobalKey key) {
+    final ctx = key.currentContext;
+    if (ctx != null) {
+      Scrollable.ensureVisible(
+        ctx,
+        duration: const Duration(milliseconds: 380),
+        curve: Curves.easeOutCubic,
+        alignment: 0.05,
+      );
+    }
+  }
 
   Future<void> _exportAsPdf() async {
     if (!mounted || _isExportingPdf) return;
@@ -582,12 +624,28 @@ class _PreviewScreenState extends State<PreviewScreen> {
   Widget build(BuildContext context) {
     final provider = Provider.of<DesignSystemProvider>(context);
     final ds = provider.designSystem;
+    final titleStyle = GoogleFonts.roboto(
+      fontSize: 22,
+      fontWeight: FontWeight.w700,
+      color: _PreviewDocTheme.pageFg,
+      height: 1.25,
+    );
+    final leadStyle = GoogleFonts.roboto(
+      fontSize: 14,
+      height: 1.5,
+      color: _PreviewDocTheme.textSecondary,
+    );
 
     return Stack(
       children: [
         Scaffold(
+          backgroundColor: _PreviewDocTheme.pageBg,
           appBar: AppBar(
-            title: const Text('Design System Preview'),
+            backgroundColor: _PreviewDocTheme.pageBg,
+            foregroundColor: _PreviewDocTheme.pageFg,
+            elevation: 0,
+            surfaceTintColor: Colors.transparent,
+            title: Text('Preview', style: GoogleFonts.roboto(fontWeight: FontWeight.w600, color: _PreviewDocTheme.pageFg)),
             actions: [
               IconButton(
                 icon: _isExportingPdf ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.picture_as_pdf),
@@ -597,58 +655,122 @@ class _PreviewScreenState extends State<PreviewScreen> {
             ],
           ),
           body: ScreenBodyPadding(
-        verticalPadding: 0,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeading('1. Core Colors'),
-              _buildTwoColumnColors(ds),
-              const SizedBox(height: 20),
-
-              _buildHeading('2. Typography'),
-              _buildTypographyFull(ds),
-              const SizedBox(height: 20),
-
-              _buildHeading('3. Layout & Shape'),
-              _buildLayoutFull(ds),
-              const SizedBox(height: 20),
-
-              _buildHeading('4. Shadows'),
-              _buildShadowsSection(ds),
-              const SizedBox(height: 20),
-
-              _buildHeading('5. Visual Effects'),
-              _buildEffectsSection(ds),
-              const SizedBox(height: 20),
-
-              _buildHeading('6. Components & Assets'),
-              _buildComponentsDetailed(ds),
-              const SizedBox(height: 20),
-
-              _buildHeading('7. Advanced Tokens'),
-              _buildAdvancedFull(ds),
-              const SizedBox(height: 24),
-            ],
+            verticalPadding: 0,
+            child: SingleChildScrollView(
+              controller: _scrollController,
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 80),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1120),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildHero(context, ds),
+                      const SizedBox(height: 20),
+                      _buildTocNav(),
+                      const SizedBox(height: 40),
+                      KeyedSubtree(
+                        key: _keyColors,
+                        child: _buildDocSection(
+                          title: 'Color',
+                          lead: 'Core palettes and semantic ramps from your design system. Swatches reflect saved tokens.',
+                          titleStyle: titleStyle,
+                          leadStyle: leadStyle,
+                          child: _buildTwoColumnColors(ds),
+                        ),
+                      ),
+                      const SizedBox(height: 48),
+                      KeyedSubtree(
+                        key: _keyTypography,
+                        child: _buildDocSection(
+                          title: 'Typography',
+                          lead: 'Font family, weights, sizes, and text styles.',
+                          titleStyle: titleStyle,
+                          leadStyle: leadStyle,
+                          child: _buildTypographyFull(ds),
+                        ),
+                      ),
+                      const SizedBox(height: 48),
+                      KeyedSubtree(
+                        key: _keyLayout,
+                        child: _buildDocSection(
+                          title: 'Layout & shape',
+                          lead: 'Spacing scale, grid, and border radius.',
+                          titleStyle: titleStyle,
+                          leadStyle: leadStyle,
+                          child: _buildLayoutFull(ds),
+                        ),
+                      ),
+                      const SizedBox(height: 48),
+                      KeyedSubtree(
+                        key: _keyShadows,
+                        child: _buildDocSection(
+                          title: 'Shadows',
+                          lead: 'Elevation and component shadow tokens.',
+                          titleStyle: titleStyle,
+                          leadStyle: leadStyle,
+                          child: _buildShadowsSection(ds),
+                        ),
+                      ),
+                      const SizedBox(height: 48),
+                      KeyedSubtree(
+                        key: _keyEffects,
+                        child: _buildDocSection(
+                          title: 'Visual effects',
+                          lead: 'Glass morphism and overlays.',
+                          titleStyle: titleStyle,
+                          leadStyle: leadStyle,
+                          child: _buildEffectsSection(ds),
+                        ),
+                      ),
+                      const SizedBox(height: 48),
+                      KeyedSubtree(
+                        key: _keyComponents,
+                        child: _buildDocSection(
+                          title: 'Components & assets',
+                          lead: 'Registered components, project icons, and icon sizes.',
+                          titleStyle: titleStyle,
+                          leadStyle: leadStyle,
+                          child: _buildComponentsDetailed(ds),
+                        ),
+                      ),
+                      const SizedBox(height: 48),
+                      KeyedSubtree(
+                        key: _keyAdvanced,
+                        child: _buildDocSection(
+                          title: 'Advanced tokens',
+                          lead: 'Gradients, roles, semantic aliases, and motion.',
+                          titleStyle: titleStyle,
+                          leadStyle: leadStyle,
+                          child: _buildAdvancedFull(ds),
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                      _buildDocFooter(),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           ),
-        ),
-      ),
         ),
         if (_isExportingPdf)
           Material(
             color: Colors.black54,
             child: Center(
               child: Card(
+                color: _PreviewDocTheme.card,
+                elevation: 8,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: _PreviewDocTheme.cardBorder)),
                 margin: const EdgeInsets.all(48),
                 child: Padding(
                   padding: const EdgeInsets.all(32),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const CircularProgressIndicator(),
+                      const CircularProgressIndicator(color: _PreviewDocTheme.accent),
                       const SizedBox(height: 24),
-                      Text('Generating PDF...', style: Theme.of(context).textTheme.titleMedium),
+                      Text('Generating PDF...', style: GoogleFonts.roboto(fontSize: 16, fontWeight: FontWeight.w600, color: _PreviewDocTheme.pageFg)),
                     ],
                   ),
                 ),
@@ -659,28 +781,128 @@ class _PreviewScreenState extends State<PreviewScreen> {
     );
   }
 
-  Widget _buildHeading(String title) {
+  Widget _buildHero(BuildContext context, models.DesignSystem ds) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          ds.name.isEmpty ? 'Design system' : ds.name,
+          style: GoogleFonts.roboto(
+            fontSize: 28,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.02 * 16,
+            height: 1.2,
+            color: _PreviewDocTheme.pageFg,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Version ${ds.version}${ds.description.isNotEmpty ? ' — ${ds.description}' : ''}',
+          style: GoogleFonts.roboto(fontSize: 14, height: 1.5, color: _PreviewDocTheme.textSecondary),
+        ),
+        const SizedBox(height: 24),
+        Divider(height: 1, thickness: 1, color: _PreviewDocTheme.cardBorder),
+      ],
+    );
+  }
+
+  Widget _buildTocNav() {
+    final items = <(String label, GlobalKey key)>[
+      ('Color', _keyColors),
+      ('Typography', _keyTypography),
+      ('Layout', _keyLayout),
+      ('Shadows', _keyShadows),
+      ('Effects', _keyEffects),
+      ('Components', _keyComponents),
+      ('Advanced', _keyAdvanced),
+    ];
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: items.map((e) {
+        return Material(
+          color: _PreviewDocTheme.accent.withValues(alpha: 0.18),
+          borderRadius: BorderRadius.circular(999),
+          child: InkWell(
+            onTap: () => _scrollToSection(e.$2),
+            borderRadius: BorderRadius.circular(999),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: _PreviewDocTheme.accent.withValues(alpha: 0.32)),
+              ),
+              child: Text(
+                e.$1,
+                style: GoogleFonts.roboto(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: _PreviewDocTheme.accent,
+                ),
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildDocSection({
+    required String title,
+    required String lead,
+    required TextStyle titleStyle,
+    required TextStyle leadStyle,
+    required Widget child,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: titleStyle),
+        const SizedBox(height: 8),
+        Container(width: double.infinity, height: 2, color: _PreviewDocTheme.accent),
+        const SizedBox(height: 8),
+        Text(lead, style: leadStyle),
+        const SizedBox(height: 20),
+        child,
+      ],
+    );
+  }
+
+  Widget _buildDocFooter() {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blue)),
+      padding: const EdgeInsets.only(top: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Divider(height: 1, thickness: 1, color: _PreviewDocTheme.cardBorder),
+          const SizedBox(height: 16),
+          Text(
+            'Live preview of your saved tokens. Export to PDF from the toolbar when you need a shareable snapshot.',
+            style: GoogleFonts.roboto(fontSize: 13, color: _PreviewDocTheme.textTertiary, height: 1.45),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildSectionCard(String sectionTitle, Widget child) {
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 0),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
+        color: _PreviewDocTheme.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _PreviewDocTheme.cardBorder),
+        boxShadow: _PreviewDocTheme.cardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(sectionTitle, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87)),
+          Text(
+            sectionTitle,
+            style: GoogleFonts.roboto(fontSize: 16, fontWeight: FontWeight.w700, color: _PreviewDocTheme.pageFg),
+          ),
           const SizedBox(height: 16),
           child,
         ],
@@ -713,85 +935,238 @@ class _PreviewScreenState extends State<PreviewScreen> {
   }
 
   Widget _buildTwoColumnColors(models.DesignSystem ds) {
-    final c = ds.colors;
-    // 1) Groups from primary + semantic (by prefix): primary, analogous, success, etc.
-    final primarySemanticEntries = <(String name, String hex)>[]
-      ..addAll(_colorMapToEntries(c.primary))
-      ..addAll(_colorMapToEntries(c.semantic));
-    final prefixGroups = _groupColorsByPrefix(primarySemanticEntries);
-
-    // 2) Other palettes as single groups (blue, green, orange, ...)
-    final paletteOrder = ['blue', 'green', 'orange', 'purple', 'red', 'grey', 'white', 'text', 'input', 'roleSpecific'];
-    final allGroups = <String, List<(String name, String hex)>>{};
-    for (final key in prefixGroups.keys) {
-      allGroups[key] = prefixGroups[key]!;
-    }
-    for (final key in paletteOrder) {
-      Map<String, dynamic>? map;
-      switch (key) {
-        case 'blue': map = c.blue; break;
-        case 'green': map = c.green; break;
-        case 'orange': map = c.orange; break;
-        case 'purple': map = c.purple; break;
-        case 'red': map = c.red; break;
-        case 'grey': map = c.grey; break;
-        case 'white': map = c.white; break;
-        case 'text': map = c.text; break;
-        case 'input': map = c.input; break;
-        case 'roleSpecific': map = c.roleSpecific; break;
-        default: break;
-      }
-      final entries = _colorMapToEntries(map);
-      if (entries.isNotEmpty) allGroups[key] = entries;
-    }
-
-    if (allGroups.isEmpty) {
+    final allTokens = _collectAllColorTokens(ds);
+    if (allTokens.isEmpty) {
       return _buildPlaceholder('Colors (add Primary or Semantic in Colors screen)');
     }
+    final coreEntries = _coreSurfaceEntries(allTokens);
+    final primaryRamp = _rampEntries(allTokens, 'primary');
+    final t1Ramp = _rampEntries(allTokens, 'tetradic_1');
+    final t2Ramp = _rampEntries(allTokens, 'tetradic_2');
+    final t4Ramp = _rampEntries(allTokens, 'tetradic_4');
+    final triadic3Ramp = _rampEntries(allTokens, 'triadic_3');
+    final fallback = allTokens.entries
+        .where((e) =>
+            e.key.startsWith('triadic_') ||
+            e.key.startsWith('analogous') ||
+            e.key.startsWith('secondary') ||
+            e.key.startsWith('success') ||
+            e.key.startsWith('warning') ||
+            e.key.startsWith('error') ||
+            e.key.startsWith('info'))
+        .map((e) => (e.key, e.value))
+        .toList()
+      ..sort((a, b) => _naturalCompare(a.$1, b.$1));
 
-    // Order: primary first, then analogous_1, analogous_2, ... then preferred order, then rest.
-    final orderedGroups = <String>[];
-    if (allGroups.containsKey('primary')) orderedGroups.add('primary');
-    final analogousKeys = allGroups.keys.where((k) => k.startsWith('analogous_')).toList()
-      ..sort((a, b) => _naturalCompare(a, b));
-    for (final k in analogousKeys) orderedGroups.add(k);
-    for (final k in _colorGroupOrder) {
-      if (allGroups.containsKey(k) && !orderedGroups.contains(k)) orderedGroups.add(k);
+    final cards = <Widget>[
+      _buildColorSwatchCard('Core & surfaces', coreEntries.isEmpty ? allTokens.entries.take(7).map((e) => (e.key, e.value)).toList() : coreEntries),
+    ];
+    if (primaryRamp.isNotEmpty) {
+      cards.add(_buildColorSwatchCard(
+        'Primary (teal) ramp — primary_dark1...10 / primary_light1...10',
+        primaryRamp,
+      ));
     }
-    for (final k in allGroups.keys) {
-      if (!orderedGroups.contains(k)) orderedGroups.add(k);
+    if (t1Ramp.isNotEmpty) {
+      cards.add(_buildColorSwatchCard('Coral — teal complement (CTA / highlights)', t1Ramp));
     }
-
-    // Two columns: first half (rounded up) in left column, rest in right.
-    final n = orderedGroups.length;
-    final firstColumnCount = n <= 2 ? 1 : (n + 1) ~/ 2;
-    final leftKeys = orderedGroups.take(firstColumnCount).toList();
-    final rightKeys = orderedGroups.skip(firstColumnCount).toList();
-
-    Widget buildColumn(List<String> keys) {
-      if (keys.isEmpty) return const SizedBox.shrink();
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          for (var i = 0; i < keys.length; i++) ...[
-            if (i > 0) const SizedBox(height: 12),
-            _buildColorGroupColumn(_capitalize(keys[i]), allGroups[keys[i]]!),
-          ],
-        ],
-      );
+    if (t2Ramp.isNotEmpty) {
+      cards.add(_buildColorSwatchCard('Purple — secondary', t2Ramp));
+    }
+    if (t4Ramp.isNotEmpty) {
+      cards.add(_buildColorSwatchCard('Gold — purple complement (soft accent)', t4Ramp));
+    }
+    if (triadic3Ramp.isNotEmpty) {
+      cards.add(_buildColorSwatchCard('Triadic 3 ramp', triadic3Ramp));
+    }
+    if (cards.length == 1 && fallback.isNotEmpty) {
+      cards.add(_buildColorSwatchCard('Additional ramps', fallback.take(22).toList()));
     }
 
     return _buildSectionCard(
       'Colors',
-      Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Expanded(child: buildColumn(leftKeys)),
-          if (rightKeys.isNotEmpty) ...[
-            const SizedBox(width: 12),
-            Expanded(child: buildColumn(rightKeys)),
+          for (var i = 0; i < cards.length; i++) ...[
+            if (i > 0) const SizedBox(height: 12),
+            cards[i],
           ],
         ],
+      ),
+    );
+  }
+
+  Map<String, String> _collectAllColorTokens(models.DesignSystem ds) {
+    final c = ds.colors;
+    final maps = <Map<String, dynamic>?>[
+      c.primary,
+      c.semantic,
+      c.blue,
+      c.green,
+      c.orange,
+      c.purple,
+      c.red,
+      c.grey,
+      c.white,
+      c.text,
+      c.input,
+      c.roleSpecific,
+    ];
+    final out = <String, String>{};
+    for (final map in maps) {
+      for (final e in _colorMapToEntries(map)) {
+        out[e.$1] = _toHex(e.$2);
+      }
+    }
+    return out;
+  }
+
+  List<(String name, String hex)> _coreSurfaceEntries(Map<String, String> allTokens) {
+    final preferred = <String>[
+      'primary',
+      'coral',
+      'secondary',
+      'gold',
+      'appBackground',
+      'appBackgroundDark',
+      'coral_muted',
+    ];
+    final result = <(String name, String hex)>[];
+    for (final name in preferred) {
+      if (allTokens.containsKey(name)) result.add((name, allTokens[name]!));
+    }
+    return result;
+  }
+
+  List<(String name, String hex)> _rampEntries(Map<String, String> allTokens, String prefix) {
+    final dark = <(int, String, String)>[];
+    final light = <(int, String, String)>[];
+    String? base;
+    for (final e in allTokens.entries) {
+      final darkMatch = RegExp('^${RegExp.escape(prefix)}_dark(\\d+)\$').firstMatch(e.key);
+      if (darkMatch != null) {
+        dark.add((int.parse(darkMatch.group(1)!), e.key, e.value));
+        continue;
+      }
+      final lightMatch = RegExp('^${RegExp.escape(prefix)}_light(\\d+)\$').firstMatch(e.key);
+      if (lightMatch != null) {
+        light.add((int.parse(lightMatch.group(1)!), e.key, e.value));
+        continue;
+      }
+      if (e.key == prefix) {
+        base = e.value;
+      }
+    }
+    dark.sort((a, b) => b.$1.compareTo(a.$1));
+    light.sort((a, b) => a.$1.compareTo(b.$1));
+    final list = <(String name, String hex)>[];
+    list.addAll(dark.map((e) => (e.$2, e.$3)));
+    if (base != null) list.add((prefix, base));
+    list.addAll(light.map((e) => (e.$2, e.$3)));
+    return list;
+  }
+
+  Widget _buildColorSwatchCard(String title, List<(String name, String hex)> entries) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _PreviewDocTheme.cardBorder),
+        color: _PreviewDocTheme.card,
+        boxShadow: _PreviewDocTheme.cardShadow,
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: GoogleFonts.roboto(fontSize: 16, fontWeight: FontWeight.w700, color: _PreviewDocTheme.pageFg),
+          ),
+          const SizedBox(height: 12),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final width = constraints.maxWidth;
+              final cols = width > 980 ? 6 : width > 820 ? 5 : width > 640 ? 4 : width > 480 ? 3 : 2;
+              return GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: cols,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  // A tiny extra height prevents 1px text overflow on web/font rounding.
+                  mainAxisExtent: 132,
+                ),
+                itemCount: entries.length,
+                itemBuilder: (context, index) {
+                  final e = entries[index];
+                  return _buildColorSwatchTile(e.$1, e.$2);
+                },
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildColorSwatchTile(String name, String hexRaw) {
+    final hex = _toHex(hexRaw);
+    final color = _parseColor(hex);
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () async {
+          await Clipboard.setData(ClipboardData(text: hex));
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Copied $hex'),
+              duration: const Duration(milliseconds: 1200),
+            ),
+          );
+        },
+        child: Ink(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: _PreviewDocTheme.cardBorder),
+            color: Colors.white,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                height: 72,
+                color: color,
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.roboto(fontSize: 11, fontWeight: FontWeight.w500, color: _PreviewDocTheme.textSecondary),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        hex,
+                        style: GoogleFonts.robotoMono(fontSize: 13, fontWeight: FontWeight.w600, color: _PreviewDocTheme.pageFg),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -900,20 +1275,24 @@ class _PreviewScreenState extends State<PreviewScreen> {
   Widget _buildColorGroupColumn(String title, List<(String name, String hex)> entries) {
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade200),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _PreviewDocTheme.cardBorder),
+        boxShadow: _PreviewDocTheme.cardShadow,
       ),
+      clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(7)),
-              border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+              color: _PreviewDocTheme.cardMuted,
+              border: Border(bottom: BorderSide(color: _PreviewDocTheme.cardBorder)),
             ),
-            child: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black87)),
+            child: Text(
+              title,
+              style: GoogleFonts.roboto(fontSize: 13, fontWeight: FontWeight.w600, color: _PreviewDocTheme.pageFg),
+            ),
           ),
           ...entries.asMap().entries.map((e) => _buildColorRow(e.value.$1, e.value.$2, showBorder: e.key < entries.length - 1)),
         ],
@@ -927,13 +1306,17 @@ class _PreviewScreenState extends State<PreviewScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        border: showBorder ? Border(bottom: BorderSide(color: Colors.grey.shade200)) : null,
+        color: _PreviewDocTheme.card,
+        border: showBorder ? Border(bottom: BorderSide(color: _PreviewDocTheme.cardBorder)) : null,
       ),
       child: Row(
         children: [
           SizedBox(
             width: 76,
-            child: Text(hex, style: TextStyle(fontFamily: 'monospace', fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey.shade800)),
+            child: Text(
+              hex,
+              style: GoogleFonts.robotoMono(fontSize: 12, fontWeight: FontWeight.w600, color: _PreviewDocTheme.pageFg),
+            ),
           ),
           const SizedBox(width: 8),
           Container(
@@ -941,13 +1324,17 @@ class _PreviewScreenState extends State<PreviewScreen> {
             height: 28,
             decoration: BoxDecoration(
               color: color,
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: _PreviewDocTheme.cardBorder),
             ),
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(tokenName, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis),
+            child: Text(
+              tokenName,
+              style: GoogleFonts.roboto(fontSize: 13, fontWeight: FontWeight.w500, color: _PreviewDocTheme.pageFg),
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ],
       ),
@@ -983,8 +1370,9 @@ class _PreviewScreenState extends State<PreviewScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.grey.shade200),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: _PreviewDocTheme.cardBorder),
+            color: _PreviewDocTheme.card,
           ),
           child: Row(
             children: [
@@ -1001,8 +1389,9 @@ class _PreviewScreenState extends State<PreviewScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey.shade200),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: _PreviewDocTheme.cardBorder),
+              color: _PreviewDocTheme.card,
             ),
             child: Row(
               children: [
@@ -1019,8 +1408,9 @@ class _PreviewScreenState extends State<PreviewScreen> {
           const SizedBox(height: 8),
           Container(
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey.shade200),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: _PreviewDocTheme.cardBorder),
+              color: _PreviewDocTheme.card,
             ),
             child: Column(
               children: _buildTypographyWeightRows(primaryFont, t.fontWeights),
@@ -1033,8 +1423,9 @@ class _PreviewScreenState extends State<PreviewScreen> {
           const SizedBox(height: 8),
           Container(
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey.shade200),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: _PreviewDocTheme.cardBorder),
+              color: _PreviewDocTheme.card,
             ),
             child: Column(
               children: _buildTypographySizeRows(primaryFont, t.fontSizes),
@@ -1047,8 +1438,9 @@ class _PreviewScreenState extends State<PreviewScreen> {
           const SizedBox(height: 8),
           Container(
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey.shade200),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: _PreviewDocTheme.cardBorder),
+              color: _PreviewDocTheme.card,
             ),
             child: Column(
               children: () {
@@ -1059,14 +1451,14 @@ class _PreviewScreenState extends State<PreviewScreen> {
                   return Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                     decoration: BoxDecoration(
-                      border: showBorder ? Border(bottom: BorderSide(color: Colors.grey.shade200)) : null,
+                      border: showBorder ? Border(bottom: BorderSide(color: _PreviewDocTheme.cardBorder)) : null,
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         SizedBox(
                           width: 140,
-                          child: Text(e.key, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                          child: Text(e.key, style: GoogleFonts.roboto(fontSize: 13, fontWeight: FontWeight.w600, color: _PreviewDocTheme.pageFg)),
                         ),
                         Expanded(
                           child: Text(
@@ -1077,7 +1469,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
                         const SizedBox(width: 16),
                         Text(
                           '${e.value.fontSize} · ${e.value.fontWeight}',
-                          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                          style: GoogleFonts.roboto(fontSize: 12, color: _PreviewDocTheme.textSecondary),
                         ),
                       ],
                     ),
@@ -1092,11 +1484,22 @@ class _PreviewScreenState extends State<PreviewScreen> {
   }
 
   Widget _buildTypographySubheading(String title) {
-    return Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black87));
+    return Text(
+      title,
+      style: GoogleFonts.roboto(
+        fontSize: 11,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.06 * 11,
+        color: const Color(0xFF7B6F9D),
+      ),
+    );
   }
 
   Widget _buildTypographyLabel(String label) {
-    return SizedBox(width: 80, child: Text(label, style: TextStyle(fontSize: 13, color: Colors.grey.shade600)));
+    return SizedBox(
+      width: 80,
+      child: Text(label, style: GoogleFonts.roboto(fontSize: 13, color: _PreviewDocTheme.textSecondary)),
+    );
   }
 
   List<Widget> _buildTypographyWeightRows(String fontFamily, Map<String, int> weights) {
@@ -1107,13 +1510,13 @@ class _PreviewScreenState extends State<PreviewScreen> {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          border: showBorder ? Border(bottom: BorderSide(color: Colors.grey.shade200)) : null,
+          border: showBorder ? Border(bottom: BorderSide(color: _PreviewDocTheme.cardBorder)) : null,
         ),
         child: Row(
           children: [
-            SizedBox(width: 100, child: Text(e.key, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600))),
+            SizedBox(width: 100, child: Text(e.key, style: GoogleFonts.roboto(fontSize: 13, fontWeight: FontWeight.w600, color: _PreviewDocTheme.pageFg))),
             const SizedBox(width: 16),
-            SizedBox(width: 48, child: Text('${e.value}', style: TextStyle(fontSize: 12, color: Colors.grey.shade600))),
+            SizedBox(width: 48, child: Text('${e.value}', style: GoogleFonts.roboto(fontSize: 12, color: _PreviewDocTheme.textSecondary))),
             const SizedBox(width: 16),
             Expanded(
               child: Text(
@@ -1136,15 +1539,15 @@ class _PreviewScreenState extends State<PreviewScreen> {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          border: showBorder ? Border(bottom: BorderSide(color: Colors.grey.shade200)) : null,
+          border: showBorder ? Border(bottom: BorderSide(color: _PreviewDocTheme.cardBorder)) : null,
         ),
         child: Row(
           children: [
-            SizedBox(width: 80, child: Text(e.key, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600))),
+            SizedBox(width: 80, child: Text(e.key, style: GoogleFonts.roboto(fontSize: 13, fontWeight: FontWeight.w600, color: _PreviewDocTheme.pageFg))),
             const SizedBox(width: 16),
-            SizedBox(width: 56, child: Text(e.value.value, style: TextStyle(fontSize: 12, color: Colors.grey.shade600))),
+            SizedBox(width: 56, child: Text(e.value.value, style: GoogleFonts.roboto(fontSize: 12, color: _PreviewDocTheme.textSecondary))),
             const SizedBox(width: 8),
-            SizedBox(width: 48, child: Text('LH ${e.value.lineHeight}', style: TextStyle(fontSize: 11, color: Colors.grey.shade500))),
+            SizedBox(width: 48, child: Text('LH ${e.value.lineHeight}', style: GoogleFonts.roboto(fontSize: 11, color: _PreviewDocTheme.textTertiary))),
             const SizedBox(width: 16),
             Expanded(
               child: Text(
@@ -1175,7 +1578,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
     return _buildSectionCard('Layout & Shape', Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Spacing Scale', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+        Text('Spacing scale', style: GoogleFonts.roboto(fontWeight: FontWeight.w600, fontSize: 14, color: _PreviewDocTheme.pageFg)),
         const SizedBox(height: 12),
         Wrap(
           spacing: 12,
@@ -1184,33 +1587,44 @@ class _PreviewScreenState extends State<PreviewScreen> {
             final size = _parsePx(e.value);
             return Column(
               children: [
-                Container(width: size, height: size, decoration: BoxDecoration(color: Colors.blue.shade100, border: Border.all(color: Colors.blue.shade300), borderRadius: BorderRadius.circular(4))),
+                Container(
+                  width: size,
+                  height: size,
+                  decoration: BoxDecoration(
+                    color: _PreviewDocTheme.accent.withValues(alpha: 0.14),
+                    border: Border.all(color: _PreviewDocTheme.accent.withValues(alpha: 0.35)),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                ),
                 const SizedBox(height: 4),
-                Text('${e.key} (${e.value})', style: TextStyle(fontSize: 11, color: Colors.grey.shade700)),
+                Text('${e.key} (${e.value})', style: GoogleFonts.roboto(fontSize: 11, color: _PreviewDocTheme.textSecondary)),
               ],
             );
           }).toList(),
         ),
         const SizedBox(height: 24),
-        const Text('Grid System', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+        Text('Grid system', style: GoogleFonts.roboto(fontWeight: FontWeight.w600, fontSize: 14, color: _PreviewDocTheme.pageFg)),
         const SizedBox(height: 12),
         Container(
           height: 48,
           width: double.infinity,
-          decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(8)),
+          decoration: BoxDecoration(border: Border.all(color: _PreviewDocTheme.cardBorder), borderRadius: BorderRadius.circular(12)),
           child: Row(
             children: List.generate(ds.grid.columns, (i) => Expanded(
               child: Container(
                 margin: const EdgeInsets.symmetric(horizontal: 2),
-                decoration: BoxDecoration(color: Colors.pink.withOpacity(0.12), borderRadius: BorderRadius.circular(4)),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF7B6F9D).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
               ),
             )),
           ),
         ),
         const SizedBox(height: 6),
-        Text('Columns: ${ds.grid.columns} · Gutter: ${ds.grid.gutter}', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+        Text('Columns: ${ds.grid.columns} · Gutter: ${ds.grid.gutter}', style: GoogleFonts.roboto(fontSize: 12, color: _PreviewDocTheme.textSecondary)),
         const SizedBox(height: 24),
-        const Text('Border Radius', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+        Text('Border radius', style: GoogleFonts.roboto(fontWeight: FontWeight.w600, fontSize: 14, color: _PreviewDocTheme.pageFg)),
         const SizedBox(height: 12),
         Wrap(
           spacing: 20,
@@ -1233,14 +1647,14 @@ class _PreviewScreenState extends State<PreviewScreen> {
           width: 60,
           height: 60,
           decoration: BoxDecoration(
-            color: Colors.grey.shade50,
-            border: Border.all(color: Colors.blue, width: 2),
+            color: _PreviewDocTheme.cardMuted,
+            border: Border.all(color: _PreviewDocTheme.accent, width: 2),
             borderRadius: BorderRadius.circular(radius),
           ),
-          child: const Center(child: Icon(Icons.rounded_corner, color: Colors.blue, size: 20)),
+          child: const Center(child: Icon(Icons.rounded_corner, color: _PreviewDocTheme.accent, size: 20)),
         ),
         const SizedBox(height: 8),
-        Text('$label: $value', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+        Text('$label: $value', style: GoogleFonts.roboto(fontSize: 10, fontWeight: FontWeight.w500, color: _PreviewDocTheme.pageFg)),
       ],
     );
   }
@@ -1251,7 +1665,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
         padding: const EdgeInsets.only(top: 8),
         child: Text(
           'No shadows in design system. Add tokens in the Shadows screen (elevation and component shadows).',
-          style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+          style: GoogleFonts.roboto(fontSize: 13, color: _PreviewDocTheme.textSecondary, height: 1.45),
         ),
       ));
     }
@@ -1266,7 +1680,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
           return Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             decoration: BoxDecoration(
-              border: showBorder ? Border(bottom: BorderSide(color: Colors.grey.shade200)) : null,
+              border: showBorder ? Border(bottom: BorderSide(color: _PreviewDocTheme.cardBorder)) : null,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1276,7 +1690,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
                   children: [
                     SizedBox(
                       width: 120,
-                      child: Text(e.key, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                      child: Text(e.key, style: GoogleFonts.roboto(fontSize: 14, fontWeight: FontWeight.w600, color: _PreviewDocTheme.pageFg)),
                     ),
                     Expanded(
                       child: _buildShadowContextPreview(e.key, boxShadow),
@@ -1286,7 +1700,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
                 const SizedBox(height: 10),
                 Text(
                   e.value.value,
-                  style: TextStyle(fontSize: 11, fontFamily: 'monospace', color: Colors.grey.shade700),
+                  style: GoogleFonts.robotoMono(fontSize: 11, color: _PreviewDocTheme.textSecondary),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -1502,7 +1916,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
         padding: const EdgeInsets.only(top: 8),
         child: Text(
           'No effects in design system. Add Glass Morphism or Dark Overlay in the Effects screen.',
-          style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+          style: GoogleFonts.roboto(fontSize: 13, color: _PreviewDocTheme.textSecondary, height: 1.45),
         ),
       ));
     }
@@ -1512,7 +1926,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
         if (effects.glassMorphism != null) ...[
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
-            child: Text('Glass Morphism', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.grey.shade800)),
+            child: Text('Glass morphism', style: GoogleFonts.roboto(fontSize: 14, fontWeight: FontWeight.w600, color: _PreviewDocTheme.pageFg)),
           ),
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
@@ -1527,7 +1941,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
         if (effects.darkOverlay != null) ...[
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
-            child: Text('Dark Overlay', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.grey.shade800)),
+            child: Text('Dark overlay', style: GoogleFonts.roboto(fontSize: 14, fontWeight: FontWeight.w600, color: _PreviewDocTheme.pageFg)),
           ),
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
@@ -1693,11 +2107,11 @@ class _PreviewScreenState extends State<PreviewScreen> {
         _buildComponentCategory('Avatars', ds.components.avatars, 100),
         if (hasProjectIcons) ...[
           const SizedBox(height: 8),
-          const Text('Project icons', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+          Text('Project icons', style: GoogleFonts.roboto(fontWeight: FontWeight.w600, fontSize: 14, color: _PreviewDocTheme.pageFg)),
           const SizedBox(height: 4),
           Text(
             'Icons defined for this product (Icons screen)',
-            style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+            style: GoogleFonts.roboto(fontSize: 11, color: _PreviewDocTheme.textSecondary),
           ),
           const SizedBox(height: 12),
           Wrap(
@@ -1710,14 +2124,14 @@ class _PreviewScreenState extends State<PreviewScreen> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.white,
-                      border: Border.all(color: Colors.grey.shade300),
+                      color: _PreviewDocTheme.card,
+                      border: Border.all(color: _PreviewDocTheme.cardBorder),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: DynamicMaterialIcon(
                       codePoint: e.codePoint,
                       size: previewIconSize,
-                      color: Colors.grey.shade800,
+                      color: _PreviewDocTheme.pageFg,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -1728,7 +2142,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
                       textAlign: TextAlign.center,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: Colors.grey.shade700),
+                      style: GoogleFonts.roboto(fontSize: 10, fontWeight: FontWeight.w500, color: _PreviewDocTheme.textSecondary),
                     ),
                   ),
                 ],
@@ -1738,7 +2152,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
         ],
         if (hasIconSizes) ...[
           const SizedBox(height: 16),
-          const Text('Icon Sizes', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+          Text('Icon sizes', style: GoogleFonts.roboto(fontWeight: FontWeight.w600, fontSize: 14, color: _PreviewDocTheme.pageFg)),
           const SizedBox(height: 8),
           Wrap(
             spacing: 16,
@@ -1747,9 +2161,9 @@ class _PreviewScreenState extends State<PreviewScreen> {
               final size = _parsePx(e.value);
               return Column(
                 children: [
-                  Icon(Icons.star, size: size, color: Colors.grey.shade700),
+                  Icon(Icons.star, size: size, color: _PreviewDocTheme.textSecondary),
                   const SizedBox(height: 4),
-                  Text('${e.key} (${e.value})', style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                  Text('${e.key} (${e.value})', style: GoogleFonts.roboto(fontSize: 11, color: _PreviewDocTheme.textSecondary)),
                 ],
               );
             }).toList(),
@@ -1766,7 +2180,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.blueGrey)),
+          Text(name, style: GoogleFonts.roboto(fontWeight: FontWeight.w600, fontSize: 11, letterSpacing: 0.07 * 11, color: const Color(0xFF7B6F9D))),
           const SizedBox(height: 8),
           ...tokens.entries.map((e) {
             final desc = e.value is Map ? e.value['description']?.toString() ?? '' : '';
@@ -1774,16 +2188,16 @@ class _PreviewScreenState extends State<PreviewScreen> {
               margin: const EdgeInsets.only(bottom: 4),
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.white, 
-                border: Border.all(color: Colors.grey.shade200), 
-                borderRadius: BorderRadius.circular(radius)
+                color: _PreviewDocTheme.cardMuted,
+                border: Border.all(color: _PreviewDocTheme.cardBorder),
+                borderRadius: BorderRadius.circular(radius.clamp(8, 16)),
               ),
               child: Row(
                 children: [
-                  Text(e.key, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                  Text(e.key, style: GoogleFonts.roboto(fontWeight: FontWeight.w600, fontSize: 11, color: _PreviewDocTheme.pageFg)),
                   if (desc.isNotEmpty) ...[
-                    const Text(' — ', style: TextStyle(color: Colors.grey)),
-                    Expanded(child: Text(desc, style: const TextStyle(fontSize: 10, color: Colors.grey))),
+                    Text(' — ', style: GoogleFonts.roboto(color: _PreviewDocTheme.textTertiary)),
+                    Expanded(child: Text(desc, style: GoogleFonts.roboto(fontSize: 10, color: _PreviewDocTheme.textSecondary))),
                   ],
                 ],
               ),
@@ -1817,12 +2231,18 @@ class _PreviewScreenState extends State<PreviewScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+        Text(title, style: GoogleFonts.roboto(fontWeight: FontWeight.w600, fontSize: 14, color: _PreviewDocTheme.pageFg)),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
           runSpacing: 6,
-          children: items.map((s) => Chip(label: Text(s, style: const TextStyle(fontSize: 12)), padding: EdgeInsets.zero, materialTapTargetSize: MaterialTapTargetSize.shrinkWrap)).toList(),
+          children: items.map((s) => Chip(
+            label: Text(s, style: GoogleFonts.roboto(fontSize: 12, color: _PreviewDocTheme.pageFg)),
+            padding: EdgeInsets.zero,
+            backgroundColor: _PreviewDocTheme.accent.withValues(alpha: 0.12),
+            side: BorderSide(color: _PreviewDocTheme.cardBorder),
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          )).toList(),
         ),
       ],
     );
@@ -1832,8 +2252,15 @@ class _PreviewScreenState extends State<PreviewScreen> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(12)),
-      child: Text('No data for $section. Add tokens in the dashboard.', style: const TextStyle(fontStyle: FontStyle.italic, color: Colors.grey)),
+      decoration: BoxDecoration(
+        color: _PreviewDocTheme.cardMuted,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _PreviewDocTheme.cardBorder),
+      ),
+      child: Text(
+        'No data for $section. Add tokens in the dashboard.',
+        style: GoogleFonts.roboto(fontStyle: FontStyle.italic, color: _PreviewDocTheme.textSecondary, fontSize: 14, height: 1.45),
+      ),
     );
   }
 
