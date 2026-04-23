@@ -8,6 +8,7 @@ import '../providers/user_provider.dart';
 import '../utils/responsive.dart';
 import '../services/project_service.dart';
 import '../models/design_system.dart' as models;
+import '../models/user.dart';
 import 'colors_screen.dart';
 import 'profile_screen.dart';
 import 'typography_screen.dart';
@@ -32,6 +33,7 @@ import 'motion_tokens_screen.dart';
 import 'docs_screen.dart';
 import 'component_gallery_screen.dart';
 import 'platform_pickers_dialogs_screen.dart';
+import 'admin_design_system_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -193,6 +195,24 @@ class DashboardScreen extends StatelessWidget {
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const DesignLibraryScreen()),
+              );
+            },
+          ),
+          Consumer<UserProvider>(
+            builder: (context, userProvider, _) {
+              if (userProvider.userRole != UserRole.admin) {
+                return const SizedBox.shrink();
+              }
+              return IconButton(
+                icon: const Icon(Icons.admin_panel_settings_outlined),
+                tooltip: 'Admin Firebase Save',
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const AdminDesignSystemScreen(),
+                    ),
+                  );
+                },
               );
             },
           ),
