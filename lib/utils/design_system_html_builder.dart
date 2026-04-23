@@ -14,6 +14,13 @@ String buildDesignSystemHtml(models.DesignSystem ds) {
   </div>
 </div>''')
           .join('\n');
+  final typographyHtml = _buildTypographyHtml(ds);
+  final layoutHtml = _buildLayoutHtml(ds);
+  final radiusHtml = _buildRadiusHtml(ds);
+  final shadowsHtml = _buildShadowsHtml(ds);
+  final effectsHtml = _buildEffectsHtml(ds);
+  final componentsHtml = _buildComponentsHtml(ds);
+  final advancedHtml = _buildAdvancedHtml(ds);
 
   return '''
 <!DOCTYPE html>
@@ -57,6 +64,7 @@ String buildDesignSystemHtml(models.DesignSystem ds) {
       border-radius: 16px;
       padding: 16px;
     }
+    .card + .card { margin-top: 12px; }
     .grid-swatches {
       display: grid;
       gap: 12px;
@@ -99,6 +107,27 @@ String buildDesignSystemHtml(models.DesignSystem ds) {
       pointer-events: none;
     }
     .toast.show { opacity: 1; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    th, td {
+      text-align: left;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--card-border);
+      vertical-align: top;
+    }
+    th { color: var(--text-secondary); font-size: 12px; text-transform: uppercase; }
+    code { font-family: var(--mono); }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip-pill {
+      border: 1px solid var(--card-border);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+      background: #fff;
+    }
   </style>
 </head>
 <body>
@@ -115,6 +144,31 @@ String buildDesignSystemHtml(models.DesignSystem ds) {
           $colorCards
         </div>
       </div>
+    </section>
+    <section>
+      <h2>Typography</h2>
+      <div class="card">$typographyHtml</div>
+    </section>
+    <section>
+      <h2>Layout & Shape</h2>
+      <div class="card">$layoutHtml</div>
+      <div class="card">$radiusHtml</div>
+    </section>
+    <section>
+      <h2>Shadows</h2>
+      <div class="card">$shadowsHtml</div>
+    </section>
+    <section>
+      <h2>Visual Effects</h2>
+      <div class="card">$effectsHtml</div>
+    </section>
+    <section>
+      <h2>Components & Assets</h2>
+      <div class="card">$componentsHtml</div>
+    </section>
+    <section>
+      <h2>Advanced Tokens</h2>
+      <div class="card">$advancedHtml</div>
     </section>
   </div>
   <div id="toast" class="toast" aria-live="polite"></div>
@@ -145,6 +199,158 @@ String buildDesignSystemHtml(models.DesignSystem ds) {
 </body>
 </html>
 ''';
+}
+
+String _buildTypographyHtml(models.DesignSystem ds) {
+  final t = ds.typography;
+  final weights = t.fontWeights.entries
+      .map((e) => '<span class="chip-pill">${_escapeHtml(e.key)}: ${_escapeHtml(e.value.toString())}</span>')
+      .join('');
+  final sizesRows = t.fontSizes.entries
+      .map((e) => '<tr><td><code>${_escapeHtml(e.key)}</code></td><td>${_escapeHtml(e.value.value.toString())}</td><td>${_escapeHtml(e.value.lineHeight.toString())}</td></tr>')
+      .join('');
+  final stylesRows = t.textStyles.entries
+      .map((e) => '<tr><td><code>${_escapeHtml(e.key)}</code></td><td>Sample in ${_escapeHtml(e.key)}</td></tr>')
+      .join('');
+  return '''
+<p class="lead">Primary: <strong>${_escapeHtml(t.fontFamily.primary)}</strong> · Fallback: ${_escapeHtml(t.fontFamily.fallback)}</p>
+${weights.isEmpty ? '<p class="lead">No font weights defined.</p>' : '<div class="chips">$weights</div>'}
+<h3>Font Sizes</h3>
+${sizesRows.isEmpty ? '<p class="lead">No font sizes defined.</p>' : '<table><thead><tr><th>Token</th><th>Size</th><th>Line Height</th></tr></thead><tbody>$sizesRows</tbody></table>'}
+<h3>Text Styles</h3>
+${stylesRows.isEmpty ? '<p class="lead">No text styles defined.</p>' : '<table><thead><tr><th>Style</th><th>Preview</th></tr></thead><tbody>$stylesRows</tbody></table>'}
+''';
+}
+
+String _buildLayoutHtml(models.DesignSystem ds) {
+  final spacingRows = ds.spacing.values.entries
+      .map((e) => '<tr><td><code>${_escapeHtml(e.key)}</code></td><td>${_escapeHtml(e.value)}</td></tr>')
+      .join('');
+  return '''
+<h3>Spacing</h3>
+${spacingRows.isEmpty ? '<p class="lead">No spacing tokens defined.</p>' : '<table><thead><tr><th>Token</th><th>Value</th></tr></thead><tbody>$spacingRows</tbody></table>'}
+<h3>Grid</h3>
+<p class="lead">Columns: <strong>${_escapeHtml(ds.grid.columns.toString())}</strong> · Gutter: <strong>${_escapeHtml(ds.grid.gutter)}</strong></p>
+''';
+}
+
+String _buildRadiusHtml(models.DesignSystem ds) {
+  final rows = [
+    ('none', ds.borderRadius.none),
+    ('sm', ds.borderRadius.sm),
+    ('base', ds.borderRadius.base),
+    ('md', ds.borderRadius.md),
+    ('lg', ds.borderRadius.lg),
+    ('xl', ds.borderRadius.xl),
+    ('full', ds.borderRadius.full),
+  ]
+      .map((e) => '<tr><td><code>${_escapeHtml(e.$1)}</code></td><td>${_escapeHtml(e.$2)}</td></tr>')
+      .join('');
+  return '<h3>Border Radius</h3><table><thead><tr><th>Token</th><th>Value</th></tr></thead><tbody>$rows</tbody></table>';
+}
+
+String _buildShadowsHtml(models.DesignSystem ds) {
+  final rows = ds.shadows.values.entries
+      .map((e) => '<tr><td><code>${_escapeHtml(e.key)}</code></td><td>${_escapeHtml(e.value.value.toString())}</td></tr>')
+      .join('');
+  return rows.isEmpty
+      ? '<p class="lead">No shadows defined.</p>'
+      : '<table><thead><tr><th>Token</th><th>Value</th></tr></thead><tbody>$rows</tbody></table>';
+}
+
+String _buildEffectsHtml(models.DesignSystem ds) {
+  final glassRows = (ds.effects.glassMorphism ?? {}).entries
+      .map((e) => '<tr><td><code>${_escapeHtml(e.key)}</code></td><td>${_escapeHtml(e.value.toString())}</td></tr>')
+      .join('');
+  final darkRows = (ds.effects.darkOverlay ?? {}).entries
+      .map((e) => '<tr><td><code>${_escapeHtml(e.key)}</code></td><td>${_escapeHtml(e.value.toString())}</td></tr>')
+      .join('');
+  if (glassRows.isEmpty && darkRows.isEmpty) return '<p class="lead">No effects defined.</p>';
+  return '''
+<h3>Glass Morphism</h3>
+${glassRows.isEmpty ? '<p class="lead">Not defined.</p>' : '<table><thead><tr><th>Key</th><th>Value</th></tr></thead><tbody>$glassRows</tbody></table>'}
+<h3>Dark Overlay</h3>
+${darkRows.isEmpty ? '<p class="lead">Not defined.</p>' : '<table><thead><tr><th>Key</th><th>Value</th></tr></thead><tbody>$darkRows</tbody></table>'}
+''';
+}
+
+String _buildComponentsHtml(models.DesignSystem ds) {
+  final sections = <String>[];
+  void addMapSection(String title, Map<String, dynamic>? map) {
+    if (map == null || map.isEmpty) return;
+    final rows = map.entries.map((e) {
+      final val = e.value;
+      final desc = (val is Map && val['description'] != null) ? val['description'].toString() : val.toString();
+      return '<tr><td><code>${_escapeHtml(e.key)}</code></td><td>${_escapeHtml(desc)}</td></tr>';
+    }).join('');
+    sections.add('<h3>${_escapeHtml(title)}</h3><table><thead><tr><th>Component</th><th>Description</th></tr></thead><tbody>$rows</tbody></table>');
+  }
+
+  addMapSection('Buttons', ds.components.buttons);
+  addMapSection('Cards', ds.components.cards);
+  addMapSection('Inputs', ds.components.inputs);
+  addMapSection('Navigation', ds.components.navigation);
+  addMapSection('Avatars', ds.components.avatars);
+  addMapSection('Modals', ds.components.modals);
+  addMapSection('Tables', ds.components.tables);
+  addMapSection('Progress', ds.components.progress);
+  addMapSection('Alerts', ds.components.alerts);
+
+  final iconRows = ds.icons.sizes.entries
+      .map((e) => '<tr><td><code>${_escapeHtml(e.key)}</code></td><td>${_escapeHtml(e.value.toString())}</td></tr>')
+      .join('');
+  if (iconRows.isNotEmpty) {
+    sections.add('<h3>Icon Sizes</h3><table><thead><tr><th>Token</th><th>Size</th></tr></thead><tbody>$iconRows</tbody></table>');
+  }
+  return sections.isEmpty ? '<p class="lead">No components or icon sizes defined.</p>' : sections.join('\n');
+}
+
+String _buildAdvancedHtml(models.DesignSystem ds) {
+  final gradientRows = ds.gradients.values.entries
+      .map((e) => '<tr><td><code>${_escapeHtml(e.key)}</code></td><td>${_escapeHtml(e.value.colors.join(' → '))}</td></tr>')
+      .join('');
+  final roleRows = ds.roles.values.entries
+      .map((e) => '<tr><td><code>${_escapeHtml(e.key)}</code></td><td>${_escapeHtml(e.value.primaryColor)}</td></tr>')
+      .join('');
+  final semanticRows = _flattenMaps({
+    'color': ds.semanticTokens.color,
+    'typography': ds.semanticTokens.typography,
+    'spacing': ds.semanticTokens.spacing,
+    'shadow': ds.semanticTokens.shadow,
+    'borderRadius': ds.semanticTokens.borderRadius,
+  });
+  final motionRows = _flattenMaps({
+    'duration': ds.motionTokens.duration,
+    'easing': ds.motionTokens.easing,
+  });
+
+  return '''
+<h3>Gradients</h3>
+${gradientRows.isEmpty ? '<p class="lead">No gradients defined.</p>' : '<table><thead><tr><th>Name</th><th>Colors</th></tr></thead><tbody>$gradientRows</tbody></table>'}
+<h3>Roles</h3>
+${roleRows.isEmpty ? '<p class="lead">No roles defined.</p>' : '<table><thead><tr><th>Role</th><th>Primary Color</th></tr></thead><tbody>$roleRows</tbody></table>'}
+<h3>Semantic Tokens</h3>
+${semanticRows.isEmpty ? '<p class="lead">No semantic tokens defined.</p>' : '<table><thead><tr><th>Group</th><th>Token</th><th>Reference</th></tr></thead><tbody>$semanticRows</tbody></table>'}
+<h3>Motion Tokens</h3>
+${motionRows.isEmpty ? '<p class="lead">No motion tokens defined.</p>' : '<table><thead><tr><th>Group</th><th>Token</th><th>Value</th></tr></thead><tbody>$motionRows</tbody></table>'}
+''';
+}
+
+String _flattenMaps(Map<String, Map<String, dynamic>> grouped) {
+  final rows = <String>[];
+  for (final g in grouped.entries) {
+    for (final e in g.value.entries) {
+      final value = e.value;
+      String rendered;
+      if (value is Map) {
+        rendered = value['baseTokenReference']?.toString() ?? value['reference']?.toString() ?? value.toString();
+      } else {
+        rendered = value.toString();
+      }
+      rows.add('<tr><td>${_escapeHtml(g.key)}</td><td><code>${_escapeHtml(e.key)}</code></td><td>${_escapeHtml(rendered)}</td></tr>');
+    }
+  }
+  return rows.join('');
 }
 
 List<(String, String)> _collectColorEntries(models.DesignSystem ds) {
