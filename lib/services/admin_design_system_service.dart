@@ -5,7 +5,8 @@ import '../models/design_system_wrapper.dart';
 import '../services/firebase_service.dart';
 
 class AdminDesignSystemService {
-  static Future<void> saveDesignSystemForAdmin({
+  /// Returns the Firestore document id for the saved snapshot.
+  static Future<String> saveDesignSystemForAdmin({
     required String adminUserId,
     required models.DesignSystem designSystem,
   }) async {
@@ -27,7 +28,19 @@ class AdminDesignSystemService {
       'designSystem': payload,
     };
 
-    await FirebaseService.userDesignSystems(adminUserId).doc(docId).set(data);
+    final batch = FirebaseService.firestore.batch();
+    // Ensure the parent user doc exists so the nested collection is easy to discover in Firebase Console.
+    batch.set(
+      FirebaseService.usersCollection.doc(adminUserId),
+      {
+        'lastAdminDesignSystemSaveAt': FieldValue.serverTimestamp(),
+        'lastAdminDesignSystemSaveDocId': docId,
+      },
+      SetOptions(merge: true),
+    );
+    batch.set(FirebaseService.userDesignSystems(adminUserId).doc(docId), data);
+    await batch.commit();
+    return docId;
   }
 
   static Stream<List<AdminSavedDesignSystemItem>> watchSavedDesignSystems({
@@ -41,6 +54,28 @@ class AdminDesignSystemService {
         .map((snapshot) => snapshot.docs
             .map((doc) => AdminSavedDesignSystemItem.fromDoc(doc))
             .toList());
+  }
+
+  static Future<void> updateSavedDesignSystem({
+    required String adminUserId,
+    required String docId,
+    required String name,
+    required String version,
+    required String description,
+  }) async {
+    await FirebaseService.userDesignSystems(adminUserId).doc(docId).update({
+      'name': name.trim(),
+      'version': version.trim(),
+      'description': description.trim(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  static Future<void> deleteSavedDesignSystem({
+    required String adminUserId,
+    required String docId,
+  }) async {
+    await FirebaseService.userDesignSystems(adminUserId).doc(docId).delete();
   }
 
   static String _safeSlug(String input) {

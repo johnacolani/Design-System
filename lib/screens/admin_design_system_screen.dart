@@ -6,6 +6,7 @@ import '../providers/design_system_provider.dart';
 import '../providers/user_provider.dart';
 import '../models/user.dart';
 import '../services/admin_design_system_service.dart';
+import '../services/firebase_service.dart';
 
 class AdminDesignSystemScreen extends StatefulWidget {
   const AdminDesignSystemScreen({super.key});
@@ -16,6 +17,145 @@ class AdminDesignSystemScreen extends StatefulWidget {
 
 class _AdminDesignSystemScreenState extends State<AdminDesignSystemScreen> {
   bool _isSaving = false;
+
+  Future<void> _editSavedDesignSystem({
+    required String adminUserId,
+    required AdminSavedDesignSystemItem item,
+  }) async {
+    final nameController = TextEditingController(text: item.name);
+    final versionController = TextEditingController(text: item.version);
+    final descriptionController = TextEditingController(text: item.description);
+
+    final shouldSave = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Edit saved design system'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(labelText: 'Name'),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: versionController,
+                  decoration: const InputDecoration(labelText: 'Version'),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: descriptionController,
+                  minLines: 2,
+                  maxLines: 4,
+                  decoration: const InputDecoration(labelText: 'Description'),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldSave != true) {
+      nameController.dispose();
+      versionController.dispose();
+      descriptionController.dispose();
+      return;
+    }
+
+    try {
+      await AdminDesignSystemService.updateSavedDesignSystem(
+        adminUserId: adminUserId,
+        docId: item.id,
+        name: nameController.text,
+        version: versionController.text,
+        description: descriptionController.text,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Saved item updated.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to update item: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      nameController.dispose();
+      versionController.dispose();
+      descriptionController.dispose();
+    }
+  }
+
+  Future<void> _deleteSavedDesignSystem({
+    required String adminUserId,
+    required AdminSavedDesignSystemItem item,
+  }) async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Delete saved design system'),
+          content: Text(
+            'Delete "${item.name}" (v${item.version})? This action cannot be undone.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: Colors.red),
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldDelete != true) return;
+
+    try {
+      await AdminDesignSystemService.deleteSavedDesignSystem(
+        adminUserId: adminUserId,
+        docId: item.id,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Saved item deleted.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to delete item: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
 
   Future<void> _saveCurrentDesignSystem() async {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
@@ -35,14 +175,17 @@ class _AdminDesignSystemScreenState extends State<AdminDesignSystemScreen> {
 
     setState(() => _isSaving = true);
     try {
-      await AdminDesignSystemService.saveDesignSystemForAdmin(
+      final docId = await AdminDesignSystemService.saveDesignSystemForAdmin(
         adminUserId: user.id,
         designSystem: designSystemProvider.rawDesignSystem,
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Design system saved to Firebase.'),
+        SnackBar(
+          content: Text(
+            'Design system saved to Firebase.\n'
+            'Path: users/${user.id}/design_systems/$docId',
+          ),
           backgroundColor: Colors.green,
         ),
       );
@@ -64,6 +207,7 @@ class _AdminDesignSystemScreenState extends State<AdminDesignSystemScreen> {
     final userProvider = Provider.of<UserProvider>(context);
     final user = userProvider.currentUser;
     final isAdmin = user?.role == UserRole.admin;
+    final authUid = FirebaseService.currentUser?.uid;
 
     return Scaffold(
       appBar: AppBar(
@@ -101,6 +245,32 @@ class _AdminDesignSystemScreenState extends State<AdminDesignSystemScreen> {
                             'Save the current design system snapshot to Firebase under your admin account.',
                           ),
                           const SizedBox(height: 12),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.blueGrey.shade50,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                SelectableText(
+                                  'Signed in userId: ${user!.id}',
+                                  style: const TextStyle(fontWeight: FontWeight.w600),
+                                ),
+                                const SizedBox(height: 4),
+                                SelectableText(
+                                  'Firebase Auth UID: ${authUid ?? 'not signed in'}',
+                                ),
+                                const SizedBox(height: 4),
+                                SelectableText(
+                                  'Save path: users/${user.id}/design_systems/{docId}',
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton.icon(
@@ -127,7 +297,7 @@ class _AdminDesignSystemScreenState extends State<AdminDesignSystemScreen> {
                 Expanded(
                   child: StreamBuilder<List<AdminSavedDesignSystemItem>>(
                     stream: AdminDesignSystemService.watchSavedDesignSystems(
-                      adminUserId: user!.id,
+                      adminUserId: user.id,
                     ),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
@@ -150,7 +320,8 @@ class _AdminDesignSystemScreenState extends State<AdminDesignSystemScreen> {
                       return ListView.separated(
                         padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                         itemCount: items.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 8),
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(height: 8),
                         itemBuilder: (context, index) {
                           final item = items[index];
                           final dateText = item.savedAt == null
@@ -166,6 +337,31 @@ class _AdminDesignSystemScreenState extends State<AdminDesignSystemScreen> {
                                 '${item.description.isNotEmpty ? '\n${item.description}' : ''}',
                               ),
                               isThreeLine: true,
+                              trailing: PopupMenuButton<String>(
+                                onSelected: (value) {
+                                  if (value == 'edit') {
+                                    _editSavedDesignSystem(
+                                      adminUserId: user.id,
+                                      item: item,
+                                    );
+                                  } else if (value == 'delete') {
+                                    _deleteSavedDesignSystem(
+                                      adminUserId: user.id,
+                                      item: item,
+                                    );
+                                  }
+                                },
+                                itemBuilder: (context) => const [
+                                  PopupMenuItem<String>(
+                                    value: 'edit',
+                                    child: Text('Edit'),
+                                  ),
+                                  PopupMenuItem<String>(
+                                    value: 'delete',
+                                    child: Text('Delete'),
+                                  ),
+                                ],
+                              ),
                             ),
                           );
                         },
