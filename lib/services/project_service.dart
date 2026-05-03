@@ -302,6 +302,8 @@ class ProjectInfo {
   final String created;
   final String filePath;
   final DateTime modified;
+  /// True when [filePath] is a Firestore-backed project ([CloudProjectService]).
+  final bool fromCloud;
 
   ProjectInfo({
     required this.name,
@@ -310,5 +312,6 @@ class ProjectInfo {
     required this.created,
     required this.filePath,
     required this.modified,
+    this.fromCloud = false,
   });
 }

@@ -1,8 +1,9 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
 import 'package:flutter/material.dart';
 import '../data/demo_design_systems.dart';
 import '../models/design_system.dart' as models;
 import '../services/project_service.dart';
+import '../services/cloud_project_service.dart';
 
 /// Groups platforms for design token UI: single column for one platform, or iOS vs Android & Web (Material).
 class TokenDisplayGroup {
@@ -306,29 +307,93 @@ class DesignSystemProvider extends ChangeNotifier {
   }
 
   /// Save current project to disk (uses [currentProjectPath] when set on desktop/mobile).
-  Future<String> saveProject() async {
-    if (!kIsWeb && _currentProjectPath != null && _currentProjectPath!.isNotEmpty) {
-      return await ProjectService.saveProjectToFile(_designSystem, _currentProjectPath!);
+  ///
+  /// When [firebaseUid] is a real signed-in user id, also upserts `users/{uid}/projects/{docId}`
+  /// in Firestore. Local save always runs first; cloud failures are reported via [onCloudSyncCompleted].
+  Future<String> saveProject({
+    String? firebaseUid,
+    void Function(Object? error)? onCloudSyncCompleted,
+  }) async {
+    final String path;
+    final customLocal = !kIsWeb &&
+        _currentProjectPath != null &&
+        _currentProjectPath!.isNotEmpty &&
+        !CloudProjectService.isCloudProjectPath(_currentProjectPath!);
+    if (customLocal) {
+      path = await ProjectService.saveProjectToFile(_designSystem, _currentProjectPath!);
+    } else {
+      path = await ProjectService.saveProject(_designSystem);
     }
-    return await ProjectService.saveProject(_designSystem);
+
+    final uid = firebaseUid;
+    if (uid != null && uid.isNotEmpty && !uid.startsWith('guest_')) {
+      try {
+        await CloudProjectService.upsertProject(uid, _designSystem);
+        onCloudSyncCompleted?.call(null);
+      } catch (e, st) {
+        debugPrint('saveProject cloud sync failed: $e\n$st');
+        onCloudSyncCompleted?.call(e);
+      }
+    } else {
+      onCloudSyncCompleted?.call(null);
+    }
+    return path;
+  }
+
+  /// Upload current design system to Firestore without touching local storage.
+  Future<void> syncToCloud(String firebaseUid) async {
+    if (firebaseUid.isEmpty || firebaseUid.startsWith('guest_')) return;
+    await CloudProjectService.upsertProject(firebaseUid, _designSystem);
   }
 
   /// Load project from file path (also sets [currentProjectPath] so future saves go to same file).
-  Future<void> loadProjectFromPath(String filePath) async {
-    final designSystem = await ProjectService.loadProject(filePath);
+  ///
+  /// For Firestore paths (`cloud:…`), pass [firebaseUid] of the signed-in user.
+  Future<void> loadProjectFromPath(String filePath, {String? firebaseUid}) async {
+    final models.DesignSystem designSystem;
+    if (CloudProjectService.isCloudProjectPath(filePath)) {
+      final uid = firebaseUid;
+      if (uid == null || uid.isEmpty || uid.startsWith('guest_')) {
+        throw Exception('Sign in to open cloud projects');
+      }
+      final docId = CloudProjectService.docIdFromCloudPath(filePath);
+      designSystem = await CloudProjectService.loadProject(uid, docId);
+    } else {
+      designSystem = await ProjectService.loadProject(filePath);
+    }
     loadProject(designSystem);
     // Track storage key/path on all platforms so delete + reset works on web too.
     setCurrentProjectPath(filePath);
   }
 
-  /// Get list of all saved projects
-  Future<List<ProjectInfo>> getProjectList() async {
-    return await ProjectService.getProjectList();
+  /// Get list of all saved projects (local + optional Firestore when [firebaseUid] is signed-in).
+  Future<List<ProjectInfo>> getProjectList({String? firebaseUid}) async {
+    final local = await ProjectService.getProjectList();
+    final uid = firebaseUid;
+    if (uid == null || uid.isEmpty || uid.startsWith('guest_')) {
+      return local;
+    }
+    try {
+      final cloud = await CloudProjectService.listProjects(uid);
+      return [...cloud, ...local];
+    } catch (e, st) {
+      debugPrint('getProjectList cloud: $e\n$st');
+      return local;
+    }
   }
 
   /// Delete a project
-  Future<void> deleteProject(String filePath) async {
-    await ProjectService.deleteProject(filePath);
+  Future<void> deleteProject(String filePath, {String? firebaseUid}) async {
+    if (CloudProjectService.isCloudProjectPath(filePath)) {
+      final uid = firebaseUid;
+      if (uid == null || uid.isEmpty || uid.startsWith('guest_')) {
+        throw Exception('Sign in to delete cloud projects');
+      }
+      final docId = CloudProjectService.docIdFromCloudPath(filePath);
+      await CloudProjectService.deleteProject(uid, docId);
+    } else {
+      await ProjectService.deleteProject(filePath);
+    }
     notifyListeners();
   }
 

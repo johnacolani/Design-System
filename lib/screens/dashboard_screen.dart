@@ -6,6 +6,7 @@ import '../providers/design_system_provider.dart';
 import '../utils/download_helper.dart';
 import '../providers/user_provider.dart';
 import '../utils/responsive.dart';
+import '../utils/screen_body_padding.dart';
 import '../services/project_service.dart';
 import '../models/design_system.dart' as models;
 import '../models/user.dart';
@@ -174,10 +175,31 @@ class DashboardScreen extends StatelessWidget {
             tooltip: 'Save Progress',
             onPressed: () async {
               try {
-                await provider.saveProject();
-                if (context.mounted) {
+                final userProvider = Provider.of<UserProvider>(context, listen: false);
+                final uid = userProvider.isLoggedIn ? userProvider.currentUser!.id : null;
+                Object? cloudErr;
+                await provider.saveProject(
+                  firebaseUid: uid,
+                  onCloudSyncCompleted: (e) => cloudErr = e,
+                );
+                if (!context.mounted) return;
+                if (cloudErr != null) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Progress saved successfully!'), backgroundColor: Colors.green),
+                    SnackBar(
+                      content: Text('Saved locally; cloud backup failed: $cloudErr'),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        uid != null
+                            ? 'Progress saved (device + cloud).'
+                            : 'Progress saved successfully!',
+                      ),
+                      backgroundColor: Colors.green,
+                    ),
                   );
                 }
               } catch (e) {
@@ -238,8 +260,7 @@ class DashboardScreen extends StatelessWidget {
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          final width = constraints.maxWidth;
-          final horizontalPadding = (width * 0.15).clamp(24.0, 80.0);
+          final horizontalPadding = ScreenBodyPadding.horizontalPaddingFor(context);
           final verticalPadding = context.responsive.isMobile ? 16.0 : 24.0;
           return SingleChildScrollView(
             padding: EdgeInsets.fromLTRB(horizontalPadding, verticalPadding, horizontalPadding, verticalPadding),

@@ -542,3 +542,9 @@ class _IconsScreenState extends State<IconsScreen> {
     );
   }
 }
+
+/// Renders a Material Icons glyph without non-constant [IconData] (required for web icon tree-shaking).
+String _materialIconChar(int codePoint) {
+  if (codePoint < 0 || codePoint > 0x10FFFF) return '?';
+  return String.fromCharCode(codePoint);
+}

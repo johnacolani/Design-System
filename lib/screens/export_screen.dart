@@ -58,35 +58,54 @@ class _ExportScreenState extends State<ExportScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             color: Colors.grey[100],
-            child: Row(
-              children: [
-                const Text('Export Format: '),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: SegmentedButton<String>(
-                      segments: const [
-                        ButtonSegment(value: 'tokens', label: Text('Tokens')),
-                        ButtonSegment(value: 'json', label: Text('JSON')),
-                        ButtonSegment(value: 'figma', label: Text('Figma')),
-                        ButtonSegment(value: 'flutter', label: Text('Flutter')),
-                        ButtonSegment(value: 'kotlin', label: Text('Kotlin')),
-                        ButtonSegment(value: 'swift', label: Text('Swift')),
-                        ButtonSegment(value: 'react', label: Text('React')),
-                        ButtonSegment(value: 'css', label: Text('CSS')),
-                      ],
-                      selected: {_selectedFormat},
-                      onSelectionChanged: (Set<String> newSelection) {
-                        setState(() {
-                          _selectedFormat = newSelection.first;
-                          _generateExport();
-                        });
-                      },
-                    ),
-                  ),
-                ),
-              ],
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final segmented = SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment(value: 'tokens', label: Text('Tokens')),
+                    ButtonSegment(value: 'json', label: Text('JSON')),
+                    ButtonSegment(value: 'figma', label: Text('Figma')),
+                    ButtonSegment(value: 'flutter', label: Text('Flutter')),
+                    ButtonSegment(value: 'kotlin', label: Text('Kotlin')),
+                    ButtonSegment(value: 'swift', label: Text('Swift')),
+                    ButtonSegment(value: 'react', label: Text('React')),
+                    ButtonSegment(value: 'css', label: Text('CSS')),
+                  ],
+                  selected: {_selectedFormat},
+                  onSelectionChanged: (Set<String> newSelection) {
+                    setState(() {
+                      _selectedFormat = newSelection.first;
+                      _generateExport();
+                    });
+                  },
+                );
+                final scrollSeg = SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: segmented,
+                );
+                if (constraints.maxWidth < 420) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Export format',
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                      const SizedBox(height: 8),
+                      scrollSeg,
+                    ],
+                  );
+                }
+                return Row(
+                  children: [
+                    const Text('Export Format: '),
+                    const SizedBox(width: 16),
+                    Expanded(child: scrollSeg),
+                  ],
+                );
+              },
             ),
           ),
           Expanded(
@@ -112,27 +131,43 @@ class _ExportScreenState extends State<ExportScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             color: Colors.grey[100],
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                OutlinedButton.icon(
-                  onPressed: () => _downloadPackage(context),
-                  icon: const Icon(Icons.folder_zip),
-                  label: const Text('Download package'),
-                ),
-                const SizedBox(width: 8),
-                TextButton.icon(
-                  onPressed: () => _copyToClipboard(context),
-                  icon: const Icon(Icons.copy),
-                  label: const Text('Copy'),
-                ),
-                const SizedBox(width: 8),
-                ElevatedButton.icon(
-                  onPressed: () => _saveToFile(context),
-                  icon: const Icon(Icons.save),
-                  label: const Text('Save'),
-                ),
-              ],
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final actions = [
+                  OutlinedButton.icon(
+                    onPressed: () => _downloadPackage(context),
+                    icon: const Icon(Icons.folder_zip),
+                    label: const Text('Download package'),
+                  ),
+                  TextButton.icon(
+                    onPressed: () => _copyToClipboard(context),
+                    icon: const Icon(Icons.copy),
+                    label: const Text('Copy'),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: () => _saveToFile(context),
+                    icon: const Icon(Icons.save),
+                    label: const Text('Save'),
+                  ),
+                ];
+                if (constraints.maxWidth < 520) {
+                  return Wrap(
+                    alignment: WrapAlignment.end,
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: actions,
+                  );
+                }
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    for (var i = 0; i < actions.length; i++) ...[
+                      if (i > 0) const SizedBox(width: 8),
+                      actions[i],
+                    ],
+                  ],
+                );
+              },
             ),
           ),
           if (_selectedFormat == 'figma') _buildFigmaSyncHelp(context),

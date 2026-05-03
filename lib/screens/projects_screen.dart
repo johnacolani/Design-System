@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../providers/design_system_provider.dart';
+import '../providers/user_provider.dart';
 import '../services/project_service.dart';
 import 'create_new_project_screen.dart';
 import 'dashboard_screen.dart';
@@ -38,7 +39,9 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
 
     try {
       final provider = Provider.of<DesignSystemProvider>(context, listen: false);
-      final projects = await provider.getProjectList();
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      final uid = userProvider.isLoggedIn ? userProvider.currentUser!.id : null;
+      final projects = await provider.getProjectList(firebaseUid: uid);
       setState(() {
         _projects = projects;
         _isLoading = false;
@@ -164,7 +167,18 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
             color: Colors.blue.withOpacity(0.1),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: const Icon(Icons.palette, color: Colors.blue),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              const Icon(Icons.palette, color: Colors.blue),
+              if (project.fromCloud)
+                Positioned(
+                  right: 0,
+                  bottom: 0,
+                  child: Icon(Icons.cloud_done, size: 18, color: Colors.blue.shade800),
+                ),
+            ],
+          ),
         ),
         title: Text(
           project.name,
@@ -244,7 +258,9 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
   Future<void> _openProject(ProjectInfo project) async {
     try {
       final provider = Provider.of<DesignSystemProvider>(context, listen: false);
-      await provider.loadProjectFromPath(project.filePath);
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      final uid = userProvider.isLoggedIn ? userProvider.currentUser!.id : null;
+      await provider.loadProjectFromPath(project.filePath, firebaseUid: uid);
 
       if (mounted) {
         Navigator.of(context).pushReplacement(
@@ -286,7 +302,9 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
     if (confirmed == true) {
       try {
         final provider = Provider.of<DesignSystemProvider>(context, listen: false);
-        await provider.deleteProject(project.filePath);
+        final userProvider = Provider.of<UserProvider>(context, listen: false);
+        final uid = userProvider.isLoggedIn ? userProvider.currentUser!.id : null;
+        await provider.deleteProject(project.filePath, firebaseUid: uid);
         await _loadProjects();
 
         if (mounted) {

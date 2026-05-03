@@ -112,7 +112,10 @@ class BillingProvider extends ChangeNotifier {
     _subscription = null;
     _userId = null;
     _billing = BillingInfo.free();
-    notifyListeners();
+    // Avoid notifyListeners during build (e.g. if called from a Provider builder).
+    Future.microtask(() {
+      if (hasListeners) notifyListeners();
+    });
   }
 
   /// Set billing locally (for mock or after successful checkout). Persists to Firestore.

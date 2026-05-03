@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/design_system_provider.dart';
+import '../utils/responsive.dart';
 import '../widgets/platform_pickers_dialogs_demo.dart';
 
 /// Live Material + Cupertino pickers and dialogs, themed from the current app [Theme].
@@ -16,7 +17,12 @@ class PlatformPickersDialogsScreen extends StatelessWidget {
         title: const Text('Pickers & dialogs'),
       ),
       body: ListView(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.fromLTRB(
+          context.responsive.isMobile ? 12 : 24,
+          context.responsive.isMobile ? 12 : 24,
+          context.responsive.isMobile ? 12 : 24,
+          context.responsive.isMobile ? 24 : 32,
+        ),
         children: [
           Text(
             'Platform pickers & alerts',

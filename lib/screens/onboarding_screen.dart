@@ -9,6 +9,7 @@ import '../services/color_theory_service.dart';
 import '../services/color_palette_service.dart';
 import '../models/design_system.dart' as models;
 import '../utils/platform_icons.dart';
+import '../utils/responsive.dart';
 import 'color_picker_screen.dart';
 import 'dashboard_screen.dart';
 
@@ -22,6 +23,13 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentStep = 0;
+
+  /// Tighter sides on phones; capped % on tablet/desktop so content stays usable.
+  double _onboardingSidePadding() {
+    final w = MediaQuery.sizeOf(context).width;
+    if (w < Breakpoints.mobile) return 16.0;
+    return (w * 0.20).clamp(24.0, 120.0);
+  }
   
   // Step 1: Basic Info
   final _formKey = GlobalKey<FormState>();
@@ -322,7 +330,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     
     // Auto-save the project
     try {
-      await designSystemProvider.saveProject();
+      final uid = userProvider.isLoggedIn ? userProvider.currentUser!.id : null;
+      await designSystemProvider.saveProject(firebaseUid: uid);
     } catch (e) {
       // Show error but don't block navigation
       if (mounted) {
@@ -401,8 +410,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Widget _buildStep1BasicInfo() {
-    final width = MediaQuery.sizeOf(context).width;
-    final horizontalPadding = (width * 0.20).clamp(24.0, double.infinity);
+    final horizontalPadding = _onboardingSidePadding();
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -505,8 +513,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Widget _buildStep2AppInfo() {
-    final width = MediaQuery.sizeOf(context).width;
-    final horizontalPadding = (width * 0.20).clamp(24.0, double.infinity);
+    final horizontalPadding = _onboardingSidePadding();
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -672,7 +679,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   Widget _buildStep3ColorScheme() {
     final width = MediaQuery.sizeOf(context).width;
-    final horizontalPadding = (width * 0.20).clamp(24.0, double.infinity);
+    final horizontalPadding = _onboardingSidePadding();
     final useSideBySide = width >= 880;
 
     final schemeCards = Column(
@@ -965,8 +972,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   Widget _buildStep4BaseColor() {
     final recommendedColor = _getRecommendedBaseColor();
-    final width = MediaQuery.sizeOf(context).width;
-    final horizontalPadding = (width * 0.20).clamp(24.0, double.infinity);
+    final horizontalPadding = _onboardingSidePadding();
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -1264,8 +1270,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Widget _buildStep5Preview() {
-    final width = MediaQuery.sizeOf(context).width;
-    final horizontalPadding = (width * 0.20).clamp(24.0, double.infinity);
+    final horizontalPadding = _onboardingSidePadding();
     final accentColor = _selectedPrimaryColor ?? _baseColor;
     return Container(
       decoration: BoxDecoration(

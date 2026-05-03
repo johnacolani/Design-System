@@ -4,7 +4,9 @@ import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
 import '../models/design_system.dart' as models;
 import '../providers/design_system_provider.dart';
+import '../providers/user_provider.dart';
 import '../services/project_service.dart';
+import '../utils/responsive.dart';
 import 'onboarding_screen.dart';
 import 'projects_screen.dart';
 
@@ -57,6 +59,8 @@ class _CreateNewProjectScreenState extends State<CreateNewProjectScreen> {
     setState(() => _isCreating = true);
 
     final designSystemProvider = Provider.of<DesignSystemProvider>(context, listen: false);
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final firebaseUid = userProvider.isLoggedIn ? userProvider.currentUser!.id : null;
 
     try {
       final targetPlatforms = _platformChoice == 'all'
@@ -73,9 +77,16 @@ class _CreateNewProjectScreenState extends State<CreateNewProjectScreen> {
         final fullPath = '$_chosenDirectoryPath/$fileName';
         await ProjectService.saveProjectToFile(designSystemProvider.designSystem, fullPath);
         designSystemProvider.setCurrentProjectPath(fullPath);
+        if (firebaseUid != null) {
+          try {
+            await designSystemProvider.syncToCloud(firebaseUid);
+          } catch (_) {
+            // Optional cloud backup; local file is primary.
+          }
+        }
       } else {
         // Web or user didn't pick a folder: save to default location.
-        await designSystemProvider.saveProject();
+        await designSystemProvider.saveProject(firebaseUid: firebaseUid);
       }
 
       if (!mounted) return;
@@ -108,7 +119,10 @@ class _CreateNewProjectScreenState extends State<CreateNewProjectScreen> {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+          padding: EdgeInsets.symmetric(
+            horizontal: context.responsive.isMobile ? 16 : 24,
+            vertical: 32,
+          ),
           child: Form(
             key: _formKey,
             child: Column(

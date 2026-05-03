@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/design_system.dart' as models;
+import '../utils/responsive.dart';
 import 'platform_pickers_dialogs_demo.dart';
 
 const String _kTypographySample = 'The quick brown fox jumps over the lazy dog.';
@@ -62,6 +63,9 @@ class _ServiceflowDesignDocumentPreviewState
     final ds = widget.designSystem;
     final t = _SfTokens.fromDesignSystem(ds);
 
+    final narrow = MediaQuery.sizeOf(context).width < Breakpoints.mobile;
+    final sidePad = narrow ? 12.0 : 20.0;
+
     return ColoredBox(
       color: t.pageBg,
       child: Center(
@@ -69,7 +73,7 @@ class _ServiceflowDesignDocumentPreviewState
           constraints: const BoxConstraints(maxWidth: 1120),
           child: SingleChildScrollView(
             controller: _scrollController,
-            padding: const EdgeInsets.fromLTRB(20, 24, 20, 80),
+            padding: EdgeInsets.fromLTRB(sidePad, 24, sidePad, 80),
             child: DefaultTextStyle.merge(
               style: GoogleFonts.roboto(
                 color: t.pageFg,
@@ -802,10 +806,11 @@ class _SfColorSection extends StatelessWidget {
     }
 
     if (core.isNotEmpty) {
+      final coreOrdered = core.entries.toList()..sort(_compareSwatchesHueThenValue);
       blocks.add(_SfColorBlock(
         title: 'Core & surfaces',
         monoSubtitle: null,
-        orderedEntries: core.entries.toList(),
+        orderedEntries: coreOrdered,
         tokens: tokens,
         maxColumns: 5,
       ));
@@ -924,9 +929,7 @@ class _SfColorBlock extends StatelessWidget {
                 crossAxisSpacing: 12,
                 childAspectRatio: 1.12,
                 children: orderedEntries.map((ent) {
-                  final val = ent.value is Map
-                      ? (ent.value as Map)['value']?.toString() ?? ''
-                      : ent.value.toString();
+                  final val = _hexFromTokenValue(ent.value);
                   final color = _parseColor(val);
                   return _SfSwatch(name: ent.key.toString(), hex: val, color: color, tokens: tokens);
                 }).toList(),
@@ -1068,6 +1071,37 @@ Color _parseColor(String raw) {
   } catch (_) {
     return Colors.grey;
   }
+}
+
+String _hexFromTokenValue(dynamic v) {
+  if (v is Map) {
+    return v['value']?.toString() ?? '';
+  }
+  return v.toString();
+}
+
+/// Puts chromatic swatches in hue order (then darker-first), neutrals last by lightness.
+int _compareSwatchesHueThenValue(MapEntry<String, dynamic> a, MapEntry<String, dynamic> b) {
+  final ca = _parseColor(_hexFromTokenValue(a.value));
+  final cb = _parseColor(_hexFromTokenValue(b.value));
+  final ha = HSVColor.fromColor(ca);
+  final hb = HSVColor.fromColor(cb);
+  const neutralSat = 0.14;
+  final na = ha.saturation < neutralSat;
+  final nb = hb.saturation < neutralSat;
+  if (na != nb) {
+    return na ? 1 : -1;
+  }
+  if (na && nb) {
+    final byV = ha.value.compareTo(hb.value);
+    if (byV != 0) return byV;
+    return a.key.toString().compareTo(b.key.toString());
+  }
+  final byHue = ha.hue.compareTo(hb.hue);
+  if (byHue != 0) return byHue;
+  final byVal = hb.value.compareTo(ha.value);
+  if (byVal != 0) return byVal;
+  return a.key.toString().compareTo(b.key.toString());
 }
 
 // --- Typography (screenshot: purple label + LH + pangram) ---

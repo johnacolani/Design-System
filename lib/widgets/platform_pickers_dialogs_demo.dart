@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
@@ -118,11 +120,23 @@ class _PlatformPickersDialogsDemoState extends State<PlatformPickersDialogsDemo>
                   style: theme.textTheme.labelLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                 ),
                 const SizedBox(height: 8),
-                CalendarDatePicker(
-                  initialDate: _materialDate,
-                  firstDate: DateTime(2020),
-                  lastDate: DateTime(2035),
-                  onDateChanged: (d) => setState(() => _materialDate = d),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    // Calendar grid needs ~320px; allow horizontal scroll on narrow phones.
+                    final w = math.max(constraints.maxWidth, 328.0);
+                    return SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: SizedBox(
+                        width: w,
+                        child: CalendarDatePicker(
+                          initialDate: _materialDate,
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime(2035),
+                          onDateChanged: (d) => setState(() => _materialDate = d),
+                        ),
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(height: 12),
                 Wrap(

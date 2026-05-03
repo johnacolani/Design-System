@@ -48,8 +48,10 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadProjects() async {
     if (!mounted) return;
     final provider = Provider.of<DesignSystemProvider>(context, listen: false);
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
     try {
-      final list = await provider.getProjectList();
+      final uid = userProvider.isLoggedIn ? userProvider.currentUser!.id : null;
+      final list = await provider.getProjectList(firebaseUid: uid);
       if (mounted) setState(() {
         _projects = list;
         _isLoadingProjects = false;
@@ -444,7 +446,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _openProject(BuildContext context, DesignSystemProvider provider, ProjectInfo project) async {
     try {
-      await provider.loadProjectFromPath(project.filePath);
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      final uid = userProvider.isLoggedIn ? userProvider.currentUser!.id : null;
+      await provider.loadProjectFromPath(project.filePath, firebaseUid: uid);
       if (!mounted) return;
       Navigator.of(context).push(
         MaterialPageRoute(builder: (_) => const DashboardScreen()),
@@ -515,8 +519,10 @@ class _HomeScreenState extends State<HomeScreen> {
     if (confirmed != true || !mounted) return;
 
     try {
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      final uid = userProvider.isLoggedIn ? userProvider.currentUser!.id : null;
       final wasOpen = provider.currentProjectPath == project.filePath;
-      await provider.deleteProject(project.filePath);
+      await provider.deleteProject(project.filePath, firebaseUid: uid);
       if (wasOpen) {
         provider.reset();
       }
@@ -632,6 +638,11 @@ class _HomeScreenState extends State<HomeScreen> {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
+                      if (project.fromCloud)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 6),
+                          child: Icon(Icons.cloud_done, color: Colors.white.withOpacity(0.95), size: 18),
+                        ),
                       Icon(
                         Icons.arrow_forward_ios,
                         color: Colors.white.withOpacity(0.9),

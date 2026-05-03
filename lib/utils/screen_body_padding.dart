@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
-/// Wraps screen body content with the same horizontal padding as the dashboard
-/// (15% of width, clamped between 24 and 80).
+import 'responsive.dart';
+
+/// Wraps screen body content with the same horizontal padding as the dashboard.
+/// On **mobile** (< 600px) uses fixed 16px sides so token tables and forms keep
+/// more usable width; on larger screens uses 15% clamped 24–80.
 class ScreenBodyPadding extends StatelessWidget {
   const ScreenBodyPadding({
     super.key,
@@ -14,13 +17,15 @@ class ScreenBodyPadding extends StatelessWidget {
 
   static double horizontalPaddingFor(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
+    if (width < Breakpoints.mobile) {
+      return 16.0;
+    }
     return (width * 0.15).clamp(24.0, 80.0);
   }
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.sizeOf(context).width;
-    final horizontal = (width * 0.15).clamp(24.0, 80.0);
+    final horizontal = horizontalPaddingFor(context);
     
     // Default vertical padding doubled from 16 to 32
     final vertical = verticalPadding ?? 16.0;
