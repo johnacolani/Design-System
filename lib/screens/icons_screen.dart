@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/design_system_provider.dart';
@@ -288,7 +286,7 @@ class _IconsScreenState extends State<IconsScreen> {
 
   Widget _buildIconSizeCard(BuildContext context, String name, String size) {
     final raw = _parseSize(size);
-    final sizeValue = math.min(math.max(raw, 12), 72);
+    final double sizeValue = raw.clamp(12.0, 72.0);
     final narrow = MediaQuery.sizeOf(context).width < Breakpoints.mobile;
     final previewBox = Container(
       width: sizeValue,
