@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import '../providers/user_provider.dart';
 import '../utils/platform_icons.dart';
 import '../widgets/app_logo.dart';
+import '../theme/auth_primary_cta_style.dart';
 import 'home_screen.dart';
 import 'welcome_screen.dart';
 
@@ -342,19 +343,16 @@ class _AuthScreenState extends State<AuthScreen> {
                           builder: (context, userProvider, _) {
                             return ElevatedButton(
                               onPressed: userProvider.isLoading ? null : _submit,
-                              style: ElevatedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
+                              style: AuthPrimaryCtaStyle.elevated(),
                               child: userProvider.isLoading
-                                  ? const SizedBox(
+                                  ? SizedBox(
                                       height: 20,
                                       width: 20,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2,
-                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                        valueColor: AlwaysStoppedAnimation<Color>(
+                                          AuthPrimaryCtaStyle.foreground,
+                                        ),
                                       ),
                                     )
                                   : Text(_isLogin ? 'Sign In' : 'Sign Up'),

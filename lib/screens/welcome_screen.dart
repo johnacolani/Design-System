@@ -7,6 +7,7 @@ import '../widgets/app_logo.dart';
 import '../widgets/hero_value_prop.dart';
 import '../utils/platform_icons.dart';
 import '../utils/responsive.dart';
+import '../theme/auth_primary_cta_style.dart';
 import 'create_new_project_screen.dart';
 import 'auth_screen.dart';
 
@@ -151,14 +152,7 @@ class WelcomeScreen extends StatelessWidget {
                             },
                             icon: const Icon(Icons.email_outlined),
                             label: const Text('Sign up with Email'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Theme.of(context).colorScheme.primary,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
+                            style: AuthPrimaryCtaStyle.elevated(),
                           ),
                           
                           const SizedBox(height: 12),
