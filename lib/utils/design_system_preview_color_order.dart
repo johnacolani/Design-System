@@ -127,7 +127,25 @@ List<(String name, String hex)> _rampEntries(Map<String, String> allTokens, Stri
   return list;
 }
 
+/// Keys like `foo_dark3` / `foo_light2` → ramp base `foo` (used for extra palettes / duplicates).
+Set<String> discoverRampPrefixes(Map<String, String> allTokens) {
+  final bases = <String>{};
+  final darkRe = RegExp(r'^(.+)_dark(\d+)$');
+  final lightRe = RegExp(r'^(.+)_light(\d+)$');
+  for (final k in allTokens.keys) {
+    final dm = darkRe.firstMatch(k);
+    if (dm != null) bases.add(dm.group(1)!);
+    final lm = lightRe.firstMatch(k);
+    if (lm != null) bases.add(lm.group(1)!);
+  }
+  return bases;
+}
+
+/// Narrative ramp cards already cover these token prefixes.
+const _fixedRampPrefixes = {'primary', 'tetradic_1', 'tetradic_2', 'tetradic_4', 'triadic_3'};
+
 /// Same sections and ordering as the Preview "Colors" doc (Core → ramps → semantic).
+/// Includes any `{name}_dark*` / `{name}_light*` scale (e.g. duplicated primaries named `brand_2`).
 List<PreviewColorSection> buildPreviewOrderedColorSections(models.DesignSystem ds) {
   final allTokens = collectAllColorTokens(ds);
   if (allTokens.isEmpty) return [];
@@ -153,45 +171,60 @@ List<PreviewColorSection> buildPreviewOrderedColorSections(models.DesignSystem d
         k.startsWith('info');
   }
 
+  /// Tokens already shown on a structured ramp card (avoids leaking shades into "Additional").
+  final keysOnRampCards = <String>{};
+  void absorbRamp(List<(String, String)> entries) {
+    for (final e in entries) {
+      keysOnRampCards.add(e.$1);
+    }
+  }
+
+  final out = <PreviewColorSection>[];
+
+  final coreList = coreEntries.isEmpty
+      ? allTokens.entries.take(7).map((e) => (e.key, e.value)).toList()
+      : coreEntries;
+  out.add(PreviewColorSection(title: 'Core & surfaces', entries: coreList));
+
+  void addRampCard(String title, List<(String, String)> ramp) {
+    if (ramp.isEmpty) return;
+    absorbRamp(ramp);
+    out.add(PreviewColorSection(title: title, entries: ramp));
+  }
+
+  addRampCard(
+    'Primary (teal) ramp — primary_dark1...10 / primary_light1...10',
+    primaryRamp,
+  );
+  addRampCard('Coral — teal complement (CTA / highlights)', t1Ramp);
+  addRampCard('Purple — secondary', t2Ramp);
+  addRampCard('Gold — purple complement (soft accent)', t4Ramp);
+  addRampCard('Triadic 3 ramp', triadic3Ramp);
+
+  final extraPrefixes = discoverRampPrefixes(allTokens)
+      .where((p) => !_fixedRampPrefixes.contains(p))
+      .where((p) => !semanticKeySet.contains(p))
+      .toList()
+    ..sort(TokenDisplayOrder.naturalCompare);
+
+  for (final p in extraPrefixes) {
+    final ramp = _rampEntries(allTokens, p);
+    if (ramp.isEmpty) continue;
+    absorbRamp(ramp);
+    out.add(PreviewColorSection(title: 'Ramp — $p', entries: ramp));
+  }
+
   final fallback = allTokens.entries
-      .where((e) => !semanticKeySet.contains(e.key) && fallbackKey(e.key))
+      .where((e) =>
+          !semanticKeySet.contains(e.key) &&
+          !keysOnRampCards.contains(e.key) &&
+          fallbackKey(e.key))
       .map((e) => (e.key, e.value))
       .toList()
     ..sort(_comparePreviewSwatchesByLuminance);
 
-  final out = <PreviewColorSection>[];
-
-  out.add(
-    PreviewColorSection(
-      title: 'Core & surfaces',
-      entries: coreEntries.isEmpty
-          ? allTokens.entries.take(7).map((e) => (e.key, e.value)).toList()
-          : coreEntries,
-    ),
-  );
-
-  if (primaryRamp.isNotEmpty) {
-    out.add(
-      PreviewColorSection(
-        title: 'Primary (teal) ramp — primary_dark1...10 / primary_light1...10',
-        entries: primaryRamp,
-      ),
-    );
-  }
-  if (t1Ramp.isNotEmpty) {
-    out.add(PreviewColorSection(title: 'Coral — teal complement (CTA / highlights)', entries: t1Ramp));
-  }
-  if (t2Ramp.isNotEmpty) {
-    out.add(PreviewColorSection(title: 'Purple — secondary', entries: t2Ramp));
-  }
-  if (t4Ramp.isNotEmpty) {
-    out.add(PreviewColorSection(title: 'Gold — purple complement (soft accent)', entries: t4Ramp));
-  }
-  if (triadic3Ramp.isNotEmpty) {
-    out.add(PreviewColorSection(title: 'Triadic 3 ramp', entries: triadic3Ramp));
-  }
   if (fallback.isNotEmpty) {
-    out.add(PreviewColorSection(title: 'Additional ramps', entries: fallback.take(22).toList()));
+    out.add(PreviewColorSection(title: 'Additional ramps', entries: fallback));
   }
   if (semanticEntries.isNotEmpty) {
     final sortedSemantic = List<(String, String)>.from(semanticEntries)..sort(_compareSemanticPreviewEntries);

@@ -13,6 +13,7 @@ import '../models/design_system.dart' as models;
 import '../models/design_system_wrapper.dart';
 import '../utils/design_system_html_builder.dart';
 import '../utils/design_system_pdf_builder.dart';
+import '../utils/design_system_preview_color_order.dart';
 import '../utils/responsive.dart';
 import '../utils/screen_body_padding.dart';
 import '../utils/token_display_order.dart';
@@ -983,83 +984,12 @@ class _PreviewScreenState extends State<PreviewScreen> {
     return raw.toString();
   }
 
-  /// Preferred order: primary first, then analogous and semantic groups, then other palettes.
-  static const List<String> _colorGroupOrder = ['primary', 'analogous', 'success', 'warning', 'error', 'info', 'secondary'];
-
-  /// Collect (name, hex) from a color map (primary, semantic, blue, etc.).
-  List<(String name, String hex)> _colorMapToEntries(Map<String, dynamic>? map) {
-    if (map == null || map.isEmpty) return [];
-    final list = <(String name, String hex)>[];
-    for (final e in map.entries) {
-      final val = e.value;
-      if (val is Map && val['value'] != null) {
-        list.add((e.key, val['value'].toString()));
-      } else if (val is! Map) {
-        list.add((e.key, val.toString()));
-      }
-    }
-    return list;
-  }
-
   Widget _buildTwoColumnColors(models.DesignSystem ds) {
-    final allTokens = _collectAllColorTokens(ds);
-    if (allTokens.isEmpty) {
+    final sections = buildPreviewOrderedColorSections(ds);
+    if (sections.isEmpty) {
       return _buildPlaceholder('Colors (add Primary or Semantic in Colors screen)');
     }
-    final semanticEntries = _colorMapToEntries(ds.colors.semantic);
-    final semanticKeySet = ds.colors.semantic.keys.map((k) => k.toString()).toSet();
-    final coreEntries = _coreSurfaceEntries(allTokens);
-    final primaryRamp = _rampEntries(allTokens, 'primary');
-    final t1Ramp = _rampEntries(allTokens, 'tetradic_1');
-    final t2Ramp = _rampEntries(allTokens, 'tetradic_2');
-    final t4Ramp = _rampEntries(allTokens, 'tetradic_4');
-    final triadic3Ramp = _rampEntries(allTokens, 'triadic_3');
-    bool fallbackKey(String key) {
-      final k = key.toLowerCase();
-      return k.startsWith('triadic_') ||
-          k.startsWith('analogous') ||
-          k.startsWith('secondary') ||
-          k.startsWith('success') ||
-          k.startsWith('warning') ||
-          k.startsWith('error') ||
-          k.startsWith('info');
-    }
-
-    final fallback = allTokens.entries
-        .where((e) => !semanticKeySet.contains(e.key) && fallbackKey(e.key))
-        .map((e) => (e.key, e.value))
-        .toList()
-      ..sort(_comparePreviewSwatchesByLuminance);
-
-    final cards = <Widget>[
-      _buildColorSwatchCard('Core & surfaces', coreEntries.isEmpty ? allTokens.entries.take(7).map((e) => (e.key, e.value)).toList() : coreEntries),
-    ];
-    if (primaryRamp.isNotEmpty) {
-      cards.add(_buildColorSwatchCard(
-        'Primary (teal) ramp — primary_dark1...10 / primary_light1...10',
-        primaryRamp,
-      ));
-    }
-    if (t1Ramp.isNotEmpty) {
-      cards.add(_buildColorSwatchCard('Coral — teal complement (CTA / highlights)', t1Ramp));
-    }
-    if (t2Ramp.isNotEmpty) {
-      cards.add(_buildColorSwatchCard('Purple — secondary', t2Ramp));
-    }
-    if (t4Ramp.isNotEmpty) {
-      cards.add(_buildColorSwatchCard('Gold — purple complement (soft accent)', t4Ramp));
-    }
-    if (triadic3Ramp.isNotEmpty) {
-      cards.add(_buildColorSwatchCard('Triadic 3 ramp', triadic3Ramp));
-    }
-    if (fallback.isNotEmpty) {
-      cards.add(_buildColorSwatchCard('Additional ramps', fallback.take(22).toList()));
-    }
-    if (semanticEntries.isNotEmpty) {
-      final sortedSemantic = List<(String, String)>.from(semanticEntries)
-        ..sort(_compareSemanticPreviewEntries);
-      cards.add(_buildColorSwatchCard('Semantic colors', sortedSemantic));
-    }
+    final cards = sections.map((s) => _buildColorSwatchCard(s.title, s.entries)).toList();
 
     return _buildSectionCard(
       'Colors',
@@ -1073,81 +1003,6 @@ class _PreviewScreenState extends State<PreviewScreen> {
         ],
       ),
     );
-  }
-
-  Map<String, String> _collectAllColorTokens(models.DesignSystem ds) {
-    final c = ds.colors;
-    final maps = <Map<String, dynamic>?>[
-      c.primary,
-      c.semantic,
-      c.blue,
-      c.green,
-      c.orange,
-      c.purple,
-      c.red,
-      c.grey,
-      c.white,
-      c.text,
-      c.input,
-      c.roleSpecific,
-    ];
-    final out = <String, String>{};
-    for (final map in maps) {
-      for (final e in _colorMapToEntries(map)) {
-        out[e.$1] = _toHex(e.$2);
-      }
-    }
-    return out;
-  }
-
-  List<(String name, String hex)> _coreSurfaceEntries(Map<String, String> allTokens) {
-    final preferred = <String>[
-      'primary',
-      'coral',
-      'secondary',
-      'gold',
-      'appBackground',
-      'appBackgroundDark',
-      'coral_muted',
-    ];
-    final result = <(String name, String hex)>[];
-    for (final name in preferred) {
-      if (allTokens.containsKey(name)) result.add((name, allTokens[name]!));
-    }
-    return result;
-  }
-
-  List<(String name, String hex)> _rampEntries(Map<String, String> allTokens, String prefix) {
-    final list = <(String name, String hex)>[];
-    for (final e in allTokens.entries) {
-      final darkMatch = RegExp('^${RegExp.escape(prefix)}_dark(\\d+)\$').firstMatch(e.key);
-      if (darkMatch != null) {
-        list.add((e.key, e.value));
-        continue;
-      }
-      final lightMatch = RegExp('^${RegExp.escape(prefix)}_light(\\d+)\$').firstMatch(e.key);
-      if (lightMatch != null) {
-        list.add((e.key, e.value));
-        continue;
-      }
-      if (e.key == prefix) {
-        list.add((e.key, e.value));
-      }
-    }
-    list.sort((a, b) {
-      final la = ColorPaletteService.luminanceFromHexString(_toHex(a.$2));
-      final lb = ColorPaletteService.luminanceFromHexString(_toHex(b.$2));
-      if (la != null && lb != null) {
-        final c = la.compareTo(lb);
-        if (c != 0) return c;
-      } else if (la != null) {
-        return -1;
-      } else if (lb != null) {
-        return 1;
-      }
-      return _naturalCompare(a.$1, b.$1);
-    });
-    return list;
   }
 
   Widget _buildColorSwatchCard(String title, List<(String name, String hex)> entries) {
@@ -1310,14 +1165,6 @@ class _PreviewScreenState extends State<PreviewScreen> {
       list.sort(_comparePreviewSwatchesByLuminance);
     }
     return map;
-  }
-
-  /// Semantic palette: Success → Warning → Error → Info → other; within each family, darkest → lightest.
-  int _compareSemanticPreviewEntries((String, String) a, (String, String) b) {
-    final ra = TokenDisplayOrder.semanticColorFamilyRank(a.$1);
-    final rb = TokenDisplayOrder.semanticColorFamilyRank(b.$1);
-    if (ra != rb) return ra.compareTo(rb);
-    return _comparePreviewSwatchesByLuminance(a, b);
   }
 
   /// Darkest → lightest for preview swatch grids (ties fall back to token name).
