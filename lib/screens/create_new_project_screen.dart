@@ -6,6 +6,8 @@ import '../models/design_system.dart' as models;
 import '../providers/design_system_provider.dart';
 import '../providers/user_provider.dart';
 import '../services/project_service.dart';
+import '../services/color_psychology_service.dart';
+import '../models/user.dart';
 import '../utils/responsive.dart';
 import 'onboarding_screen.dart';
 import 'projects_screen.dart';
@@ -26,6 +28,23 @@ class _CreateNewProjectScreenState extends State<CreateNewProjectScreen> {
   bool _isCreating = false;
   /// 'ios' | 'android' | 'web' | 'all'
   String _platformChoice = 'web';
+
+  /// Brand feel (Delve-style quadrants).
+  UserAttitude _brandAttitude = UserAttitude.matureUnderstated;
+  /// Optional hue family from [ColorPsychologyService.getColorMeanings] keys; null = seed primary later in Colors.
+  String? _psychologyHueKey;
+
+  static const Map<String, Color> _hueSeedColors = {
+    'blue': Color(0xFF1565C0),
+    'green': Color(0xFF2E7D32),
+    'red': Color(0xFFC62828),
+    'orange': Color(0xFFEF6C00),
+    'purple': Color(0xFF6A1B9A),
+    'yellow': Color(0xFFF9A825),
+    'grey': Color(0xFF616161),
+    'black': Color(0xFF212121),
+    'white': Color(0xFFECEFF1),
+  };
 
   @override
   void dispose() {
@@ -51,6 +70,37 @@ class _CreateNewProjectScreenState extends State<CreateNewProjectScreen> {
     }
   }
 
+  String _buildColorPsychologyDescription() {
+    final parts = <String>[];
+    parts.add(
+      'Brand attitude: ${ColorPsychologyService.getAttitudeName(_brandAttitude)}. '
+      '${ColorPsychologyService.getAttitudeDescription(_brandAttitude)}',
+    );
+    if (_psychologyHueKey != null) {
+      final m = ColorPsychologyService.getColorMeanings()[_psychologyHueKey!];
+      if (m != null) {
+        parts.add(
+          'Initial color psychology direction: ${m.name} (${m.meanings.join(', ')}). '
+          'Suggested traits: ${m.brandAttributes.join(', ')}.',
+        );
+      }
+    } else {
+      parts.add(
+        'Primary brand chroma: to be chosen in Colors — use Browse schemes (Monochromatic, Triadic, Tetradic, …) when you add your palette.',
+      );
+    }
+    return parts.join('\n\n');
+  }
+
+  Color? _seedPrimaryFromPsychology() {
+    if (_psychologyHueKey == null) return null;
+    return _hueSeedColors[_psychologyHueKey!];
+  }
+
+  static String _hueLabel(String key) {
+    return key.isEmpty ? key : '${key[0].toUpperCase()}${key.substring(1)}';
+  }
+
   Future<void> _createAndContinue() async {
     if (!_formKey.currentState!.validate()) return;
     final name = _nameController.text.trim();
@@ -66,10 +116,12 @@ class _CreateNewProjectScreenState extends State<CreateNewProjectScreen> {
       final targetPlatforms = _platformChoice == 'all'
           ? List<String>.from(models.kTargetPlatforms)
           : [_platformChoice];
+      final isAdmin = userProvider.userRole == UserRole.admin;
       designSystemProvider.createNewProject(
         name: name,
-        description: '',
+        description: isAdmin ? _buildColorPsychologyDescription() : '',
         targetPlatforms: targetPlatforms,
+        primaryColor: isAdmin ? _seedPrimaryFromPsychology() : null,
       );
 
       if (!kIsWeb && _chosenDirectoryPath != null && _chosenDirectoryPath!.isNotEmpty) {
@@ -137,7 +189,7 @@ class _CreateNewProjectScreenState extends State<CreateNewProjectScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Choose a name and where to save it on your device.',
+                  'Name your project, set color psychology, then continue to onboarding.',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: Colors.grey[600],
                       ),
@@ -204,7 +256,82 @@ class _CreateNewProjectScreenState extends State<CreateNewProjectScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 24),
+                Consumer<UserProvider>(
+                  builder: (context, userProvider, _) {
+                    if (userProvider.userRole != UserRole.admin) {
+                      return const SizedBox.shrink();
+                    }
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const SizedBox(height: 28),
+                        Text(
+                          'Color psychology & brand feel',
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey.shade800,
+                              ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'How should this system feel? Optional: pick a dominant hue to seed your primary color.',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Colors.grey[600],
+                                height: 1.35,
+                              ),
+                        ),
+                        const SizedBox(height: 12),
+                        ...UserAttitude.values.map(
+                          (a) => RadioListTile<UserAttitude>(
+                            value: a,
+                            groupValue: _brandAttitude,
+                            onChanged: _isCreating
+                                ? null
+                                : (v) {
+                                    if (v != null) setState(() => _brandAttitude = v);
+                                  },
+                            title: Text(
+                              ColorPsychologyService.getAttitudeName(a),
+                              style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+                            ),
+                            dense: true,
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Primary emotional color (optional)',
+                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                                color: Colors.grey.shade700,
+                              ),
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            ChoiceChip(
+                              label: const Text('Decide later in Colors'),
+                              selected: _psychologyHueKey == null,
+                              onSelected: _isCreating
+                                  ? null
+                                  : (_) => setState(() => _psychologyHueKey = null),
+                            ),
+                            for (final entry in _hueSeedColors.entries)
+                              ChoiceChip(
+                                label: Text(_hueLabel(entry.key)),
+                                selected: _psychologyHueKey == entry.key,
+                                onSelected: _isCreating
+                                    ? null
+                                    : (sel) => setState(() => _psychologyHueKey = sel ? entry.key : null),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+                    );
+                  },
+                ),
                 if (kIsWeb) ...[
                   Container(
                     padding: const EdgeInsets.all(16),

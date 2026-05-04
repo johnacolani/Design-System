@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../providers/design_system_provider.dart';
 import '../models/design_system.dart' as models;
 import '../services/color_palette_service.dart';
+import '../services/color_psychology_service.dart';
 import '../utils/screen_body_padding.dart';
 import 'color_picker_screen.dart';
 import 'semantic_tokens_screen.dart';
@@ -197,6 +198,138 @@ class _ColorsScreenState extends State<ColorsScreen> {
     );
   }
 
+  /// When Primary has no tokens yet, show guidance from [ColorPsychologyService] instead of only an empty state.
+  Widget _buildPrimaryPsychologyEmptyInner(BuildContext context, TokenDisplayGroup group) {
+    final theme = Theme.of(context);
+    final meanings = ColorPsychologyService.getColorMeanings().values.toList()
+      ..sort((a, b) => a.name.compareTo(b.name));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Icon(Icons.psychology_outlined, size: 48, color: Colors.grey[500]),
+        const SizedBox(height: 12),
+        Text(
+          'No primary colors yet',
+          textAlign: TextAlign.center,
+          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Primary colors anchor your brand. Here is a quick psychology reference while you add your first swatches.',
+          textAlign: TextAlign.center,
+          style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey[700]),
+        ),
+        const SizedBox(height: 20),
+        Card(
+          elevation: 0,
+          color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Color psychology',
+                  style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 12),
+                ...meanings.map((m) => Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(
+                            width: 72,
+                            child: Text(
+                              m.name,
+                              style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                          Expanded(
+                            child: Text(
+                              '${m.meanings.join(' · ')}\n${m.brandAttributes.map((s) => '· $s').join(' ')}',
+                              style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey[800], height: 1.35),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'Brand attitude',
+          style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        ...UserAttitude.values.map(
+          (a) => Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  ColorPsychologyService.getAttitudeName(a),
+                  style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+                ),
+                Text(
+                  ColorPsychologyService.getAttitudeDescription(a),
+                  style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey[700], height: 1.35),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Center(
+          child: ElevatedButton.icon(
+            onPressed: () => _showAddColorDialog(context, _selectedCategory, group),
+            icon: const Icon(Icons.add),
+            label: const Text('Add color'),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmptyCategoryBody(
+    BuildContext context,
+    TokenDisplayGroup group,
+    Map<String, dynamic> currentCategory, {
+    required bool wrapInScrollView,
+  }) {
+    if (_selectedCategory == 'primary' && currentCategory.isEmpty) {
+      final inner = _buildPrimaryPsychologyEmptyInner(context, group);
+      if (wrapInScrollView) {
+        return SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+          child: inner,
+        );
+      }
+      return inner;
+    }
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.palette_outlined, size: 64, color: Colors.grey[400]),
+          const SizedBox(height: 16),
+          Text('No colors in this category', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.grey[600])),
+          const SizedBox(height: 8),
+          ElevatedButton.icon(
+            onPressed: () => _showAddColorDialog(context, _selectedCategory, group),
+            icon: const Icon(Icons.add),
+            label: const Text('Add Color'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSingleColumnLayout(
     BuildContext context,
     TokenDisplayGroup group,
@@ -233,22 +366,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
         ),
         Expanded(
           child: currentCategory.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.palette_outlined, size: 64, color: Colors.grey[400]),
-                      const SizedBox(height: 16),
-                      Text('No colors in this category', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.grey[600])),
-                      const SizedBox(height: 8),
-                      ElevatedButton.icon(
-                        onPressed: () => _showAddColorDialog(context, _selectedCategory, group),
-                        icon: const Icon(Icons.add),
-                        label: const Text('Add Color'),
-                      ),
-                    ],
-                  ),
-                )
+              ? _buildEmptyCategoryBody(context, group, currentCategory, wrapInScrollView: true)
               : _buildColorsGroupedByTypeWithGroup(context, currentCategory, _selectedCategory, group),
         ),
       ],
@@ -332,22 +450,24 @@ class _ColorsScreenState extends State<ColorsScreen> {
           ),
           const SizedBox(height: 12),
           if (currentCategory.isEmpty)
-            Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.palette_outlined, size: 48, color: Colors.grey[400]),
-                  const SizedBox(height: 12),
-                  Text('No colors', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[600])),
-                  const SizedBox(height: 8),
-                  OutlinedButton.icon(
-                    onPressed: () => _showAddColorDialog(context, _selectedCategory, group),
-                    icon: const Icon(Icons.add, size: 18),
-                    label: const Text('Add Color'),
-                  ),
-                ],
-              ),
-            )
+            _selectedCategory == 'primary'
+                ? _buildPrimaryPsychologyEmptyInner(context, group)
+                : Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.palette_outlined, size: 48, color: Colors.grey[400]),
+                        const SizedBox(height: 12),
+                        Text('No colors', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[600])),
+                        const SizedBox(height: 8),
+                        OutlinedButton.icon(
+                          onPressed: () => _showAddColorDialog(context, _selectedCategory, group),
+                          icon: const Icon(Icons.add, size: 18),
+                          label: const Text('Add Color'),
+                        ),
+                      ],
+                    ),
+                  )
           else
             _buildColorsGroupedByTypeWithGroup(context, currentCategory, _selectedCategory, group),
         ],
@@ -684,6 +804,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
     String category,
     TokenDisplayGroup? group,
   ) {
+    final keys = entries.map((e) => e.key).toList(growable: false);
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
@@ -693,18 +814,236 @@ class _ColorsScreenState extends State<ColorsScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
             decoration: BoxDecoration(
               color: Colors.grey.shade100,
               borderRadius: const BorderRadius.vertical(top: Radius.circular(7)),
               border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
             ),
-            child: Text(title, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 4),
+                    child: Text(
+                      title,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+                if (group != null && keys.isNotEmpty)
+                  IconButton(
+                    icon: Icon(Icons.delete_outline, size: 20, color: Colors.red.shade700),
+                    tooltip: 'Delete palette',
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                    onPressed: () => _confirmDeletePalette(context, category, group, keys, title),
+                  ),
+              ],
+            ),
           ),
           ...entries.map((e) => _buildColorRow(context, e.key, e.value, category, group)),
         ],
       ),
     );
+  }
+
+  void _confirmDeletePalette(
+    BuildContext context,
+    String category,
+    TokenDisplayGroup group,
+    List<String> keys,
+    String displayTitle,
+  ) {
+    if (!context.mounted || keys.isEmpty) return;
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete palette'),
+        content: Text(
+          'Remove all ${keys.length} color${keys.length == 1 ? '' : 's'} in "$displayTitle"? This cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              _applyRemovePaletteKeys(group, category, keys);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Palette "$displayTitle" removed (${keys.length} colors).'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              }
+            },
+            child: const Text('Delete palette'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _applyRemovePaletteKeys(TokenDisplayGroup group, String category, List<String> keys) {
+    final colors = _getColorsForGroup(group);
+    final next = _colorsAfterRemovingKeys(colors, category, keys);
+    if (next != null) {
+      _applyColorsUpdateForGroup(group, next);
+    }
+  }
+
+  models.Colors? _colorsAfterRemovingKeys(models.Colors colors, String category, List<String> keys) {
+    void removeKeys(Map<String, dynamic> m) {
+      for (final k in keys) {
+        m.remove(k);
+      }
+    }
+
+    switch (category) {
+      case 'primary':
+        final u = Map<String, dynamic>.from(colors.primary);
+        removeKeys(u);
+        return models.Colors(
+          primary: u,
+          semantic: colors.semantic,
+          blue: colors.blue,
+          green: colors.green,
+          orange: colors.orange,
+          purple: colors.purple,
+          red: colors.red,
+          grey: colors.grey,
+          white: colors.white,
+          text: colors.text,
+          input: colors.input,
+          roleSpecific: colors.roleSpecific,
+        );
+      case 'semantic':
+        final u = Map<String, dynamic>.from(colors.semantic);
+        removeKeys(u);
+        return models.Colors(
+          primary: colors.primary,
+          semantic: u,
+          blue: colors.blue,
+          green: colors.green,
+          orange: colors.orange,
+          purple: colors.purple,
+          red: colors.red,
+          grey: colors.grey,
+          white: colors.white,
+          text: colors.text,
+          input: colors.input,
+          roleSpecific: colors.roleSpecific,
+        );
+      case 'blue':
+        final u = Map<String, dynamic>.from(colors.blue ?? {});
+        removeKeys(u);
+        return models.Colors(
+          primary: colors.primary,
+          semantic: colors.semantic,
+          blue: u,
+          green: colors.green,
+          orange: colors.orange,
+          purple: colors.purple,
+          red: colors.red,
+          grey: colors.grey,
+          white: colors.white,
+          text: colors.text,
+          input: colors.input,
+          roleSpecific: colors.roleSpecific,
+        );
+      case 'green':
+        final u = Map<String, dynamic>.from(colors.green ?? {});
+        removeKeys(u);
+        return models.Colors(
+          primary: colors.primary,
+          semantic: colors.semantic,
+          blue: colors.blue,
+          green: u,
+          orange: colors.orange,
+          purple: colors.purple,
+          red: colors.red,
+          grey: colors.grey,
+          white: colors.white,
+          text: colors.text,
+          input: colors.input,
+          roleSpecific: colors.roleSpecific,
+        );
+      case 'orange':
+        final u = Map<String, dynamic>.from(colors.orange ?? {});
+        removeKeys(u);
+        return models.Colors(
+          primary: colors.primary,
+          semantic: colors.semantic,
+          blue: colors.blue,
+          green: colors.green,
+          orange: u,
+          purple: colors.purple,
+          red: colors.red,
+          grey: colors.grey,
+          white: colors.white,
+          text: colors.text,
+          input: colors.input,
+          roleSpecific: colors.roleSpecific,
+        );
+      case 'purple':
+        final u = Map<String, dynamic>.from(colors.purple ?? {});
+        removeKeys(u);
+        return models.Colors(
+          primary: colors.primary,
+          semantic: colors.semantic,
+          blue: colors.blue,
+          green: colors.green,
+          orange: colors.orange,
+          purple: u,
+          red: colors.red,
+          grey: colors.grey,
+          white: colors.white,
+          text: colors.text,
+          input: colors.input,
+          roleSpecific: colors.roleSpecific,
+        );
+      case 'red':
+        final u = Map<String, dynamic>.from(colors.red ?? {});
+        removeKeys(u);
+        return models.Colors(
+          primary: colors.primary,
+          semantic: colors.semantic,
+          blue: colors.blue,
+          green: colors.green,
+          orange: colors.orange,
+          purple: colors.purple,
+          red: u,
+          grey: colors.grey,
+          white: colors.white,
+          text: colors.text,
+          input: colors.input,
+          roleSpecific: colors.roleSpecific,
+        );
+      case 'grey':
+        final u = Map<String, dynamic>.from(colors.grey ?? {});
+        removeKeys(u);
+        return models.Colors(
+          primary: colors.primary,
+          semantic: colors.semantic,
+          blue: colors.blue,
+          green: colors.green,
+          orange: colors.orange,
+          purple: colors.purple,
+          red: colors.red,
+          grey: u,
+          white: colors.white,
+          text: colors.text,
+          input: colors.input,
+          roleSpecific: colors.roleSpecific,
+        );
+      default:
+        return null;
+    }
   }
 
   Color _parseColor(String colorString) {
@@ -737,6 +1076,24 @@ class _ColorsScreenState extends State<ColorsScreen> {
     // Calculate relative luminance using component accessors
     final luminance = (0.299 * color.red + 0.587 * color.green + 0.114 * color.blue);
     return luminance > 128 ? Colors.black : Colors.white; // Adjusted threshold for 0-255 range
+  }
+
+  /// When true, [ColorPickerScreen] opens on the Schemes tab (Monochromatic, Triadic, Tetradic, …).
+  bool _shouldOpenColorSchemesFirst(String category) {
+    switch (category) {
+      case 'primary':
+      case 'semantic':
+      case 'secondary':
+      case 'blue':
+      case 'green':
+      case 'orange':
+      case 'purple':
+      case 'red':
+      case 'grey':
+        return true;
+      default:
+        return false;
+    }
   }
 
   void _showAddColorDialog(BuildContext context, String category, TokenDisplayGroup group) {
@@ -849,6 +1206,32 @@ class _ColorsScreenState extends State<ColorsScreen> {
                       maxLines: 2,
                     ),
                     const SizedBox(height: 16),
+                    if (_shouldOpenColorSchemesFirst(category)) ...[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.deepPurple.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.deepPurple.shade100),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(Icons.auto_awesome, size: 22, color: Colors.deepPurple.shade700),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'Browse opens Color schemes: choose Monochromatic, Triadic, Tetradic, and more. '
+                                'Tap a base color if needed, pick chips, then Add All Colors — or select swatches and use the top checkmark.',
+                                style: TextStyle(fontSize: 12, color: Colors.grey.shade900, height: 1.35),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                     ElevatedButton.icon(
                       onPressed: () async {
                         // Store values before navigating
@@ -856,10 +1239,13 @@ class _ColorsScreenState extends State<ColorsScreen> {
                         final description = descriptionController.text;
                         
                         // Navigate to color picker WITHOUT closing dialog
+                        final schemesFirst = _shouldOpenColorSchemesFirst(category);
                         final result = await Navigator.of(stContext).push<Map<String, dynamic>>(
                           MaterialPageRoute(
                             builder: (_) => ColorPickerScreen(
                               category: category,
+                              initialTabIndex: schemesFirst ? 2 : 0,
+                              schemeSeedColor: schemesFirst ? const Color(0xFF5C6BC0) : null,
                             ),
                           ),
                         );
@@ -931,9 +1317,13 @@ class _ColorsScreenState extends State<ColorsScreen> {
                         }
                       },
                       icon: const Icon(Icons.palette),
-                      label: Text(category == 'semantic' 
-                          ? 'Browse Palettes & Pick Semantic Color'
-                          : 'Browse Color Palettes & Get Suggestions'),
+                      label: Text(
+                        category == 'semantic'
+                            ? 'Browse palettes & schemes…'
+                            : (_shouldOpenColorSchemesFirst(category)
+                                ? 'Browse schemes (Mono, Triadic, Tetradic…)'
+                                : 'Browse Color Palettes & Get Suggestions'),
+                      ),
                       style: ElevatedButton.styleFrom(
                         minimumSize: const Size(double.infinity, 48),
                       ),

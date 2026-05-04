@@ -35,6 +35,8 @@ class CloudProjectService {
     final docId = docIdForDesignSystem(designSystem);
     final wrapper = DesignSystemWrapper(designSystem: designSystem);
     final payload = wrapper.toJson();
+    // Do not use SetOptions(merge: true): Firestore deep-merges map fields, so removed
+    // nested keys (e.g. deleted colors in primary) would reappear on next load.
     await FirebaseService.userProjects(userId).doc(docId).set(
           {
             'name': designSystem.name,
@@ -45,7 +47,6 @@ class CloudProjectService {
             'updatedAt': FieldValue.serverTimestamp(),
             'payload': payload,
           },
-          SetOptions(merge: true),
         );
     return cloudPathForDocId(docId);
   }

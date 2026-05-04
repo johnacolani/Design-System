@@ -8,6 +8,7 @@ import '../providers/user_provider.dart';
 import '../utils/responsive.dart';
 import '../utils/screen_body_padding.dart';
 import '../services/project_service.dart';
+import '../services/admin_design_system_service.dart';
 import '../models/design_system.dart' as models;
 import '../models/user.dart';
 import 'colors_screen.dart';
@@ -76,6 +77,104 @@ class DashboardScreen extends StatelessWidget {
         );
       }
     }
+  }
+
+  Future<void> _showDuplicateProjectDialog(
+    BuildContext context,
+    DesignSystemProvider provider,
+    models.DesignSystem ds,
+  ) async {
+    final suggested = ds.name.isEmpty ? 'Copy' : '${ds.name} Copy';
+    final controller = TextEditingController(text: suggested);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Duplicate project'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            labelText: 'New project name',
+            border: OutlineInputBorder(),
+          ),
+          autofocus: true,
+          textInputAction: TextInputAction.done,
+          onSubmitted: (_) => Navigator.of(ctx).pop(true),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Duplicate'),
+          ),
+        ],
+      ),
+    );
+    final name = controller.text.trim();
+    controller.dispose();
+    if (confirmed != true || !context.mounted) return;
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter a project name.'), backgroundColor: Colors.orange),
+      );
+      return;
+    }
+    provider.duplicateProjectAs(name);
+
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final uid = userProvider.isLoggedIn ? userProvider.currentUser?.id : null;
+    final isAdmin = userProvider.userRole == UserRole.admin;
+
+    Object? cloudErr;
+    Object? adminSnapErr;
+    if (isAdmin && uid != null && !uid.startsWith('guest_')) {
+      try {
+        await provider.saveProject(
+          firebaseUid: uid,
+          onCloudSyncCompleted: (e) => cloudErr = e,
+        );
+        try {
+          await AdminDesignSystemService.saveDesignSystemForAdmin(
+            adminUserId: uid,
+            designSystem: provider.rawDesignSystem,
+          );
+        } catch (e) {
+          adminSnapErr = e;
+        }
+      } catch (e) {
+        cloudErr = e;
+      }
+    }
+
+    if (!context.mounted) return;
+
+    final String msg;
+    if (isAdmin && uid != null && !uid.startsWith('guest_')) {
+      if (cloudErr != null) {
+        msg =
+            'Duplicated as "$name". Firebase sync failed: $cloudErr — save again from the app bar.';
+      } else if (adminSnapErr != null) {
+        msg =
+            'Duplicated as "$name". Saved to projects in Firebase; admin snapshot failed: $adminSnapErr';
+      } else {
+        msg =
+            'Duplicated as "$name". Saved to Firebase (projects + admin snapshot). '
+            'In Colors → Add, use Browse schemes (Mono, Triadic, Tetradic…). Edit typography as needed.';
+      }
+    } else {
+      msg =
+          'Duplicated as "$name". Save when ready. In Colors → Add, use Browse schemes (Mono, Triadic, Tetradic…). '
+          'Edit typography (font family) as needed.';
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: cloudErr != null ? Colors.orange : Colors.green,
+      ),
+    );
   }
 
   @override
@@ -156,19 +255,11 @@ class DashboardScreen extends StatelessWidget {
               );
             },
           ),
+          // Keep Duplicate early: multi-platform title + many actions overflow trailing icons into ⋮.
           IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            tooltip: 'Settings',
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const SettingsScreen()),
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.computer),
-            tooltip: 'Save to Computer',
-            onPressed: () => _handleSaveToComputer(context, designSystem),
+            icon: const Icon(Icons.copy_all_outlined),
+            tooltip: 'Duplicate project',
+            onPressed: () => _showDuplicateProjectDialog(context, provider, designSystem),
           ),
           IconButton(
             icon: const Icon(Icons.save_outlined),
@@ -210,6 +301,20 @@ class DashboardScreen extends StatelessWidget {
                 }
               }
             },
+          ),
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: 'Settings',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SettingsScreen()),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.computer),
+            tooltip: 'Save to Computer',
+            onPressed: () => _handleSaveToComputer(context, designSystem),
           ),
           IconButton(
             icon: const Icon(Icons.auto_awesome),

@@ -1,4 +1,6 @@
 // import 'package:json_annotation/json_annotation.dart';
+import 'dart:convert';
+
 import 'design_system.dart';
 
 // part 'design_system_wrapper.g.dart';
@@ -26,6 +28,13 @@ class DesignSystemWrapper {
     return DesignSystemWrapper(
       designSystem: _designSystemFromJson(json['designSystem'] as Map<String, dynamic>),
     );
+  }
+
+  /// Deep copy via JSON so maps and platform overrides are independent from the source.
+  static DesignSystem cloneDesignSystem(DesignSystem ds) {
+    final json = DesignSystemWrapper(designSystem: ds).toJson();
+    final decoded = jsonDecode(jsonEncode(json)) as Map<String, dynamic>;
+    return DesignSystemWrapper.fromJson(decoded).designSystem;
   }
 
   static Map<String, dynamic> _designSystemToJson(DesignSystem ds) {

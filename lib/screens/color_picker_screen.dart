@@ -11,11 +11,17 @@ import 'cupertino_picker_screen.dart';
 
 class ColorPickerScreen extends StatefulWidget {
   final String? category;
+  /// Opens a specific tab: 0 Palettes, 1 Wheel, 2 Schemes, 3 Contrast, 4 Analysis.
+  final int initialTabIndex;
+  /// When opening on Schemes ([initialTabIndex] == 2), optional seed for base color (defaults to indigo).
+  final Color? schemeSeedColor;
   final Function(Color, Map<String, String>, Map<String, String>, List<ColorSuggestion>)? onColorSelected;
 
   const ColorPickerScreen({
     super.key,
     this.category,
+    this.initialTabIndex = 0,
+    this.schemeSeedColor,
     this.onColorSelected,
   });
 
@@ -46,7 +52,16 @@ class _ColorPickerScreenState extends State<ColorPickerScreen> with SingleTicker
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    final initialIndex = widget.initialTabIndex.clamp(0, 4);
+    _tabController = TabController(length: 5, vsync: this, initialIndex: initialIndex);
+    if (initialIndex == 2) {
+      _schemeBaseColor = widget.schemeSeedColor ?? const Color(0xFF5C6BC0);
+      _selectedSchemeType = 'Triadic';
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _generateScheme();
+      });
+    }
     _loadPalettes();
     _contrastForeground = Colors.black;
     _contrastBackground = Colors.white;

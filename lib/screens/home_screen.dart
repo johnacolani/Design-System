@@ -33,34 +33,66 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   List<ProjectInfo> _projects = [];
   bool _isLoadingProjects = true;
+  UserProvider? _userProvider;
+  /// Last account used for [getProjectList] (avoids duplicate fetches; reload when this changes).
+  String? _lastListUidKey;
+
+  /// Stable key for which Firebase/local merge bucket applies (`guest` vs real uid).
+  String _uidKeyForProjectList(UserProvider userProvider) {
+    if (!userProvider.isLoggedIn) return 'guest';
+    return userProvider.currentUser!.id;
+  }
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).clearSnackBars();
-        _loadProjects();
-      }
+      if (!mounted) return;
+      _userProvider = Provider.of<UserProvider>(context, listen: false);
+      _userProvider!.addListener(_onUserIdentityChangedForProjects);
+      ScaffoldMessenger.of(context).clearSnackBars();
+      _loadProjects();
     });
+  }
+
+  void _onUserIdentityChangedForProjects() {
+    if (!mounted) return;
+    final userProvider = _userProvider;
+    if (userProvider == null) return;
+    final key = _uidKeyForProjectList(userProvider);
+    if (key == _lastListUidKey) return;
+    _loadProjects();
+  }
+
+  @override
+  void dispose() {
+    _userProvider?.removeListener(_onUserIdentityChangedForProjects);
+    super.dispose();
   }
 
   Future<void> _loadProjects() async {
     if (!mounted) return;
     final provider = Provider.of<DesignSystemProvider>(context, listen: false);
     final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final key = _uidKeyForProjectList(userProvider);
     try {
       final uid = userProvider.isLoggedIn ? userProvider.currentUser!.id : null;
       final list = await provider.getProjectList(firebaseUid: uid);
-      if (mounted) setState(() {
-        _projects = list;
-        _isLoadingProjects = false;
-      });
+      if (mounted) {
+        setState(() {
+          _projects = list;
+          _isLoadingProjects = false;
+          _lastListUidKey = key;
+        });
+      }
     } catch (_) {
-      if (mounted) setState(() {
-        _projects = [];
-        _isLoadingProjects = false;
-      });
+      if (mounted) {
+        setState(() {
+          _projects = [];
+          _isLoadingProjects = false;
+          _lastListUidKey = key;
+        });
+      }
     }
   }
 
@@ -465,6 +497,131 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _duplicateProject(
+    BuildContext context,
+    DesignSystemProvider provider,
+    ProjectInfo project,
+  ) async {
+    final suggested = '${project.name} Copy';
+    final controller = TextEditingController(text: suggested);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Duplicate project'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            labelText: 'New project name',
+            border: OutlineInputBorder(),
+            helperText: 'Full copy of tokens and settings. You can change colors and typography after.',
+          ),
+          autofocus: true,
+          textInputAction: TextInputAction.done,
+          onSubmitted: (_) => Navigator.of(ctx).pop(true),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Duplicate'),
+          ),
+        ],
+      ),
+    );
+    final name = controller.text.trim();
+    controller.dispose();
+    if (confirmed != true || !mounted) return;
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter a project name.'), backgroundColor: Colors.orange),
+      );
+      return;
+    }
+
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final uid = userProvider.isLoggedIn ? userProvider.currentUser!.id : null;
+    final isAdmin = userProvider.userRole == UserRole.admin;
+    final adminSnapshot = isAdmin && uid != null && !uid.startsWith('guest_');
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const PopScope(
+        canPop: false,
+        child: Center(child: CircularProgressIndicator()),
+      ),
+    );
+
+    Object? cloudErr;
+    late final String newPath;
+    try {
+      newPath = await provider.duplicateProjectFromPath(
+        project.filePath,
+        name,
+        firebaseUid: uid,
+        onCloudSyncCompleted: (e) => cloudErr = e,
+        snapshotToAdminDesignSystems: adminSnapshot,
+      );
+    } catch (e) {
+      if (mounted) Navigator.of(context).pop();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Duplicate failed: $e'), backgroundColor: Colors.red),
+        );
+      }
+      return;
+    }
+
+    if (mounted) Navigator.of(context).pop();
+
+    await _loadProjects();
+
+    if (!mounted) return;
+
+    Future<void> openDuplicate() async {
+      try {
+        final p = Provider.of<DesignSystemProvider>(context, listen: false);
+        final u = Provider.of<UserProvider>(context, listen: false).isLoggedIn
+            ? Provider.of<UserProvider>(context, listen: false).currentUser!.id
+            : null;
+        await p.loadProjectFromPath(newPath, firebaseUid: u);
+        if (context.mounted) {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const DashboardScreen()),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Could not open duplicate: $e'), backgroundColor: Colors.red),
+          );
+        }
+      }
+    }
+
+    final snack = SnackBar(
+      content: Text(
+        cloudErr != null
+            ? 'Duplicate saved on device; cloud sync failed: $cloudErr'
+            : adminSnapshot
+                ? 'Duplicate created: "$name". Synced to Firebase (projects + admin snapshot).\n'
+                    'In Colors → Add, use Browse schemes (Monochromatic, Triadic, Tetradic…).'
+                : 'Duplicate created: "$name".\n'
+                    'In Colors → Add, use Browse schemes (Monochromatic, Triadic, Tetradic…).',
+      ),
+      backgroundColor: cloudErr != null ? Colors.orange : Colors.green,
+      action: SnackBarAction(
+        label: 'Open',
+        textColor: Colors.white,
+        onPressed: () => openDuplicate(),
+      ),
+    );
+    ScaffoldMessenger.of(context).showSnackBar(snack);
+  }
+
   Future<void> _confirmDeleteProject(
     BuildContext context,
     DesignSystemProvider provider,
@@ -656,6 +813,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         onSelected: (value) {
                           if (value == 'open') {
                             _openProject(context, designSystemProvider, project);
+                          } else if (value == 'duplicate') {
+                            _duplicateProject(context, designSystemProvider, project);
                           } else if (value == 'delete') {
                             _confirmDeleteProject(context, designSystemProvider, project);
                           }
@@ -664,6 +823,16 @@ class _HomeScreenState extends State<HomeScreen> {
                           const PopupMenuItem(
                             value: 'open',
                             child: Row(children: [Icon(Icons.open_in_new, size: 18), SizedBox(width: 8), Text('Open')]),
+                          ),
+                          const PopupMenuItem(
+                            value: 'duplicate',
+                            child: Row(
+                              children: [
+                                Icon(Icons.copy_all_outlined, size: 18),
+                                SizedBox(width: 8),
+                                Text('Duplicate…'),
+                              ],
+                            ),
                           ),
                           const PopupMenuDivider(),
                           const PopupMenuItem(

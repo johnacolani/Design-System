@@ -4,6 +4,8 @@ import '../data/demo_design_systems.dart';
 import '../models/design_system.dart' as models;
 import '../services/project_service.dart';
 import '../services/cloud_project_service.dart';
+import '../services/admin_design_system_service.dart';
+import '../models/design_system_wrapper.dart';
 
 /// Groups platforms for design token UI: single column for one platform, or iOS vs Android & Web (Material).
 class TokenDisplayGroup {
@@ -306,6 +308,94 @@ class DesignSystemProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  models.DesignSystem _buildDuplicate(models.DesignSystem source, String trimmedName) {
+    final now = DateTime.now();
+    final nowIso = now.toIso8601String();
+    final createdDate = nowIso.split('T')[0];
+    final cloned = DesignSystemWrapper.cloneDesignSystem(source);
+    final priorName = source.name;
+    final history = List<models.VersionHistory>.from(cloned.versionHistory ?? []);
+    history.insert(
+      0,
+      models.VersionHistory(
+        version: cloned.version,
+        date: nowIso,
+        changes: [
+          if (priorName.isNotEmpty) 'Duplicated from "$priorName"' else 'Duplicated project',
+        ],
+      ),
+    );
+    return cloned.copyWith(
+      name: trimmedName,
+      created: createdDate,
+      lastModified: nowIso,
+      versionHistory: history,
+    );
+  }
+
+  /// Full copy of the current project (including platform overrides) under a new name.
+  /// Clears [currentProjectPath] so the next save creates a new file or cloud document.
+  void duplicateProjectAs(String newName) {
+    final trimmed = newName.trim();
+    if (trimmed.isEmpty) return;
+    loadProject(_buildDuplicate(_designSystem, trimmed));
+    setCurrentProjectPath(null);
+  }
+
+  /// Load a project from [sourcePath], clone it, and save as a new project (local + optional cloud).
+  /// Returns the storage path/key for the new copy (same as [saveProject]).
+  Future<String> duplicateProjectFromPath(
+    String sourcePath,
+    String newName, {
+    String? firebaseUid,
+    void Function(Object? error)? onCloudSyncCompleted,
+    /// When true (admin flows), also writes a snapshot under `users/{uid}/design_systems` for auditing.
+    bool snapshotToAdminDesignSystems = false,
+  }) async {
+    final trimmed = newName.trim();
+    if (trimmed.isEmpty) throw ArgumentError('newName cannot be empty');
+
+    models.DesignSystem source;
+    if (CloudProjectService.isCloudProjectPath(sourcePath)) {
+      final uid = firebaseUid;
+      if (uid == null || uid.isEmpty || uid.startsWith('guest_')) {
+        throw Exception('Sign in to duplicate cloud projects');
+      }
+      final docId = CloudProjectService.docIdFromCloudPath(sourcePath);
+      source = await CloudProjectService.loadProject(uid, docId);
+    } else {
+      source = await ProjectService.loadProject(sourcePath);
+    }
+
+    final next = _buildDuplicate(source, trimmed);
+    final path = await ProjectService.saveProject(next);
+
+    final uid = firebaseUid;
+    if (uid != null && uid.isNotEmpty && !uid.startsWith('guest_')) {
+      try {
+        await CloudProjectService.upsertProject(uid, next);
+        if (snapshotToAdminDesignSystems) {
+          try {
+            await AdminDesignSystemService.saveDesignSystemForAdmin(
+              adminUserId: uid,
+              designSystem: next,
+            );
+          } catch (e, st) {
+            debugPrint('duplicateProjectFromPath admin snapshot failed: $e\n$st');
+          }
+        }
+        onCloudSyncCompleted?.call(null);
+      } catch (e, st) {
+        debugPrint('duplicateProjectFromPath cloud sync failed: $e\n$st');
+        onCloudSyncCompleted?.call(e);
+      }
+    } else {
+      onCloudSyncCompleted?.call(null);
+    }
+
+    return path;
+  }
+
   /// Save current project to disk (uses [currentProjectPath] when set on desktop/mobile).
   ///
   /// When [firebaseUid] is a real signed-in user id, also upserts `users/{uid}/projects/{docId}`
@@ -367,6 +457,9 @@ class DesignSystemProvider extends ChangeNotifier {
   }
 
   /// Get list of all saved projects (local + optional Firestore when [firebaseUid] is signed-in).
+  ///
+  /// Cloud and browser/desktop copies of the **same** project share one canonical stem (`asd_app`);
+  /// without deduping, the UI showed duplicate cards for one design system.
   Future<List<ProjectInfo>> getProjectList({String? firebaseUid}) async {
     final local = await ProjectService.getProjectList();
     final uid = firebaseUid;
@@ -375,11 +468,35 @@ class DesignSystemProvider extends ChangeNotifier {
     }
     try {
       final cloud = await CloudProjectService.listProjects(uid);
-      return [...cloud, ...local];
+      return _mergeProjectListsPreferCloud(cloud, local);
     } catch (e, st) {
       debugPrint('getProjectList cloud: $e\n$st');
       return local;
     }
+  }
+
+  /// One row per logical project: same stem in Firestore and local prefs/files counts once (cloud wins).
+  List<ProjectInfo> _mergeProjectListsPreferCloud(
+    List<ProjectInfo> cloud,
+    List<ProjectInfo> local,
+  ) {
+    String stem(ProjectInfo p) {
+      if (p.fromCloud) {
+        return CloudProjectService.docIdFromCloudPath(p.filePath);
+      }
+      return ProjectService.canonicalStemFromStoragePath(p.filePath);
+    }
+
+    final byStem = <String, ProjectInfo>{};
+    for (final p in local) {
+      byStem[stem(p)] = p;
+    }
+    for (final p in cloud) {
+      byStem[stem(p)] = p;
+    }
+    final out = byStem.values.toList();
+    out.sort((a, b) => b.modified.compareTo(a.modified));
+    return out;
   }
 
   /// Delete a project

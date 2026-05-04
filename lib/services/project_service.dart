@@ -274,6 +274,22 @@ class ProjectService {
         .toLowerCase();
   }
 
+  /// Stem shared by cloud doc ids and local `[stem].ds.json` files (e.g. `asd_app`).
+  /// Used to dedupe [ProjectInfo] when the same project exists in Firestore and browser storage.
+  static String canonicalStemFromStoragePath(String filePathOrKey) {
+    if (kIsWeb && filePathOrKey.startsWith('project_') && filePathOrKey.endsWith(_projectExtension)) {
+      return filePathOrKey.substring(
+        'project_'.length,
+        filePathOrKey.length - _projectExtension.length,
+      );
+    }
+    final name = filePathOrKey.split(RegExp(r'[\\/]')).last;
+    if (name.toLowerCase().endsWith(_projectExtension)) {
+      return name.substring(0, name.length - _projectExtension.length);
+    }
+    return filePathOrKey;
+  }
+
   static String _sanitizeFileName(String name) => sanitizeFileName(name);
 
   /// Save project to a specific file path (desktop/mobile only; used when user picks save location).
