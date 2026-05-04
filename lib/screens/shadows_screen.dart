@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/design_system_provider.dart';
 import '../models/design_system.dart' as models;
 import '../utils/screen_body_padding.dart';
+import '../utils/token_display_order.dart';
 import 'color_picker_screen.dart';
 
 class ShadowsScreen extends StatefulWidget {
@@ -111,7 +112,7 @@ class _ShadowsScreenState extends State<ShadowsScreen> {
                 ),
               )
             else
-              ...shadows.values.entries.map((entry) {
+              ...TokenDisplayOrder.sortedShadows(shadows.values).map((entry) {
                 return _buildShadowCard(context, entry.key, entry.value);
               }),
           ],

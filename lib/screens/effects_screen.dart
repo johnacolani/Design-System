@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../providers/design_system_provider.dart';
 import '../models/design_system.dart' as models;
 import '../utils/screen_body_padding.dart';
+import '../utils/token_display_order.dart';
 
 class EffectsScreen extends StatefulWidget {
   const EffectsScreen({super.key});
@@ -164,7 +165,7 @@ class _EffectsScreenState extends State<EffectsScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            ...effectData.entries.map((entry) {
+            ...TokenDisplayOrder.sortedDynamicMap(effectData).map((entry) {
               return Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Row(

@@ -1,8 +1,11 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/design_system_provider.dart';
 import '../models/design_system.dart' as models;
 import '../utils/screen_body_padding.dart';
+import '../utils/token_display_order.dart';
 
 class SpacingScreen extends StatefulWidget {
   const SpacingScreen({super.key});
@@ -77,7 +80,7 @@ class _SpacingScreenState extends State<SpacingScreen> {
               ),
             )
           else
-            ...spacing.values.entries.map((entry) {
+            ...TokenDisplayOrder.sortedStringValuesByPx(spacing.values).map((entry) {
               return Card(
                 margin: const EdgeInsets.only(bottom: 12),
                 child: ListTile(
@@ -104,7 +107,7 @@ class _SpacingScreenState extends State<SpacingScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Container(
-                        width: _parseSpacing(entry.value),
+                        width: math.min(_parseSpacing(entry.value), 72),
                         height: 20,
                         color: Colors.blue,
                       ),

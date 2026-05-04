@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/design_system_provider.dart';
 import '../models/design_system.dart' as models;
+import '../utils/responsive.dart';
 import '../utils/screen_body_padding.dart';
+import '../utils/token_display_order.dart';
 
 class MotionTokensScreen extends StatefulWidget {
   const MotionTokensScreen({super.key});
@@ -18,19 +20,44 @@ class _MotionTokensScreenState extends State<MotionTokensScreen> {
   Widget build(BuildContext context) {
     final provider = Provider.of<DesignSystemProvider>(context);
     final motionTokens = provider.designSystem.motionTokens;
+    final narrow = MediaQuery.sizeOf(context).width < Breakpoints.mobile;
 
     final currentMap = _selectedCategory == 'duration' ? motionTokens.duration : motionTokens.easing;
+    final sortedMotionEntries = _selectedCategory == 'duration'
+        ? TokenDisplayOrder.sortedMotionDurations(currentMap)
+        : TokenDisplayOrder.sortedMotionEasing(currentMap);
 
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: const Text('Motion Tokens'),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(48),
-          child: Row(
+    final categoryPicker = narrow
+        ? Column(
+            children: [
+              SizedBox(
+                width: double.infinity,
+                child: ChoiceChip(
+                  label: const Text('Duration'),
+                  selected: _selectedCategory == 'duration',
+                  onSelected: (selected) {
+                    if (selected) {
+                      setState(() => _selectedCategory = 'duration');
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: ChoiceChip(
+                  label: const Text('Easing'),
+                  selected: _selectedCategory == 'easing',
+                  onSelected: (selected) {
+                    if (selected) {
+                      setState(() => _selectedCategory = 'easing');
+                    }
+                  },
+                ),
+              ),
+            ],
+          )
+        : Row(
             children: [
               Expanded(
                 child: ChoiceChip(
@@ -55,6 +82,20 @@ class _MotionTokensScreenState extends State<MotionTokensScreen> {
                 ),
               ),
             ],
+          );
+
+    return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: const Text('Motion Tokens'),
+        bottom: PreferredSize(
+          preferredSize: Size.fromHeight(narrow ? 112 : 48),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+            child: categoryPicker,
           ),
         ),
         actions: [
@@ -92,7 +133,7 @@ class _MotionTokensScreenState extends State<MotionTokensScreen> {
             ),
           ),
           Expanded(
-            child: currentMap.isEmpty
+            child: sortedMotionEntries.isEmpty
                 ? Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -122,9 +163,9 @@ class _MotionTokensScreenState extends State<MotionTokensScreen> {
                   )
                 : ListView.builder(
                     padding: const EdgeInsets.all(16),
-                    itemCount: currentMap.length,
+                    itemCount: sortedMotionEntries.length,
                     itemBuilder: (context, index) {
-                      final entry = currentMap.entries.elementAt(index);
+                      final entry = sortedMotionEntries[index];
                       return _buildMotionTokenCard(context, _selectedCategory, entry.key, entry.value);
                     },
                   ),

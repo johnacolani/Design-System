@@ -15,6 +15,7 @@ import '../services/package_generator_service.dart';
 import '../utils/download_helper.dart';
 import '../utils/export_file_platform.dart';
 import '../utils/screen_body_padding.dart';
+import '../utils/token_display_order.dart';
 import '../widgets/billing/locked_badge.dart';
 import '../widgets/billing/upgrade_modal.dart';
 import 'upgrade_screen.dart';
@@ -415,7 +416,7 @@ class _ExportScreenState extends State<ExportScreen> {
     buffer.writeln('import UIKit');
     buffer.writeln('');
     buffer.writeln('enum DesignSystemTokens {');
-    for (final e in tokens.entries) {
+    for (final e in TokenDisplayOrder.sortedFlatTokenEntries(tokens)) {
       if (e.value is! Map && e.value != null) {
         final val = e.value.toString().replaceAll("'", "\\'");
         buffer.writeln("  static let ${e.key.replaceAll('.', '_')} = \"$val\"");
@@ -430,7 +431,7 @@ class _ExportScreenState extends State<ExportScreen> {
     final buffer = StringBuffer();
     buffer.writeln('// React/JS/TS — design tokens (single source of truth)');
     buffer.writeln('export const tokens = {');
-    for (final e in tokens.entries) {
+    for (final e in TokenDisplayOrder.sortedFlatTokenEntries(tokens)) {
       if (e.value is! Map && e.value != null) {
         final key = e.key.replaceAll('.', '_');
         final val = e.value is num ? e.value : '"${e.value.toString().replaceAll('"', '\\"')}"';
@@ -448,7 +449,7 @@ class _ExportScreenState extends State<ExportScreen> {
     final buffer = StringBuffer();
     buffer.writeln('/* CSS variables — generated from design tokens */');
     buffer.writeln(':root {');
-    for (final e in tokens.entries) {
+    for (final e in TokenDisplayOrder.sortedFlatTokenEntries(tokens)) {
       if (e.value is! Map && e.value != null) {
         final key = '--${e.key.replaceAll('.', '-')}';
         buffer.writeln('  $key: ${e.value};');

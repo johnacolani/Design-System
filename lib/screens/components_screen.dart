@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/design_system_provider.dart';
 import '../models/design_system.dart' as models;
+import '../utils/responsive.dart';
+import '../utils/token_display_order.dart';
 
 class ComponentsScreen extends StatefulWidget {
   const ComponentsScreen({super.key});
@@ -65,27 +67,50 @@ class _ComponentsScreenState extends State<ComponentsScreen> {
     Map<String, dynamic> componentMap,
     IconData icon,
   ) {
+    final narrow = MediaQuery.sizeOf(context).width < Breakpoints.mobile;
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              category.toUpperCase(),
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-            ElevatedButton.icon(
-              onPressed: () {
-                _showAddComponentDialog(context, category);
-              },
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('Add Component'),
-            ),
-          ],
-        ),
+        if (narrow)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                category.toUpperCase(),
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton.icon(
+                onPressed: () {
+                  _showAddComponentDialog(context, category);
+                },
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Add Component'),
+              ),
+            ],
+          )
+        else
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                category.toUpperCase(),
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              ElevatedButton.icon(
+                onPressed: () {
+                  _showAddComponentDialog(context, category);
+                },
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Add Component'),
+              ),
+            ],
+          ),
         const SizedBox(height: 16),
         if (componentMap.isEmpty)
           Card(
@@ -108,7 +133,7 @@ class _ComponentsScreenState extends State<ComponentsScreen> {
             ),
           )
         else
-          ...componentMap.entries.map((entry) {
+          ...TokenDisplayOrder.sortedDynamicMap(componentMap).map((entry) {
             return _buildComponentCard(context, category, entry.key, entry.value);
           }),
       ],
@@ -150,7 +175,7 @@ class _ComponentsScreenState extends State<ComponentsScreen> {
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children: states.entries.map((stateEntry) {
+                    children: TokenDisplayOrder.sortedDynamicMap(states).map((stateEntry) {
                       return Chip(
                         label: Text(stateEntry.key),
                         avatar: Icon(

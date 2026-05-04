@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/design_system_provider.dart';
 import '../models/design_system.dart' as models;
 import '../utils/screen_body_padding.dart';
+import '../utils/token_display_order.dart';
 
 class SemanticTokensScreen extends StatefulWidget {
   const SemanticTokensScreen({super.key});
@@ -56,6 +57,11 @@ class _SemanticTokensScreenState extends State<SemanticTokensScreen> with Single
         break;
     }
 
+    final sortedSemanticEntries = TokenDisplayOrder.sortedSemanticTokens(
+      Map<String, dynamic>.from(currentCategory),
+      _selectedCategory,
+    );
+
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -107,7 +113,7 @@ class _SemanticTokensScreenState extends State<SemanticTokensScreen> with Single
             ),
           ),
           Expanded(
-            child: currentCategory.isEmpty
+            child: sortedSemanticEntries.isEmpty
                 ? Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -137,9 +143,9 @@ class _SemanticTokensScreenState extends State<SemanticTokensScreen> with Single
                   )
                 : ListView.builder(
                     padding: const EdgeInsets.all(16),
-                    itemCount: currentCategory.length,
+                    itemCount: sortedSemanticEntries.length,
                     itemBuilder: (context, index) {
-                      final entry = currentCategory.entries.elementAt(index);
+                      final entry = sortedSemanticEntries[index];
                       return _buildSemanticTokenCard(context, _selectedCategory, entry.key, entry.value);
                     },
                   ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/design_system_provider.dart';
 import '../models/design_system.dart' as models;
+import '../utils/token_display_order.dart';
 
 class RolesScreen extends StatefulWidget {
   const RolesScreen({super.key});
@@ -74,7 +75,7 @@ class _RolesScreenState extends State<RolesScreen> {
               ),
             )
           else
-            ...roles.values.entries.map((entry) {
+            ...TokenDisplayOrder.sortedRoles(roles.values).map((entry) {
               return _buildRoleCard(context, entry.key, entry.value);
             }),
         ],

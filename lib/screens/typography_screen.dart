@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../providers/design_system_provider.dart';
 import '../models/design_system.dart' as models;
+import '../utils/responsive.dart';
+import '../utils/token_display_order.dart';
 import 'dashboard_screen.dart';
 import '../utils/screen_body_padding.dart';
 
@@ -343,6 +345,34 @@ class _TypographyScreenState extends State<TypographyScreen> {
     );
   }
 
+  Widget _tokenTabToolbar(BuildContext context, String title, List<Widget> actions) {
+    final narrow = MediaQuery.sizeOf(context).width < Breakpoints.mobile;
+    const titleStyle = TextStyle(fontSize: 20, fontWeight: FontWeight.bold);
+    if (narrow) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(title, style: titleStyle),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.start,
+            children: actions,
+          ),
+        ],
+      );
+    }
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: titleStyle),
+        Row(mainAxisSize: MainAxisSize.min, children: actions),
+      ],
+    );
+  }
+
   Widget _buildFontWeightsTab() {
     final provider = Provider.of<DesignSystemProvider>(context);
     final typography = _getTypographyForGroup(_effectiveGroup(context));
@@ -351,28 +381,18 @@ class _TypographyScreenState extends State<TypographyScreen> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text('Font Weights', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                OutlinedButton.icon(
-                  onPressed: () => _resetFontWeightsToDefaults(context),
-                  icon: const Icon(Icons.restore, size: 18),
-                  label: const Text('Reset defaults'),
-                ),
-                const SizedBox(width: 8),
-                ElevatedButton.icon(onPressed: () => _showAddFontWeightDialog(context), icon: const Icon(Icons.add), label: const Text('Add')),
-              ],
-            ),
-          ],
-        ),
+        _tokenTabToolbar(context, 'Font Weights', [
+          OutlinedButton.icon(
+            onPressed: () => _resetFontWeightsToDefaults(context),
+            icon: const Icon(Icons.restore, size: 18),
+            label: const Text('Reset defaults'),
+          ),
+          ElevatedButton.icon(onPressed: () => _showAddFontWeightDialog(context), icon: const Icon(Icons.add), label: const Text('Add')),
+        ]),
         const SizedBox(height: 8),
         Text('Default: 100 Thin, 200 ExtraLight, 300 Light, 400 Regular, 500 Medium, 600 SemiBold, 700 Bold, 800 ExtraBold, 900 Black', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
         const SizedBox(height: 16),
-        ...typography.fontWeights.entries.map((entry) => Card(
+        ...TokenDisplayOrder.sortedFontWeights(typography.fontWeights).map((entry) => Card(
           child: ListTile(
             title: Text(entry.key, style: _getSafeFont(currentFont, fontWeight: _intToWeight(entry.value))),
             subtitle: Text('${entry.value} ${_weightDisplayNames[entry.value] ?? ''}'),
@@ -400,28 +420,18 @@ class _TypographyScreenState extends State<TypographyScreen> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text('Font Sizes', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                OutlinedButton.icon(
-                  onPressed: () => _resetFontSizesToDefaults(context),
-                  icon: const Icon(Icons.restore, size: 18),
-                  label: const Text('Reset defaults'),
-                ),
-                const SizedBox(width: 8),
-                ElevatedButton.icon(onPressed: () => _showAddFontSizeDialog(context), icon: const Icon(Icons.add), label: const Text('Add')),
-              ],
-            ),
-          ],
-        ),
+        _tokenTabToolbar(context, 'Font Sizes', [
+          OutlinedButton.icon(
+            onPressed: () => _resetFontSizesToDefaults(context),
+            icon: const Icon(Icons.restore, size: 18),
+            label: const Text('Reset defaults'),
+          ),
+          ElevatedButton.icon(onPressed: () => _showAddFontSizeDialog(context), icon: const Icon(Icons.add), label: const Text('Add')),
+        ]),
         const SizedBox(height: 8),
         Text('Default: Display 48, Heading 32, Title 24, Subtitle 20, Body 16, Caption 14, Label 12', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
         const SizedBox(height: 16),
-        ...typography.fontSizes.entries.map((entry) => Card(
+        ...TokenDisplayOrder.sortedFontSizes(typography.fontSizes).map((entry) => Card(
           child: ListTile(
             title: Text(entry.key, style: _getSafeFont(currentFont, fontSize: _parseFontSize(entry.value.value))),
             subtitle: Text('Size: ${entry.value.value} / Line Height: ${entry.value.lineHeight}'),
@@ -449,23 +459,19 @@ class _TypographyScreenState extends State<TypographyScreen> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text('Text Styles', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            PopupMenuButton<String>(
-              onSelected: (v) => v == 'custom' ? _showAddTextStyleDialog(context) : (v == 'material' ? _showMaterialPicker(context) : _showCupertinoPicker(context)),
-              itemBuilder: (ctx) => [
-                const PopupMenuItem(value: 'custom', child: Text('Custom')),
-                const PopupMenuItem(value: 'material', child: Text('Material Library')),
-                const PopupMenuItem(value: 'cupertino', child: Text('Cupertino Library')),
-              ],
-              child: ElevatedButton.icon(onPressed: null, icon: const Icon(Icons.add), label: const Text('Add Style')),
-            ),
-          ],
-        ),
+        _tokenTabToolbar(context, 'Text Styles', [
+          PopupMenuButton<String>(
+            onSelected: (v) => v == 'custom' ? _showAddTextStyleDialog(context) : (v == 'material' ? _showMaterialPicker(context) : _showCupertinoPicker(context)),
+            itemBuilder: (ctx) => [
+              const PopupMenuItem(value: 'custom', child: Text('Custom')),
+              const PopupMenuItem(value: 'material', child: Text('Material Library')),
+              const PopupMenuItem(value: 'cupertino', child: Text('Cupertino Library')),
+            ],
+            child: ElevatedButton.icon(onPressed: null, icon: const Icon(Icons.add), label: const Text('Add Style')),
+          ),
+        ]),
         const SizedBox(height: 16),
-        ...typography.textStyles.entries.map((entry) => Card(
+        ...TokenDisplayOrder.sortedTextStyles(typography.textStyles).map((entry) => Card(
           child: ListTile(
             title: Text(entry.key, style: const TextStyle(fontWeight: FontWeight.bold)),
             subtitle: Column(

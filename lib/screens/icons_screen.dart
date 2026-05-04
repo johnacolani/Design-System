@@ -1,8 +1,12 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/design_system_provider.dart';
 import '../models/design_system.dart' as models;
+import '../utils/responsive.dart';
 import '../utils/screen_body_padding.dart';
+import '../utils/token_display_order.dart';
 import '../widgets/dynamic_material_icon.dart';
 import '../widgets/project_icon_picker_page.dart';
 
@@ -29,14 +33,32 @@ class _IconsScreenState extends State<IconsScreen> {
     final p = Provider.of<DesignSystemProvider>(context, listen: false);
     if (group.platforms.length == 1 && !p.isMultiPlatform) {
       final d = p.designSystem;
-      p.updateDesignSystem(models.DesignSystem(
-        name: d.name, version: d.version, description: d.description, created: d.created,
-        colors: d.colors, typography: d.typography, spacing: d.spacing, borderRadius: d.borderRadius,
-        shadows: d.shadows, effects: d.effects, components: d.components, grid: d.grid,
-        icons: icons, gradients: d.gradients, roles: d.roles, semanticTokens: d.semanticTokens,
-        motionTokens: d.motionTokens, lastModified: d.lastModified, versionHistory: d.versionHistory,
-        componentVersions: d.componentVersions, targetPlatforms: d.targetPlatforms, platformOverrides: d.platformOverrides,
-      ));
+      p.updateDesignSystem(
+        models.DesignSystem(
+          name: d.name,
+          version: d.version,
+          description: d.description,
+          created: d.created,
+          colors: d.colors,
+          typography: d.typography,
+          spacing: d.spacing,
+          borderRadius: d.borderRadius,
+          shadows: d.shadows,
+          effects: d.effects,
+          components: d.components,
+          grid: d.grid,
+          icons: icons,
+          gradients: d.gradients,
+          roles: d.roles,
+          semanticTokens: d.semanticTokens,
+          motionTokens: d.motionTokens,
+          lastModified: d.lastModified,
+          versionHistory: d.versionHistory,
+          componentVersions: d.componentVersions,
+          targetPlatforms: d.targetPlatforms,
+          platformOverrides: d.platformOverrides,
+        ),
+      );
     } else {
       p.updateIconsForGroup(group, icons);
     }
@@ -44,7 +66,8 @@ class _IconsScreenState extends State<IconsScreen> {
 
   models.Icons _getIconsForGroup(TokenDisplayGroup group) {
     final p = Provider.of<DesignSystemProvider>(context, listen: false);
-    if (group.platforms.length == 1 && !p.isMultiPlatform) return p.designSystem.icons;
+    if (group.platforms.length == 1 && !p.isMultiPlatform)
+      return p.designSystem.icons;
     return p.designSystemForPlatform(group.primaryPlatform).icons;
   }
 
@@ -60,12 +83,21 @@ class _IconsScreenState extends State<IconsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-        border: Border(bottom: BorderSide(color: Theme.of(context).dividerColor)),
+        color: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        border: Border(
+          bottom: BorderSide(color: Theme.of(context).dividerColor),
+        ),
       ),
       child: Row(
         children: [
-          Text('Platform:', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
+          Text(
+            'Platform:',
+            style: Theme.of(
+              context,
+            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Row(
@@ -76,7 +108,9 @@ class _IconsScreenState extends State<IconsScreen> {
                   child: FilterChip(
                     label: Text(g.label),
                     selected: isSelected,
-                    onSelected: (selected) { if (selected) setState(() => _selectedGroup = g); },
+                    onSelected: (selected) {
+                      if (selected) setState(() => _selectedGroup = g);
+                    },
                   ),
                 );
               }).toList(),
@@ -97,7 +131,8 @@ class _IconsScreenState extends State<IconsScreen> {
     }
     final provider = Provider.of<DesignSystemProvider>(context);
     final groups = provider.designTokenDisplayGroups;
-    if (groups.isNotEmpty && _selectedGroup == null) _selectedGroup = groups.first;
+    if (groups.isNotEmpty && _selectedGroup == null)
+      _selectedGroup = groups.first;
     final icons = _getIconsForGroup(_effectiveGroup(context));
 
     return Scaffold(
@@ -117,193 +152,224 @@ class _IconsScreenState extends State<IconsScreen> {
         child: ListView(
           padding: const EdgeInsets.symmetric(vertical: 16),
           children: [
-          _buildGroupSelector(provider),
-          Text(
-            'Project icons',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Icons your product uses (nav, actions, empty states). They appear in Design System Preview and exports.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.grey[600],
-                ),
-          ),
-          const SizedBox(height: 16),
-          if (icons.projectIcons.isEmpty)
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  children: [
-                    Icon(Icons.widgets_outlined, size: 48, color: Colors.grey[400]),
-                    const SizedBox(height: 12),
-                    Text(
-                      'No project icons yet',
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Add icons to document what your team should use in the UI.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey[600], fontSize: 13),
-                    ),
-                    const SizedBox(height: 16),
-                    FilledButton.icon(
-                      onPressed: () => _addProjectIcon(context),
-                      icon: const Icon(Icons.add),
-                      label: const Text('Add project icon'),
-                    ),
-                  ],
-                ),
-              ),
-            )
-          else ...[
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: icons.projectIcons.map((e) {
-                final md = _parseSizePx(icons.sizes['md'] ?? '24px');
-                return Chip(
-                  avatar: DynamicMaterialIcon(codePoint: e.codePoint, size: md * 0.85),
-                  label: SizedBox(
-                    width: 120,
-                    child: Text(
-                      e.label,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 13),
-                    ),
-                  ),
-                  deleteIcon: const Icon(Icons.close, size: 18),
-                  onDeleted: () => _removeProjectIcon(context, e.id),
-                );
-              }).toList(),
+            _buildGroupSelector(provider),
+            Text(
+              'Project icons',
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: () => _addProjectIcon(context),
-              icon: const Icon(Icons.add),
-              label: const Text('Add project icon'),
+            const SizedBox(height: 8),
+            Text(
+              'Icons your product uses (nav, actions, empty states). They appear in Design System Preview and exports.',
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
             ),
-          ],
-          const SizedBox(height: 32),
-          Text(
-            'Icon Sizes',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Define standard icon sizes for consistent iconography',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.grey[600],
-                ),
-          ),
-          const SizedBox(height: 24),
-          if (icons.sizes.isEmpty)
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Center(
+            const SizedBox(height: 16),
+            if (icons.projectIcons.isEmpty)
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
                   child: Column(
                     children: [
-                      Icon(Icons.image_outlined, size: 64, color: Colors.grey[400]),
-                      const SizedBox(height: 16),
+                      Icon(
+                        Icons.widgets_outlined,
+                        size: 48,
+                        color: Colors.grey[400],
+                      ),
+                      const SizedBox(height: 12),
                       Text(
-                        'No icon sizes defined',
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                              color: Colors.grey[600],
-                            ),
+                        'No project icons yet',
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Add icons to document what your team should use in the UI.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.grey[600], fontSize: 13),
                       ),
                       const SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          _showAddIconSizeDialog(context);
-                        },
+                      FilledButton.icon(
+                        onPressed: () => _addProjectIcon(context),
                         icon: const Icon(Icons.add),
-                        label: const Text('Add Icon Size'),
+                        label: const Text('Add project icon'),
                       ),
                     ],
                   ),
                 ),
+              )
+            else ...[
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: icons.projectIcons.map((e) {
+                  final md = _parseSizePx(icons.sizes['md'] ?? '24px');
+                  return Chip(
+                    avatar: DynamicMaterialIcon(
+                      codePoint: e.codePoint,
+                      size: md * 0.85,
+                    ),
+                    label: SizedBox(
+                      width: 120,
+                      child: Text(
+                        e.label,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 13),
+                      ),
+                    ),
+                    deleteIcon: const Icon(Icons.close, size: 18),
+                    onDeleted: () => _removeProjectIcon(context, e.id),
+                  );
+                }).toList(),
               ),
-            )
-          else
-            ...icons.sizes.entries.map((entry) {
-              return _buildIconSizeCard(context, entry.key, entry.value);
-            }),
-        ],
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () => _addProjectIcon(context),
+                icon: const Icon(Icons.add),
+                label: const Text('Add project icon'),
+              ),
+            ],
+            const SizedBox(height: 32),
+            Text(
+              'Icon Sizes',
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Define standard icon sizes for consistent iconography',
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+            ),
+            const SizedBox(height: 24),
+            if (icons.sizes.isEmpty)
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Center(
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.image_outlined,
+                          size: 64,
+                          color: Colors.grey[400],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No icon sizes defined',
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(color: Colors.grey[600]),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            _showAddIconSizeDialog(context);
+                          },
+                          icon: const Icon(Icons.add),
+                          label: const Text('Add Icon Size'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              )
+            else
+              ...TokenDisplayOrder.sortedStringValuesByPx(icons.sizes).map((entry) {
+                return _buildIconSizeCard(context, entry.key, entry.value);
+              }),
+          ],
         ),
       ),
     );
   }
 
   Widget _buildIconSizeCard(BuildContext context, String name, String size) {
-    final sizeValue = _parseSize(size);
+    final raw = _parseSize(size);
+    final sizeValue = math.min(math.max(raw, 12), 72);
+    final narrow = MediaQuery.sizeOf(context).width < Breakpoints.mobile;
+    final previewBox = Container(
+      width: sizeValue,
+      height: sizeValue,
+      decoration: BoxDecoration(
+        color: Colors.blue.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: Colors.blue, width: 2),
+      ),
+      child: Icon(
+        Icons.star,
+        size: sizeValue * 0.6,
+        color: Colors.blue,
+      ),
+    );
+    final labels = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          name.toUpperCase(),
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          size,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Colors.grey[600],
+                fontFamily: 'monospace',
+              ),
+        ),
+      ],
+    );
+    final menu = PopupMenuButton<String>(
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+      onSelected: (value) {
+        if (value == 'edit') {
+          _showEditIconSizeDialog(context, name, size);
+        } else if (value == 'delete') {
+          _deleteIconSize(context, name);
+        }
+      },
+      itemBuilder: (context) => [
+        const PopupMenuItem(value: 'edit', child: Text('Edit')),
+        const PopupMenuItem(
+          value: 'delete',
+          child: Text('Delete', style: TextStyle(color: Colors.red)),
+        ),
+      ],
+    );
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Container(
-              width: sizeValue,
-              height: sizeValue,
-              decoration: BoxDecoration(
-                color: Colors.blue.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: Colors.blue, width: 2),
-              ),
-              child: Icon(
-                Icons.star,
-                size: sizeValue * 0.6,
-                color: Colors.blue,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
+        child: narrow
+            ? Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    name.toUpperCase(),
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      previewBox,
+                      const SizedBox(width: 16),
+                      Expanded(child: labels),
+                    ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    size,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.grey[600],
-                          fontFamily: 'monospace',
-                        ),
-                  ),
+                  const SizedBox(height: 8),
+                  Align(alignment: Alignment.centerRight, child: menu),
+                ],
+              )
+            : Row(
+                children: [
+                  previewBox,
+                  const SizedBox(width: 16),
+                  Expanded(child: labels),
+                  menu,
                 ],
               ),
-            ),
-            PopupMenuButton<String>(
-              onSelected: (value) {
-                if (value == 'edit') {
-                  _showEditIconSizeDialog(context, name, size);
-                } else if (value == 'delete') {
-                  _deleteIconSize(context, name);
-                }
-              },
-              itemBuilder: (context) => [
-                const PopupMenuItem(value: 'edit', child: Text('Edit')),
-                const PopupMenuItem(
-                  value: 'delete',
-                  child: Text('Delete', style: TextStyle(color: Colors.red)),
-                ),
-              ],
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -356,9 +422,17 @@ class _IconsScreenState extends State<IconsScreen> {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
-            onPressed: () => Navigator.pop(ctx, labelCtrl.text.trim().isEmpty ? defaultLabel : labelCtrl.text.trim()),
+            onPressed: () => Navigator.pop(
+              ctx,
+              labelCtrl.text.trim().isEmpty
+                  ? defaultLabel
+                  : labelCtrl.text.trim(),
+            ),
             child: const Text('Add'),
           ),
         ],
@@ -374,22 +448,25 @@ class _IconsScreenState extends State<IconsScreen> {
       label: label,
       codePoint: icon.codePoint,
     );
-    _applyIcons(context, models.Icons(
-      sizes: i.sizes,
-      projectIcons: [...i.projectIcons, entry],
-    ));
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Added “$label” — see Preview')),
+    _applyIcons(
+      context,
+      models.Icons(sizes: i.sizes, projectIcons: [...i.projectIcons, entry]),
     );
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Added “$label” — see Preview')));
   }
 
   void _removeProjectIcon(BuildContext context, String id) {
     final i = _getIconsForGroup(_effectiveGroup(context));
-    _applyIcons(context, models.Icons(
-      sizes: i.sizes,
-      projectIcons: i.projectIcons.where((e) => e.id != id).toList(),
-    ));
+    _applyIcons(
+      context,
+      models.Icons(
+        sizes: i.sizes,
+        projectIcons: i.projectIcons.where((e) => e.id != id).toList(),
+      ),
+    );
   }
 
   void _applyIcons(BuildContext context, models.Icons icons) {
@@ -431,11 +508,18 @@ class _IconsScreenState extends State<IconsScreen> {
           ),
           ElevatedButton(
             onPressed: () {
-              if (nameController.text.isNotEmpty && sizeController.text.isNotEmpty) {
+              if (nameController.text.isNotEmpty &&
+                  sizeController.text.isNotEmpty) {
                 final icons = _getIconsForGroup(_effectiveGroup(context));
                 final updatedSizes = Map<String, String>.from(icons.sizes);
                 updatedSizes[nameController.text] = sizeController.text;
-                _applyIconsUpdateForGroup(_effectiveGroup(context),models.Icons(sizes: updatedSizes, projectIcons: icons.projectIcons));
+                _applyIconsUpdateForGroup(
+                  _effectiveGroup(context),
+                  models.Icons(
+                    sizes: updatedSizes,
+                    projectIcons: icons.projectIcons,
+                  ),
+                );
                 Navigator.of(context).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -487,12 +571,19 @@ class _IconsScreenState extends State<IconsScreen> {
           ),
           ElevatedButton(
             onPressed: () {
-              if (nameController.text.isNotEmpty && sizeController.text.isNotEmpty) {
+              if (nameController.text.isNotEmpty &&
+                  sizeController.text.isNotEmpty) {
                 final icons = _getIconsForGroup(_effectiveGroup(context));
                 final updatedSizes = Map<String, String>.from(icons.sizes);
                 if (name != nameController.text) updatedSizes.remove(name);
                 updatedSizes[nameController.text] = sizeController.text;
-                _applyIconsUpdateForGroup(_effectiveGroup(context),models.Icons(sizes: updatedSizes, projectIcons: icons.projectIcons));
+                _applyIconsUpdateForGroup(
+                  _effectiveGroup(context),
+                  models.Icons(
+                    sizes: updatedSizes,
+                    projectIcons: icons.projectIcons,
+                  ),
+                );
                 Navigator.of(context).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
@@ -525,7 +616,13 @@ class _IconsScreenState extends State<IconsScreen> {
               final icons = _getIconsForGroup(_effectiveGroup(context));
               final updatedSizes = Map<String, String>.from(icons.sizes);
               updatedSizes.remove(name);
-              _applyIconsUpdateForGroup(_effectiveGroup(context),models.Icons(sizes: updatedSizes, projectIcons: icons.projectIcons));
+              _applyIconsUpdateForGroup(
+                _effectiveGroup(context),
+                models.Icons(
+                  sizes: updatedSizes,
+                  projectIcons: icons.projectIcons,
+                ),
+              );
               Navigator.of(context).pop();
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(

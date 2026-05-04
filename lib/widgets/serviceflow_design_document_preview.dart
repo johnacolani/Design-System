@@ -406,23 +406,40 @@ class _SfHero extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 20),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _tocChip('Principles', 'principles', tokens, onTocTap),
-                  _tocChip('Color', 'color', tokens, onTocTap),
-                  _tocChip('Typography', 'typography', tokens, onTocTap),
-                  _tocChip('Layout', 'layout', tokens, onTocTap),
-                  _tocChip('Radius', 'radius', tokens, onTocTap),
-                  _tocChip('Elevation', 'elevation', tokens, onTocTap),
-                  _tocChip('Motion', 'motion', tokens, onTocTap),
-                  _tocChip('Gradients', 'gradients', tokens, onTocTap),
-                  _tocChip('Role dashboards', 'roles', tokens, onTocTap),
-                  _tocChip('Components', 'components', tokens, onTocTap),
-                  _tocChip('Pickers', 'pickers', tokens, onTocTap),
-                  _tocChip('Alerts', 'alerts', tokens, onTocTap),
-                ],
+              Builder(
+                builder: (ctx) {
+                  final tocChips = [
+                    _tocChip('Principles', 'principles', tokens, onTocTap),
+                    _tocChip('Color', 'color', tokens, onTocTap),
+                    _tocChip('Typography', 'typography', tokens, onTocTap),
+                    _tocChip('Layout', 'layout', tokens, onTocTap),
+                    _tocChip('Radius', 'radius', tokens, onTocTap),
+                    _tocChip('Elevation', 'elevation', tokens, onTocTap),
+                    _tocChip('Motion', 'motion', tokens, onTocTap),
+                    _tocChip('Gradients', 'gradients', tokens, onTocTap),
+                    _tocChip('Role dashboards', 'roles', tokens, onTocTap),
+                    _tocChip('Components', 'components', tokens, onTocTap),
+                    _tocChip('Pickers', 'pickers', tokens, onTocTap),
+                    _tocChip('Alerts', 'alerts', tokens, onTocTap),
+                  ];
+                  final narrow = MediaQuery.sizeOf(ctx).width < Breakpoints.mobile;
+                  if (narrow) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: tocChips
+                          .map((w) => Padding(
+                                padding: const EdgeInsets.only(bottom: 8),
+                                child: w,
+                              ))
+                          .toList(),
+                    );
+                  }
+                  return Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: tocChips,
+                  );
+                },
               ),
             ],
           ),
@@ -1123,9 +1140,18 @@ class _SfTypographySection extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = ds.typography;
     final fontName = t.fontFamily.primary;
+    final sortedSizes = t.fontSizes.entries.toList()
+      ..sort((a, b) {
+        final pa = _parsePx(a.value.value);
+        final pb = _parsePx(b.value.value);
+        final c = pa.compareTo(pb);
+        if (c != 0) return c;
+        return a.key.compareTo(b.key);
+      });
+
     final rows = <Widget>[];
 
-    for (final e in t.fontSizes.entries) {
+    for (final e in sortedSizes) {
       final rawPx = e.value.value;
       final pxNum = _parsePx(rawPx);
       final lh = e.value.lineHeight;
@@ -1200,7 +1226,11 @@ Widget _sfTypographyScaleRow({
           ),
         ),
         const SizedBox(height: 8),
-        Text(_kTypographySample, style: sampleStyle),
+        Text(
+          _kTypographySample,
+          textAlign: TextAlign.left,
+          style: sampleStyle,
+        ),
       ],
     ),
   );
@@ -1220,11 +1250,19 @@ class _SfSpacingTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final sorted = ds.spacing.values.entries.toList()
+      ..sort((a, b) {
+        final pa = _parsePx(a.value);
+        final pb = _parsePx(b.value);
+        final c = pa.compareTo(pb);
+        if (c != 0) return c;
+        return a.key.compareTo(b.key);
+      });
     return _SfCard(
       tokens: tokens,
       child: _tokenTable(
         ['Token', 'Value'],
-        ds.spacing.values.entries.map((e) => [e.key, e.value]).toList(),
+        sorted.map((e) => [e.key, e.value]).toList(),
         tokens,
       ),
     );
@@ -1372,7 +1410,17 @@ class _SfIconsElevationSection extends StatelessWidget {
               else
                 _tokenTable(
                   ['Token', 'Value'],
-                  ds.icons.sizes.entries.map((e) => [e.key, e.value]).toList(),
+                  () {
+                    final sorted = ds.icons.sizes.entries.toList()
+                      ..sort((a, b) {
+                        final pa = _parsePx(a.value);
+                        final pb = _parsePx(b.value);
+                        final c = pa.compareTo(pb);
+                        if (c != 0) return c;
+                        return a.key.compareTo(b.key);
+                      });
+                    return sorted.map((e) => [e.key, e.value]).toList();
+                  }(),
                   tokens,
                 ),
             ],

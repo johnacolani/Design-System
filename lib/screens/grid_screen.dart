@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/design_system_provider.dart';
 import '../models/design_system.dart' as models;
 import '../utils/screen_body_padding.dart';
+import '../utils/token_display_order.dart';
 
 class GridScreen extends StatefulWidget {
   const GridScreen({super.key});
@@ -77,7 +78,7 @@ class _GridScreenState extends State<GridScreen> {
                 ),
           ),
           const SizedBox(height: 12),
-          ...grid.breakpoints.entries.map((entry) {
+          ...TokenDisplayOrder.sortedStringValuesByPx(grid.breakpoints).map((entry) {
             return _buildBreakpointCard(context, entry.key, entry.value);
           }),
         ],

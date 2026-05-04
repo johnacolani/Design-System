@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../providers/design_system_provider.dart';
 import '../models/design_system.dart' as models;
 import '../utils/screen_body_padding.dart';
+import '../utils/token_display_order.dart';
 
 class GradientsScreen extends StatefulWidget {
   const GradientsScreen({super.key});
@@ -79,7 +80,7 @@ class _GradientsScreenState extends State<GradientsScreen> {
               ),
             )
           else
-            ...gradients.values.entries.map((entry) {
+            ...TokenDisplayOrder.sortedGradients(gradients.values).map((entry) {
               return _buildGradientCard(context, entry.key, entry.value);
             }),
         ],

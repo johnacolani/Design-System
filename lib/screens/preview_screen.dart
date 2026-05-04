@@ -13,6 +13,7 @@ import '../models/design_system.dart' as models;
 import '../models/design_system_wrapper.dart';
 import '../utils/design_system_html_builder.dart';
 import '../utils/design_system_pdf_builder.dart';
+import '../utils/responsive.dart';
 import '../utils/screen_body_padding.dart';
 import '../widgets/dynamic_material_icon.dart';
 import '../utils/html_downloader_stub.dart' if (dart.library.html) '../utils/html_downloader_web.dart' as html_downloader;
@@ -43,6 +44,9 @@ class _PreviewScreenState extends State<PreviewScreen> {
   bool _isExportingPdf = false;
   bool _isExportingHtml = false;
   final ScrollController _scrollController = ScrollController();
+
+  bool _isNarrowPreview(BuildContext context) =>
+      MediaQuery.sizeOf(context).width < Breakpoints.mobile;
   final GlobalKey _keyColors = GlobalKey();
   final GlobalKey _keyTypography = GlobalKey();
   final GlobalKey _keyLayout = GlobalKey();
@@ -701,7 +705,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
                     children: [
                       _buildHero(context, ds),
                       const SizedBox(height: 20),
-                      _buildTocNav(),
+                      _buildTocNav(context),
                       const SizedBox(height: 40),
                       KeyedSubtree(
                         key: _keyColors,
@@ -721,7 +725,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
                           lead: 'Font family, weights, sizes, and text styles.',
                           titleStyle: titleStyle,
                           leadStyle: leadStyle,
-                          child: _buildTypographyFull(ds),
+                          child: _buildTypographyFull(context, ds),
                         ),
                       ),
                       const SizedBox(height: 48),
@@ -732,7 +736,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
                           lead: 'Spacing scale, grid, and border radius.',
                           titleStyle: titleStyle,
                           leadStyle: leadStyle,
-                          child: _buildLayoutFull(ds),
+                          child: _buildLayoutFull(context, ds),
                         ),
                       ),
                       const SizedBox(height: 48),
@@ -765,7 +769,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
                           lead: 'Registered components, project icons, and icon sizes.',
                           titleStyle: titleStyle,
                           leadStyle: leadStyle,
-                          child: _buildComponentsDetailed(ds),
+                          child: _buildComponentsDetailed(context, ds),
                         ),
                       ),
                       const SizedBox(height: 48),
@@ -840,7 +844,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
     );
   }
 
-  Widget _buildTocNav() {
+  Widget _buildTocNav(BuildContext context) {
     final items = <(String label, GlobalKey key)>[
       ('Color', _keyColors),
       ('Typography', _keyTypography),
@@ -850,34 +854,46 @@ class _PreviewScreenState extends State<PreviewScreen> {
       ('Components', _keyComponents),
       ('Advanced', _keyAdvanced),
     ];
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: items.map((e) {
-        return Material(
-          color: _PreviewDocTheme.accent.withValues(alpha: 0.18),
+    final chips = items.map((e) {
+      return Material(
+        color: _PreviewDocTheme.accent.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(999),
+        child: InkWell(
+          onTap: () => _scrollToSection(e.$2),
           borderRadius: BorderRadius.circular(999),
-          child: InkWell(
-            onTap: () => _scrollToSection(e.$2),
-            borderRadius: BorderRadius.circular(999),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: _PreviewDocTheme.accent.withValues(alpha: 0.32)),
-              ),
-              child: Text(
-                e.$1,
-                style: GoogleFonts.roboto(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: _PreviewDocTheme.accent,
-                ),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: _PreviewDocTheme.accent.withValues(alpha: 0.32)),
+            ),
+            child: Text(
+              e.$1,
+              style: GoogleFonts.roboto(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: _PreviewDocTheme.accent,
               ),
             ),
           ),
-        );
-      }).toList(),
+        ),
+      );
+    }).toList();
+    if (_isNarrowPreview(context)) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: chips
+            .map((w) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: w,
+                ))
+            .toList(),
+      );
+    }
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: chips,
     );
   }
 
@@ -1344,17 +1360,20 @@ class _PreviewScreenState extends State<PreviewScreen> {
         border: showBorder ? Border(bottom: BorderSide(color: _PreviewDocTheme.cardBorder)) : null,
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 76,
+          Flexible(
+            flex: 2,
             child: Text(
               hex,
-              style: GoogleFonts.robotoMono(fontSize: 12, fontWeight: FontWeight.w600, color: _PreviewDocTheme.pageFg),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.robotoMono(fontSize: 11, fontWeight: FontWeight.w600, color: _PreviewDocTheme.pageFg),
             ),
           ),
           const SizedBox(width: 8),
           Container(
-            width: 48,
+            width: 44,
             height: 28,
             decoration: BoxDecoration(
               color: color,
@@ -1364,8 +1383,10 @@ class _PreviewScreenState extends State<PreviewScreen> {
           ),
           const SizedBox(width: 8),
           Expanded(
+            flex: 3,
             child: Text(
               tokenName,
+              textAlign: TextAlign.left,
               style: GoogleFonts.roboto(fontSize: 13, fontWeight: FontWeight.w500, color: _PreviewDocTheme.pageFg),
               overflow: TextOverflow.ellipsis,
             ),
@@ -1389,11 +1410,12 @@ class _PreviewScreenState extends State<PreviewScreen> {
   }
 
 
-  Widget _buildTypographyFull(models.DesignSystem ds) {
+  Widget _buildTypographyFull(BuildContext context, models.DesignSystem ds) {
     final t = ds.typography;
     final hasAny = t.fontWeights.isNotEmpty || t.fontSizes.isNotEmpty || t.textStyles.isNotEmpty;
     if (!hasAny) return _buildPlaceholder('Typography (add Font Family, Weights, Sizes or Styles)');
     final primaryFont = t.fontFamily.primary;
+    final narrow = _isNarrowPreview(context);
 
     return _buildSectionCard('Typography', Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1408,15 +1430,24 @@ class _PreviewScreenState extends State<PreviewScreen> {
             border: Border.all(color: _PreviewDocTheme.cardBorder),
             color: _PreviewDocTheme.card,
           ),
-          child: Row(
-            children: [
-              _buildTypographyLabel('Primary'),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Text(primaryFont, style: _getSafeFont(primaryFont, fontSize: 16)),
-              ),
-            ],
-          ),
+          child: narrow
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildTypographyLabel('Primary'),
+                    const SizedBox(height: 6),
+                    Text(primaryFont, style: _getSafeFont(primaryFont, fontSize: 16)),
+                  ],
+                )
+              : Row(
+                  children: [
+                    _buildTypographyLabel('Primary'),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Text(primaryFont, style: _getSafeFont(primaryFont, fontSize: 16)),
+                    ),
+                  ],
+                ),
         ),
         if (t.fontFamily.fallback.isNotEmpty) ...[
           const SizedBox(height: 8),
@@ -1427,13 +1458,22 @@ class _PreviewScreenState extends State<PreviewScreen> {
               border: Border.all(color: _PreviewDocTheme.cardBorder),
               color: _PreviewDocTheme.card,
             ),
-            child: Row(
-              children: [
-                _buildTypographyLabel('Fallback'),
-                const SizedBox(width: 16),
-                Expanded(child: Text(t.fontFamily.fallback, style: const TextStyle(fontSize: 16))),
-              ],
-            ),
+            child: narrow
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildTypographyLabel('Fallback'),
+                      const SizedBox(height: 6),
+                      Text(t.fontFamily.fallback, style: const TextStyle(fontSize: 16)),
+                    ],
+                  )
+                : Row(
+                    children: [
+                      _buildTypographyLabel('Fallback'),
+                      const SizedBox(width: 16),
+                      Expanded(child: Text(t.fontFamily.fallback, style: const TextStyle(fontSize: 16))),
+                    ],
+                  ),
           ),
         ],
         if (t.fontWeights.isNotEmpty) ...[
@@ -1447,7 +1487,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
               color: _PreviewDocTheme.card,
             ),
             child: Column(
-              children: _buildTypographyWeightRows(primaryFont, t.fontWeights),
+              children: _buildTypographyWeightRows(context, primaryFont, t.fontWeights),
             ),
           ),
         ],
@@ -1462,7 +1502,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
               color: _PreviewDocTheme.card,
             ),
             child: Column(
-              children: _buildTypographySizeRows(primaryFont, t.fontSizes),
+              children: _buildTypographySizeRows(context, primaryFont, t.fontSizes),
             ),
           ),
         ],
@@ -1482,31 +1522,63 @@ class _PreviewScreenState extends State<PreviewScreen> {
                 return List.generate(entries.length, (i) {
                   final e = entries[i];
                   final showBorder = i < entries.length - 1;
+                  final sampleStyle = _getSafeFont(
+                    e.value.fontFamily,
+                    fontSize: _parsePx(e.value.fontSize),
+                    fontWeight: _intToWeight(e.value.fontWeight),
+                  );
                   return Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                     decoration: BoxDecoration(
                       border: showBorder ? Border(bottom: BorderSide(color: _PreviewDocTheme.cardBorder)) : null,
                     ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(
-                          width: 140,
-                          child: Text(e.key, style: GoogleFonts.roboto(fontSize: 13, fontWeight: FontWeight.w600, color: _PreviewDocTheme.pageFg)),
-                        ),
-                        Expanded(
-                          child: Text(
-                            'The quick brown fox jumps over the lazy dog',
-                            style: _getSafeFont(e.value.fontFamily, fontSize: _parsePx(e.value.fontSize), fontWeight: _intToWeight(e.value.fontWeight)),
+                    child: narrow
+                        ? Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      e.key,
+                                      style: GoogleFonts.roboto(fontSize: 13, fontWeight: FontWeight.w600, color: _PreviewDocTheme.pageFg),
+                                    ),
+                                  ),
+                                  Text(
+                                    '${e.value.fontSize} · ${e.value.fontWeight}',
+                                    style: GoogleFonts.roboto(fontSize: 12, color: _PreviewDocTheme.textSecondary),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'The quick brown fox jumps over the lazy dog',
+                                textAlign: TextAlign.left,
+                                style: sampleStyle,
+                              ),
+                            ],
+                          )
+                        : Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SizedBox(
+                                width: 140,
+                                child: Text(e.key, style: GoogleFonts.roboto(fontSize: 13, fontWeight: FontWeight.w600, color: _PreviewDocTheme.pageFg)),
+                              ),
+                              Expanded(
+                                child: Text(
+                                  'The quick brown fox jumps over the lazy dog',
+                                  textAlign: TextAlign.left,
+                                  style: sampleStyle,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Text(
+                                '${e.value.fontSize} · ${e.value.fontWeight}',
+                                style: GoogleFonts.roboto(fontSize: 12, color: _PreviewDocTheme.textSecondary),
+                              ),
+                            ],
                           ),
-                        ),
-                        const SizedBox(width: 16),
-                        Text(
-                          '${e.value.fontSize} · ${e.value.fontWeight}',
-                          style: GoogleFonts.roboto(fontSize: 12, color: _PreviewDocTheme.textSecondary),
-                        ),
-                      ],
-                    ),
                   );
                 });
               }(),
@@ -1536,68 +1608,141 @@ class _PreviewScreenState extends State<PreviewScreen> {
     );
   }
 
-  List<Widget> _buildTypographyWeightRows(String fontFamily, Map<String, int> weights) {
-    final entries = weights.entries.toList();
+  List<Widget> _buildTypographyWeightRows(BuildContext context, String fontFamily, Map<String, int> weights) {
+    final entries = weights.entries.toList()
+      ..sort((a, b) {
+        final c = a.value.compareTo(b.value);
+        if (c != 0) return c;
+        return _naturalCompare(a.key, b.key);
+      });
+    final narrow = _isNarrowPreview(context);
     return List.generate(entries.length, (i) {
       final e = entries[i];
       final showBorder = i < entries.length - 1;
+      final sampleStyle = _getSafeFont(fontFamily, fontSize: 16, fontWeight: _intToWeight(e.value));
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
           border: showBorder ? Border(bottom: BorderSide(color: _PreviewDocTheme.cardBorder)) : null,
         ),
-        child: Row(
-          children: [
-            SizedBox(width: 100, child: Text(e.key, style: GoogleFonts.roboto(fontSize: 13, fontWeight: FontWeight.w600, color: _PreviewDocTheme.pageFg))),
-            const SizedBox(width: 16),
-            SizedBox(width: 48, child: Text('${e.value}', style: GoogleFonts.roboto(fontSize: 12, color: _PreviewDocTheme.textSecondary))),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Text(
-                'Sample weight ${e.key}',
-                style: _getSafeFont(fontFamily, fontSize: 16, fontWeight: _intToWeight(e.value)),
+        child: narrow
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 4,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(e.key, style: GoogleFonts.roboto(fontSize: 13, fontWeight: FontWeight.w600, color: _PreviewDocTheme.pageFg)),
+                      Text('${e.value}', style: GoogleFonts.roboto(fontSize: 12, color: _PreviewDocTheme.textSecondary)),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Sample weight ${e.key}',
+                    textAlign: TextAlign.left,
+                    style: sampleStyle,
+                  ),
+                ],
+              )
+            : Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(width: 100, child: Text(e.key, style: GoogleFonts.roboto(fontSize: 13, fontWeight: FontWeight.w600, color: _PreviewDocTheme.pageFg))),
+                  const SizedBox(width: 16),
+                  SizedBox(width: 48, child: Text('${e.value}', style: GoogleFonts.roboto(fontSize: 12, color: _PreviewDocTheme.textSecondary))),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      'Sample weight ${e.key}',
+                      textAlign: TextAlign.left,
+                      style: sampleStyle,
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
-        ),
       );
     });
   }
 
-  List<Widget> _buildTypographySizeRows(String fontFamily, Map<String, models.FontSize> sizes) {
-    final entries = sizes.entries.toList();
+  List<Widget> _buildTypographySizeRows(BuildContext context, String fontFamily, Map<String, models.FontSize> sizes) {
+    final entries = sizes.entries.toList()
+      ..sort((a, b) {
+        final pa = _parsePx(a.value.value);
+        final pb = _parsePx(b.value.value);
+        final c = pa.compareTo(pb);
+        if (c != 0) return c;
+        return _naturalCompare(a.key, b.key);
+      });
+    final narrow = _isNarrowPreview(context);
     return List.generate(entries.length, (i) {
       final e = entries[i];
       final showBorder = i < entries.length - 1;
       final sizePx = _parsePx(e.value.value);
+      final sampleStyle = _getSafeFont(fontFamily, fontSize: sizePx);
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
           border: showBorder ? Border(bottom: BorderSide(color: _PreviewDocTheme.cardBorder)) : null,
         ),
-        child: Row(
-          children: [
-            SizedBox(width: 80, child: Text(e.key, style: GoogleFonts.roboto(fontSize: 13, fontWeight: FontWeight.w600, color: _PreviewDocTheme.pageFg))),
-            const SizedBox(width: 16),
-            SizedBox(width: 56, child: Text(e.value.value, style: GoogleFonts.roboto(fontSize: 12, color: _PreviewDocTheme.textSecondary))),
-            const SizedBox(width: 8),
-            SizedBox(width: 48, child: Text('LH ${e.value.lineHeight}', style: GoogleFonts.roboto(fontSize: 11, color: _PreviewDocTheme.textTertiary))),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Text(
-                'Sample at ${e.value.value}',
-                style: _getSafeFont(fontFamily, fontSize: sizePx),
+        child: narrow
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 4,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(e.key, style: GoogleFonts.roboto(fontSize: 13, fontWeight: FontWeight.w600, color: _PreviewDocTheme.pageFg)),
+                      Text(e.value.value, style: GoogleFonts.roboto(fontSize: 12, color: _PreviewDocTheme.textSecondary)),
+                      Text('LH ${e.value.lineHeight}', style: GoogleFonts.roboto(fontSize: 11, color: _PreviewDocTheme.textTertiary)),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Sample at ${e.value.value}',
+                    textAlign: TextAlign.left,
+                    style: sampleStyle,
+                  ),
+                ],
+              )
+            : Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(width: 80, child: Text(e.key, style: GoogleFonts.roboto(fontSize: 13, fontWeight: FontWeight.w600, color: _PreviewDocTheme.pageFg))),
+                  const SizedBox(width: 16),
+                  SizedBox(width: 56, child: Text(e.value.value, style: GoogleFonts.roboto(fontSize: 12, color: _PreviewDocTheme.textSecondary))),
+                  const SizedBox(width: 8),
+                  SizedBox(width: 48, child: Text('LH ${e.value.lineHeight}', style: GoogleFonts.roboto(fontSize: 11, color: _PreviewDocTheme.textTertiary))),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      'Sample at ${e.value.value}',
+                      textAlign: TextAlign.left,
+                      style: sampleStyle,
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
-        ),
       );
     });
   }
 
-  Widget _buildLayoutFull(models.DesignSystem ds) {
+  Widget _buildLayoutFull(BuildContext context, models.DesignSystem ds) {
     final hasLayout = ds.spacing.values.isNotEmpty || ds.grid.columns > 0;
     if (!hasLayout) return _buildPlaceholder('Spacing & Grid');
+
+    final narrow = _isNarrowPreview(context);
+    final spacingSorted = ds.spacing.values.entries.toList()
+      ..sort((a, b) {
+        final pa = _parsePx(a.value);
+        final pb = _parsePx(b.value);
+        final c = pa.compareTo(pb);
+        if (c != 0) return c;
+        return _naturalCompare(a.key, b.key);
+      });
 
     final radiusEntries = [
       ('None', ds.borderRadius.none),
@@ -1609,33 +1754,52 @@ class _PreviewScreenState extends State<PreviewScreen> {
       ('Full', ds.borderRadius.full),
     ];
 
+    Widget spacingTile(MapEntry<String, String> e) {
+      final px = _parsePx(e.value);
+      final box = px.clamp(4.0, 96.0);
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: box,
+            height: box,
+            decoration: BoxDecoration(
+              color: _PreviewDocTheme.accent.withValues(alpha: 0.14),
+              border: Border.all(color: _PreviewDocTheme.accent.withValues(alpha: 0.35)),
+              borderRadius: BorderRadius.circular(6),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text('${e.key} (${e.value})', textAlign: TextAlign.left, style: GoogleFonts.roboto(fontSize: 11, color: _PreviewDocTheme.textSecondary)),
+        ],
+      );
+    }
+
     return _buildSectionCard('Layout & Shape', Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Spacing scale', style: GoogleFonts.roboto(fontWeight: FontWeight.w600, fontSize: 14, color: _PreviewDocTheme.pageFg)),
         const SizedBox(height: 12),
-        Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: ds.spacing.values.entries.map((e) {
-            final size = _parsePx(e.value);
-            return Column(
-              children: [
-                Container(
-                  width: size,
-                  height: size,
-                  decoration: BoxDecoration(
-                    color: _PreviewDocTheme.accent.withValues(alpha: 0.14),
-                    border: Border.all(color: _PreviewDocTheme.accent.withValues(alpha: 0.35)),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text('${e.key} (${e.value})', style: GoogleFonts.roboto(fontSize: 11, color: _PreviewDocTheme.textSecondary)),
-              ],
-            );
-          }).toList(),
-        ),
+        if (narrow)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: spacingSorted
+                .map((e) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: spacingTile(e),
+                      ),
+                    ))
+                .toList(),
+          )
+        else
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: spacingSorted.map((e) => spacingTile(e)).toList(),
+          ),
         const SizedBox(height: 24),
         Text('Grid system', style: GoogleFonts.roboto(fontWeight: FontWeight.w600, fontSize: 14, color: _PreviewDocTheme.pageFg)),
         const SizedBox(height: 12),
@@ -1660,11 +1824,20 @@ class _PreviewScreenState extends State<PreviewScreen> {
         const SizedBox(height: 24),
         Text('Border radius', style: GoogleFonts.roboto(fontWeight: FontWeight.w600, fontSize: 14, color: _PreviewDocTheme.pageFg)),
         const SizedBox(height: 12),
-        Wrap(
-          spacing: 20,
-          runSpacing: 20,
-          children: radiusEntries.map((e) => _buildRadiusSample(e.$1, _parseRadius(e.$2), e.$2)).toList(),
-        ),
+        if (narrow)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: radiusEntries.map((e) => Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: _buildRadiusSample(e.$1, _parseRadius(e.$2), e.$2),
+                )).toList(),
+          )
+        else
+          Wrap(
+            spacing: 20,
+            runSpacing: 20,
+            children: radiusEntries.map((e) => _buildRadiusSample(e.$1, _parseRadius(e.$2), e.$2)).toList(),
+          ),
       ],
     ));
   }
@@ -2115,7 +2288,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
     return BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4, offset: const Offset(0, 2));
   }
 
-  Widget _buildComponentsDetailed(models.DesignSystem ds) {
+  Widget _buildComponentsDetailed(BuildContext context, models.DesignSystem ds) {
     final hasComponents = ds.components.buttons.isNotEmpty ||
                          ds.components.inputs.isNotEmpty ||
                          ds.components.cards.isNotEmpty ||
@@ -2128,17 +2301,27 @@ class _PreviewScreenState extends State<PreviewScreen> {
       return _buildPlaceholder('Component Library');
     }
 
+    final narrow = _isNarrowPreview(context);
     final baseRadius = _parsePx(ds.borderRadius.base);
     final previewIconSize = _parsePx(ds.icons.sizes['md'] ?? '24px');
+
+    final iconSizeSorted = ds.icons.sizes.entries.toList()
+      ..sort((a, b) {
+        final pa = _parsePx(a.value);
+        final pb = _parsePx(b.value);
+        final c = pa.compareTo(pb);
+        if (c != 0) return c;
+        return _naturalCompare(a.key, b.key);
+      });
 
     return _buildSectionCard('Components & Assets', Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildComponentCategory('Buttons', ds.components.buttons, baseRadius),
-        _buildComponentCategory('Text Fields / Inputs', ds.components.inputs, baseRadius),
-        _buildComponentCategory('Cards', ds.components.cards, baseRadius),
-        _buildComponentCategory('Navigation', ds.components.navigation, baseRadius),
-        _buildComponentCategory('Avatars', ds.components.avatars, 100),
+        _buildComponentCategory(context, 'Buttons', ds.components.buttons, baseRadius),
+        _buildComponentCategory(context, 'Text Fields / Inputs', ds.components.inputs, baseRadius),
+        _buildComponentCategory(context, 'Cards', ds.components.cards, baseRadius),
+        _buildComponentCategory(context, 'Navigation', ds.components.navigation, baseRadius),
+        _buildComponentCategory(context, 'Avatars', ds.components.avatars, 100),
         if (hasProjectIcons) ...[
           const SizedBox(height: 8),
           Text('Project icons', style: GoogleFonts.roboto(fontWeight: FontWeight.w600, fontSize: 14, color: _PreviewDocTheme.pageFg)),
@@ -2164,7 +2347,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
                     ),
                     child: DynamicMaterialIcon(
                       codePoint: e.codePoint,
-                      size: previewIconSize,
+                      size: previewIconSize.clamp(16, 40),
                       color: _PreviewDocTheme.pageFg,
                     ),
                   ),
@@ -2188,27 +2371,54 @@ class _PreviewScreenState extends State<PreviewScreen> {
           const SizedBox(height: 16),
           Text('Icon sizes', style: GoogleFonts.roboto(fontWeight: FontWeight.w600, fontSize: 14, color: _PreviewDocTheme.pageFg)),
           const SizedBox(height: 8),
-          Wrap(
-            spacing: 16,
-            runSpacing: 16,
-            children: ds.icons.sizes.entries.map((e) {
-              final size = _parsePx(e.value);
-              return Column(
-                children: [
-                  Icon(Icons.star, size: size, color: _PreviewDocTheme.textSecondary),
-                  const SizedBox(height: 4),
-                  Text('${e.key} (${e.value})', style: GoogleFonts.roboto(fontSize: 11, color: _PreviewDocTheme.textSecondary)),
-                ],
-              );
-            }).toList(),
-          ),
+          if (narrow)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: iconSizeSorted.map((e) {
+                final size = _parsePx(e.value).clamp(12.0, 56.0);
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Icon(Icons.star, size: size, color: _PreviewDocTheme.textSecondary),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          '${e.key} (${e.value})',
+                          textAlign: TextAlign.left,
+                          style: GoogleFonts.roboto(fontSize: 12, color: _PreviewDocTheme.textSecondary),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            )
+          else
+            Wrap(
+              spacing: 16,
+              runSpacing: 16,
+              children: iconSizeSorted.map((e) {
+                final size = _parsePx(e.value).clamp(12.0, 56.0);
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.star, size: size, color: _PreviewDocTheme.textSecondary),
+                    const SizedBox(height: 4),
+                    Text('${e.key} (${e.value})', textAlign: TextAlign.left, style: GoogleFonts.roboto(fontSize: 11, color: _PreviewDocTheme.textSecondary)),
+                  ],
+                );
+              }).toList(),
+            ),
         ],
       ],
     ));
   }
 
-  Widget _buildComponentCategory(String name, Map<String, dynamic> tokens, double radius) {
+  Widget _buildComponentCategory(BuildContext context, String name, Map<String, dynamic> tokens, double radius) {
     if (tokens.isEmpty) return const SizedBox.shrink();
+    final narrow = _isNarrowPreview(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Column(
@@ -2226,15 +2436,27 @@ class _PreviewScreenState extends State<PreviewScreen> {
                 border: Border.all(color: _PreviewDocTheme.cardBorder),
                 borderRadius: BorderRadius.circular(radius.clamp(8, 16)),
               ),
-              child: Row(
-                children: [
-                  Text(e.key, style: GoogleFonts.roboto(fontWeight: FontWeight.w600, fontSize: 11, color: _PreviewDocTheme.pageFg)),
-                  if (desc.isNotEmpty) ...[
-                    Text(' — ', style: GoogleFonts.roboto(color: _PreviewDocTheme.textTertiary)),
-                    Expanded(child: Text(desc, style: GoogleFonts.roboto(fontSize: 10, color: _PreviewDocTheme.textSecondary))),
-                  ],
-                ],
-              ),
+              child: narrow
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(e.key, style: GoogleFonts.roboto(fontWeight: FontWeight.w600, fontSize: 11, color: _PreviewDocTheme.pageFg)),
+                        if (desc.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(desc, style: GoogleFonts.roboto(fontSize: 10, color: _PreviewDocTheme.textSecondary)),
+                        ],
+                      ],
+                    )
+                  : Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(e.key, style: GoogleFonts.roboto(fontWeight: FontWeight.w600, fontSize: 11, color: _PreviewDocTheme.pageFg)),
+                        if (desc.isNotEmpty) ...[
+                          Text(' — ', style: GoogleFonts.roboto(color: _PreviewDocTheme.textTertiary)),
+                          Expanded(child: Text(desc, style: GoogleFonts.roboto(fontSize: 10, color: _PreviewDocTheme.textSecondary))),
+                        ],
+                      ],
+                    ),
             );
           }),
         ],
