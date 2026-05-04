@@ -325,6 +325,43 @@ class ColorPaletteService {
     }
     return Color(int.parse(hex, radix: 16));
   }
+
+  /// Hex string from a color token map entry or a plain string, for sorting/parsing.
+  static String? hexStringFromTokenValue(dynamic v) {
+    if (v is Map) {
+      final s = v['value']?.toString().trim();
+      if (s != null && s.isNotEmpty) return s;
+    } else if (v != null) {
+      final s = v.toString().trim();
+      if (s.isEmpty) return null;
+      if (s.startsWith('#')) return s;
+      if (RegExp(r'^[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$').hasMatch(s)) return '#$s';
+    }
+    return null;
+  }
+
+  /// Relative luminance in \[0, 1\] for ordering swatches **darkest → lightest**
+  /// (ascending luminance).
+  static double? luminanceFromTokenValue(dynamic v) {
+    final hex = hexStringFromTokenValue(v);
+    if (hex == null) return null;
+    try {
+      return hexToColor(hex).computeLuminance();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Same as [luminanceFromTokenValue] but for a hex string (may include `#`).
+  static double? luminanceFromHexString(String raw) {
+    final s = raw.trim();
+    if (s.isEmpty) return null;
+    try {
+      return hexToColor(s).computeLuminance();
+    } catch (_) {
+      return null;
+    }
+  }
 }
 
 class ColorSuggestion {

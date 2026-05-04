@@ -497,7 +497,7 @@ class _ColorsScreenState extends State<ColorsScreen> {
     );
   }
 
-  static const List<String> _colorGroupOrder = ['primary', 'analogous', 'success', 'error', 'warning', 'info', 'secondary'];
+  static const List<String> _colorGroupOrder = ['primary', 'analogous', 'success', 'warning', 'error', 'info', 'secondary'];
 
   /// Same grouping as Preview: analogous_1_dark, analogous_1_light, etc.; primary, success, etc.
   Map<String, List<MapEntry<String, dynamic>>> _groupColorsByPrefix(Map<String, dynamic> category) {
@@ -526,7 +526,19 @@ class _ColorsScreenState extends State<ColorsScreen> {
       map.putIfAbsent(key, () => []).add(e);
     }
     for (final list in map.values) {
-      list.sort((a, b) => _naturalCompare(a.key, b.key));
+      list.sort((a, b) {
+        final la = ColorPaletteService.luminanceFromTokenValue(a.value);
+        final lb = ColorPaletteService.luminanceFromTokenValue(b.value);
+        if (la != null && lb != null) {
+          final c = la.compareTo(lb);
+          if (c != 0) return c;
+        } else if (la != null) {
+          return -1;
+        } else if (lb != null) {
+          return 1;
+        }
+        return _naturalCompare(a.key, b.key);
+      });
     }
     return map;
   }

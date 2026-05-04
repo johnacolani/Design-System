@@ -8,6 +8,7 @@ import 'package:pdf/widgets.dart' as pw;
 
 import '../models/design_system.dart' as models;
 import '../models/design_system_wrapper.dart';
+import '../services/color_palette_service.dart';
 
 final PdfColor _pdfPageFg = PdfColor.fromInt(0xFF1A1917);
 final PdfColor _pdfTextSecondary = PdfColor.fromInt(0xFF5C5A56);
@@ -52,7 +53,9 @@ Future<pw.Document> _buildDocumentChunked(models.DesignSystem ds) async {
 
   final allSwatches = <(String groupTitle, MapEntry<String, dynamic>)>[];
   for (final g in _getPdfColorGroups(ds)) {
-    for (final e in g.$2.entries) {
+    final entries = g.$2.entries.toList();
+    _sortColorMapEntriesByLuminance(entries);
+    for (final e in entries) {
       allSwatches.add((g.$1, e));
     }
   }
@@ -239,7 +242,9 @@ pw.Document _buildDocument(models.DesignSystem ds) {
 
   final allSwatches = <(String groupTitle, MapEntry<String, dynamic>)>[];
   for (final g in _getPdfColorGroups(ds)) {
-    for (final e in g.$2.entries) {
+    final entries = g.$2.entries.toList();
+    _sortColorMapEntriesByLuminance(entries);
+    for (final e in entries) {
       allSwatches.add((g.$1, e));
     }
   }
@@ -429,7 +434,7 @@ List<(String title, Map<String, dynamic> palette)> _getPdfColorGroups(models.Des
     final key = groupKey(e.$1);
     groups.putIfAbsent(key, () => {})[e.$1] = e.$2;
   }
-  const order = ['primary', 'analogous', 'success', 'error', 'warning', 'info', 'secondary'];
+  const order = ['primary', 'analogous', 'success', 'warning', 'error', 'info', 'secondary'];
   final ordered = <String>[];
   for (final k in order) {
     if (groups.containsKey(k)) ordered.add(k);
@@ -521,11 +526,29 @@ pw.Widget _buildPdfColorsFull(models.DesignSystem ds) {
 const int _swatchesPerPage = 12;
 const int _swatchColumns = 3;
 
+void _sortColorMapEntriesByLuminance(List<MapEntry<String, dynamic>> list) {
+  list.sort((a, b) {
+    final la = ColorPaletteService.luminanceFromTokenValue(a.value);
+    final lb = ColorPaletteService.luminanceFromTokenValue(b.value);
+    if (la != null && lb != null) {
+      final c = la.compareTo(lb);
+      if (c != 0) return c;
+    } else if (la != null) {
+      return -1;
+    } else if (lb != null) {
+      return 1;
+    }
+    return _pdfNaturalCompare(a.key, b.key);
+  });
+}
+
 pw.Widget _buildPdfSwatchGroup(Map<String, dynamic> colors) {
+  final entries = colors.entries.toList();
+  _sortColorMapEntriesByLuminance(entries);
   return pw.Wrap(
     spacing: 10,
     runSpacing: 10,
-    children: colors.entries.map((e) {
+    children: entries.map((e) {
       final val = e.value is Map ? e.value['value'] : e.value.toString();
       return pw.Column(children: [
         pw.Container(width: 40, height: 40, decoration: pw.BoxDecoration(color: _parsePdfColor(val.toString()), border: pw.Border.all(width: 0.5))),
@@ -668,28 +691,50 @@ pw.Widget _buildPdfTypographyFull(models.DesignSystem ds) {
 }
 
 pw.Widget _buildPdfSpacingDetailed(models.DesignSystem ds) {
-  return pw.Wrap(
-    spacing: 10,
-    runSpacing: 10,
-    children: ds.spacing.values.entries.map((e) {
-      final size = _parsePx(e.value);
-      return pw.Column(children: [
-        pw.Container(
-          width: size / 2,
-          height: size / 2,
-          decoration: pw.BoxDecoration(
-            color: _pdfAccentSoft,
-            border: pw.Border.all(color: _pdfAccent, width: 0.5),
-          ),
+  final scale = ds.spacing.scale;
+  return pw.Column(
+    crossAxisAlignment: pw.CrossAxisAlignment.start,
+    children: [
+      if (scale.isNotEmpty)
+        pw.Padding(
+          padding: const pw.EdgeInsets.only(bottom: 8),
+          child: pw.Text('Scale steps: ${scale.join(', ')}', style: pw.TextStyle(fontSize: 9, color: _pdfTextSecondary)),
         ),
-        pw.Text(e.key, style: const pw.TextStyle(fontSize: 6)),
-      ]);
-    }).toList(),
+      pw.Wrap(
+        spacing: 10,
+        runSpacing: 10,
+        children: ds.spacing.values.entries.map((e) {
+          final size = _parsePx(e.value);
+          return pw.Column(children: [
+            pw.Container(
+              width: size / 2,
+              height: size / 2,
+              decoration: pw.BoxDecoration(
+                color: _pdfAccentSoft,
+                border: pw.Border.all(color: _pdfAccent, width: 0.5),
+              ),
+            ),
+            pw.Text(e.key, style: const pw.TextStyle(fontSize: 6)),
+          ]);
+        }).toList(),
+      ),
+    ],
   );
 }
 
 pw.Widget _buildPdfGridDetailed(models.DesignSystem ds) {
-  return pw.Text('Grid: ${ds.grid.columns} columns / ${ds.grid.gutter} gutter', style: pw.TextStyle(fontSize: 10));
+  final g = ds.grid;
+  final lines = <pw.Widget>[
+    pw.Text('Grid: ${g.columns} columns · ${g.gutter} gutter · ${g.margin} margin', style: pw.TextStyle(fontSize: 10)),
+  ];
+  if (g.breakpoints.isNotEmpty) {
+    lines.add(pw.SizedBox(height: 6));
+    lines.add(pw.Text('Breakpoints', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9)));
+    for (final e in g.breakpoints.entries) {
+      lines.add(pw.Text('  ${e.key}: ${e.value}', style: const pw.TextStyle(fontSize: 9)));
+    }
+  }
+  return pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: lines);
 }
 
 pw.Widget _buildPdfBorderRadiusFull(models.DesignSystem ds) {

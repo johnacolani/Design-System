@@ -15,7 +15,10 @@ import '../utils/design_system_html_builder.dart';
 import '../utils/design_system_pdf_builder.dart';
 import '../utils/responsive.dart';
 import '../utils/screen_body_padding.dart';
+import '../utils/token_display_order.dart';
+import '../services/color_palette_service.dart';
 import '../widgets/dynamic_material_icon.dart';
+import '../widgets/component_preview_thumbnail.dart';
 import '../utils/html_downloader_stub.dart' if (dart.library.html) '../utils/html_downloader_web.dart' as html_downloader;
 
 /// Visual shell for the preview page (aligned with clean design-doc pages like ServiceFlow).
@@ -377,10 +380,24 @@ class _PreviewScreenState extends State<PreviewScreen> {
   }
 
   pw.Widget _buildPdfSwatchGroup(Map<String, dynamic> colors) {
+    final entries = colors.entries.toList()
+      ..sort((a, b) {
+        final la = ColorPaletteService.luminanceFromTokenValue(a.value);
+        final lb = ColorPaletteService.luminanceFromTokenValue(b.value);
+        if (la != null && lb != null) {
+          final c = la.compareTo(lb);
+          if (c != 0) return c;
+        } else if (la != null) {
+          return -1;
+        } else if (lb != null) {
+          return 1;
+        }
+        return a.key.toString().compareTo(b.key.toString());
+      });
     return pw.Wrap(
       spacing: 10,
       runSpacing: 10,
-      children: colors.entries.map((e) {
+      children: entries.map((e) {
         final val = e.value is Map ? e.value['value'] : e.value.toString();
         return pw.Column(children: [
           pw.Container(width: 40, height: 40, decoration: pw.BoxDecoration(color: _parsePdfColor(val), border: pw.Border.all(width: 0.5))),
@@ -967,7 +984,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
   }
 
   /// Preferred order: primary first, then analogous and semantic groups, then other palettes.
-  static const List<String> _colorGroupOrder = ['primary', 'analogous', 'success', 'error', 'warning', 'info', 'secondary'];
+  static const List<String> _colorGroupOrder = ['primary', 'analogous', 'success', 'warning', 'error', 'info', 'secondary'];
 
   /// Collect (name, hex) from a color map (primary, semantic, blue, etc.).
   List<(String name, String hex)> _colorMapToEntries(Map<String, dynamic>? map) {
@@ -989,24 +1006,30 @@ class _PreviewScreenState extends State<PreviewScreen> {
     if (allTokens.isEmpty) {
       return _buildPlaceholder('Colors (add Primary or Semantic in Colors screen)');
     }
+    final semanticEntries = _colorMapToEntries(ds.colors.semantic);
+    final semanticKeySet = ds.colors.semantic.keys.map((k) => k.toString()).toSet();
     final coreEntries = _coreSurfaceEntries(allTokens);
     final primaryRamp = _rampEntries(allTokens, 'primary');
     final t1Ramp = _rampEntries(allTokens, 'tetradic_1');
     final t2Ramp = _rampEntries(allTokens, 'tetradic_2');
     final t4Ramp = _rampEntries(allTokens, 'tetradic_4');
     final triadic3Ramp = _rampEntries(allTokens, 'triadic_3');
+    bool fallbackKey(String key) {
+      final k = key.toLowerCase();
+      return k.startsWith('triadic_') ||
+          k.startsWith('analogous') ||
+          k.startsWith('secondary') ||
+          k.startsWith('success') ||
+          k.startsWith('warning') ||
+          k.startsWith('error') ||
+          k.startsWith('info');
+    }
+
     final fallback = allTokens.entries
-        .where((e) =>
-            e.key.startsWith('triadic_') ||
-            e.key.startsWith('analogous') ||
-            e.key.startsWith('secondary') ||
-            e.key.startsWith('success') ||
-            e.key.startsWith('warning') ||
-            e.key.startsWith('error') ||
-            e.key.startsWith('info'))
+        .where((e) => !semanticKeySet.contains(e.key) && fallbackKey(e.key))
         .map((e) => (e.key, e.value))
         .toList()
-      ..sort((a, b) => _naturalCompare(a.$1, b.$1));
+      ..sort(_comparePreviewSwatchesByLuminance);
 
     final cards = <Widget>[
       _buildColorSwatchCard('Core & surfaces', coreEntries.isEmpty ? allTokens.entries.take(7).map((e) => (e.key, e.value)).toList() : coreEntries),
@@ -1029,8 +1052,13 @@ class _PreviewScreenState extends State<PreviewScreen> {
     if (triadic3Ramp.isNotEmpty) {
       cards.add(_buildColorSwatchCard('Triadic 3 ramp', triadic3Ramp));
     }
-    if (cards.length == 1 && fallback.isNotEmpty) {
+    if (fallback.isNotEmpty) {
       cards.add(_buildColorSwatchCard('Additional ramps', fallback.take(22).toList()));
+    }
+    if (semanticEntries.isNotEmpty) {
+      final sortedSemantic = List<(String, String)>.from(semanticEntries)
+        ..sort(_compareSemanticPreviewEntries);
+      cards.add(_buildColorSwatchCard('Semantic colors', sortedSemantic));
     }
 
     return _buildSectionCard(
@@ -1090,30 +1118,35 @@ class _PreviewScreenState extends State<PreviewScreen> {
   }
 
   List<(String name, String hex)> _rampEntries(Map<String, String> allTokens, String prefix) {
-    final dark = <(int, String, String)>[];
-    final light = <(int, String, String)>[];
-    String? base;
+    final list = <(String name, String hex)>[];
     for (final e in allTokens.entries) {
       final darkMatch = RegExp('^${RegExp.escape(prefix)}_dark(\\d+)\$').firstMatch(e.key);
       if (darkMatch != null) {
-        dark.add((int.parse(darkMatch.group(1)!), e.key, e.value));
+        list.add((e.key, e.value));
         continue;
       }
       final lightMatch = RegExp('^${RegExp.escape(prefix)}_light(\\d+)\$').firstMatch(e.key);
       if (lightMatch != null) {
-        light.add((int.parse(lightMatch.group(1)!), e.key, e.value));
+        list.add((e.key, e.value));
         continue;
       }
       if (e.key == prefix) {
-        base = e.value;
+        list.add((e.key, e.value));
       }
     }
-    dark.sort((a, b) => b.$1.compareTo(a.$1));
-    light.sort((a, b) => a.$1.compareTo(b.$1));
-    final list = <(String name, String hex)>[];
-    list.addAll(dark.map((e) => (e.$2, e.$3)));
-    if (base != null) list.add((prefix, base));
-    list.addAll(light.map((e) => (e.$2, e.$3)));
+    list.sort((a, b) {
+      final la = ColorPaletteService.luminanceFromHexString(_toHex(a.$2));
+      final lb = ColorPaletteService.luminanceFromHexString(_toHex(b.$2));
+      if (la != null && lb != null) {
+        final c = la.compareTo(lb);
+        if (c != 0) return c;
+      } else if (la != null) {
+        return -1;
+      } else if (lb != null) {
+        return 1;
+      }
+      return _naturalCompare(a.$1, b.$1);
+    });
     return list;
   }
 
@@ -1274,9 +1307,32 @@ class _PreviewScreenState extends State<PreviewScreen> {
       map.putIfAbsent(key, () => []).add(e);
     }
     for (final list in map.values) {
-      list.sort((a, b) => _naturalCompare(a.$1, b.$1));
+      list.sort(_comparePreviewSwatchesByLuminance);
     }
     return map;
+  }
+
+  /// Semantic palette: Success → Warning → Error → Info → other; within each family, darkest → lightest.
+  int _compareSemanticPreviewEntries((String, String) a, (String, String) b) {
+    final ra = TokenDisplayOrder.semanticColorFamilyRank(a.$1);
+    final rb = TokenDisplayOrder.semanticColorFamilyRank(b.$1);
+    if (ra != rb) return ra.compareTo(rb);
+    return _comparePreviewSwatchesByLuminance(a, b);
+  }
+
+  /// Darkest → lightest for preview swatch grids (ties fall back to token name).
+  int _comparePreviewSwatchesByLuminance((String, String) a, (String, String) b) {
+    final la = ColorPaletteService.luminanceFromHexString(_toHex(a.$2));
+    final lb = ColorPaletteService.luminanceFromHexString(_toHex(b.$2));
+    if (la != null && lb != null) {
+      final c = la.compareTo(lb);
+      if (c != 0) return c;
+    } else if (la != null) {
+      return -1;
+    } else if (lb != null) {
+      return 1;
+    }
+    return _naturalCompare(a.$1, b.$1);
   }
 
   /// Compare strings with numeric parts as numbers (e.g. dark1, dark2, dark10).
@@ -1780,6 +1836,13 @@ class _PreviewScreenState extends State<PreviewScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Spacing scale', style: GoogleFonts.roboto(fontWeight: FontWeight.w600, fontSize: 14, color: _PreviewDocTheme.pageFg)),
+        if (ds.spacing.scale.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Text(
+            'Steps: ${ds.spacing.scale.join(', ')}',
+            style: GoogleFonts.roboto(fontSize: 11, color: _PreviewDocTheme.textSecondary),
+          ),
+        ],
         const SizedBox(height: 12),
         if (narrow)
           Column(
@@ -1820,7 +1883,22 @@ class _PreviewScreenState extends State<PreviewScreen> {
           ),
         ),
         const SizedBox(height: 6),
-        Text('Columns: ${ds.grid.columns} · Gutter: ${ds.grid.gutter}', style: GoogleFonts.roboto(fontSize: 12, color: _PreviewDocTheme.textSecondary)),
+        Text(
+          'Columns: ${ds.grid.columns} · Gutter: ${ds.grid.gutter} · Margin: ${ds.grid.margin}',
+          style: GoogleFonts.roboto(fontSize: 12, color: _PreviewDocTheme.textSecondary),
+        ),
+        if (ds.grid.breakpoints.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          Text('Breakpoints', style: GoogleFonts.roboto(fontWeight: FontWeight.w600, fontSize: 12, color: _PreviewDocTheme.pageFg)),
+          const SizedBox(height: 6),
+          ...ds.grid.breakpoints.entries.map((e) => Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text(
+                  '${e.key}: ${e.value}',
+                  style: GoogleFonts.roboto(fontSize: 11, color: _PreviewDocTheme.textSecondary),
+                ),
+              )),
+        ],
         const SizedBox(height: 24),
         Text('Border radius', style: GoogleFonts.roboto(fontWeight: FontWeight.w600, fontSize: 14, color: _PreviewDocTheme.pageFg)),
         const SizedBox(height: 12),
@@ -2289,11 +2367,16 @@ class _PreviewScreenState extends State<PreviewScreen> {
   }
 
   Widget _buildComponentsDetailed(BuildContext context, models.DesignSystem ds) {
-    final hasComponents = ds.components.buttons.isNotEmpty ||
-                         ds.components.inputs.isNotEmpty ||
-                         ds.components.cards.isNotEmpty ||
-                         ds.components.navigation.isNotEmpty ||
-                         ds.components.avatars.isNotEmpty;
+    final c = ds.components;
+    final hasComponents = c.buttons.isNotEmpty ||
+        c.inputs.isNotEmpty ||
+        c.cards.isNotEmpty ||
+        c.navigation.isNotEmpty ||
+        c.avatars.isNotEmpty ||
+        (c.modals != null && c.modals!.isNotEmpty) ||
+        (c.tables != null && c.tables!.isNotEmpty) ||
+        (c.progress != null && c.progress!.isNotEmpty) ||
+        (c.alerts != null && c.alerts!.isNotEmpty);
     final hasProjectIcons = ds.icons.projectIcons.isNotEmpty;
     final hasIconSizes = ds.icons.sizes.isNotEmpty;
 
@@ -2317,11 +2400,15 @@ class _PreviewScreenState extends State<PreviewScreen> {
     return _buildSectionCard('Components & Assets', Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildComponentCategory(context, 'Buttons', ds.components.buttons, baseRadius),
-        _buildComponentCategory(context, 'Text Fields / Inputs', ds.components.inputs, baseRadius),
-        _buildComponentCategory(context, 'Cards', ds.components.cards, baseRadius),
-        _buildComponentCategory(context, 'Navigation', ds.components.navigation, baseRadius),
-        _buildComponentCategory(context, 'Avatars', ds.components.avatars, 100),
+        _buildComponentCategory(context, 'buttons', 'Buttons', ds.components.buttons, baseRadius),
+        _buildComponentCategory(context, 'inputs', 'Text Fields / Inputs', ds.components.inputs, baseRadius),
+        _buildComponentCategory(context, 'cards', 'Cards', ds.components.cards, baseRadius),
+        _buildComponentCategory(context, 'navigation', 'Navigation', ds.components.navigation, baseRadius),
+        _buildComponentCategory(context, 'avatars', 'Avatars', ds.components.avatars, 100),
+        _buildComponentCategory(context, 'modals', 'Modals', ds.components.modals ?? {}, baseRadius),
+        _buildComponentCategory(context, 'tables', 'Tables', ds.components.tables ?? {}, baseRadius),
+        _buildComponentCategory(context, 'progress', 'Progress', ds.components.progress ?? {}, baseRadius),
+        _buildComponentCategory(context, 'alerts', 'Alerts', ds.components.alerts ?? {}, baseRadius),
         if (hasProjectIcons) ...[
           const SizedBox(height: 8),
           Text('Project icons', style: GoogleFonts.roboto(fontWeight: FontWeight.w600, fontSize: 14, color: _PreviewDocTheme.pageFg)),
@@ -2416,21 +2503,70 @@ class _PreviewScreenState extends State<PreviewScreen> {
     ));
   }
 
-  Widget _buildComponentCategory(BuildContext context, String name, Map<String, dynamic> tokens, double radius) {
+  /// Preview order for Alerts: info → success → warning → error/danger → anything else (by name).
+  static int _alertPreviewVariantRank(dynamic componentData) {
+    if (componentData is! Map) return 4;
+    final m = Map<String, dynamic>.from(componentData);
+    final v = (m['alertVariant'] ?? m['variant'] ?? 'info').toString().toLowerCase().trim();
+    switch (v) {
+      case 'info':
+        return 0;
+      case 'success':
+        return 1;
+      case 'warning':
+        return 2;
+      case 'error':
+      case 'danger':
+        return 3;
+      default:
+        return 4;
+    }
+  }
+
+  Widget _buildComponentCategory(
+    BuildContext context,
+    String categoryKey,
+    String sectionTitle,
+    Map<String, dynamic> tokens,
+    double radius,
+  ) {
     if (tokens.isEmpty) return const SizedBox.shrink();
+    final entryList = tokens.entries.toList();
+    if (categoryKey == 'alerts') {
+      entryList.sort((a, b) {
+        final ra = _alertPreviewVariantRank(a.value);
+        final rb = _alertPreviewVariantRank(b.value);
+        if (ra != rb) return ra.compareTo(rb);
+        return a.key.toLowerCase().compareTo(b.key.toLowerCase());
+      });
+    }
     final narrow = _isNarrowPreview(context);
+    final labelStyle = GoogleFonts.robotoMono(fontSize: 9, color: _PreviewDocTheme.textTertiary);
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(name, style: GoogleFonts.roboto(fontWeight: FontWeight.w600, fontSize: 11, letterSpacing: 0.07 * 11, color: const Color(0xFF7B6F9D))),
+          Text(sectionTitle, style: GoogleFonts.roboto(fontWeight: FontWeight.w600, fontSize: 11, letterSpacing: 0.07 * 11, color: const Color(0xFF7B6F9D))),
           const SizedBox(height: 8),
-          ...tokens.entries.map((e) {
+          ...entryList.map((e) {
             final desc = e.value is Map ? e.value['description']?.toString() ?? '' : '';
+            final data = e.value;
+            final previewBlock = FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ComponentPreviewThumbnail(category: categoryKey, name: e.key, data: data),
+                  const SizedBox(height: 6),
+                  ComponentPreviewSizeLabel(category: categoryKey, data: data, style: labelStyle),
+                ],
+              ),
+            );
             return Container(
-              margin: const EdgeInsets.only(bottom: 4),
-              padding: const EdgeInsets.all(8),
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 color: _PreviewDocTheme.cardMuted,
                 border: Border.all(color: _PreviewDocTheme.cardBorder),
@@ -2445,16 +2581,51 @@ class _PreviewScreenState extends State<PreviewScreen> {
                           const SizedBox(height: 4),
                           Text(desc, style: GoogleFonts.roboto(fontSize: 10, color: _PreviewDocTheme.textSecondary)),
                         ],
+                        const SizedBox(height: 10),
+                        Center(
+                          child: Container(
+                            width: double.infinity,
+                            constraints: const BoxConstraints(maxWidth: 280, minHeight: 100),
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade50,
+                              border: Border.all(color: Colors.grey.shade300),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            alignment: Alignment.center,
+                            child: previewBlock,
+                          ),
+                        ),
                       ],
                     )
                   : Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(e.key, style: GoogleFonts.roboto(fontWeight: FontWeight.w600, fontSize: 11, color: _PreviewDocTheme.pageFg)),
-                        if (desc.isNotEmpty) ...[
-                          Text(' — ', style: GoogleFonts.roboto(color: _PreviewDocTheme.textTertiary)),
-                          Expanded(child: Text(desc, style: GoogleFonts.roboto(fontSize: 10, color: _PreviewDocTheme.textSecondary))),
-                        ],
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(e.key, style: GoogleFonts.roboto(fontWeight: FontWeight.w600, fontSize: 11, color: _PreviewDocTheme.pageFg)),
+                              if (desc.isNotEmpty) ...[
+                                const SizedBox(height: 4),
+                                Text(desc, style: GoogleFonts.roboto(fontSize: 10, color: _PreviewDocTheme.textSecondary)),
+                              ],
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Container(
+                          width: 200,
+                          height: 120,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade50,
+                            border: Border.all(color: Colors.grey.shade300),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          alignment: Alignment.center,
+                          padding: const EdgeInsets.all(6),
+                          child: previewBlock,
+                        ),
                       ],
                     ),
             );
@@ -2465,22 +2636,56 @@ class _PreviewScreenState extends State<PreviewScreen> {
   }
 
   Widget _buildAdvancedFull(models.DesignSystem ds) {
-    final hasAdvanced = ds.gradients.values.isNotEmpty || ds.roles.values.isNotEmpty ||
-        ds.semanticTokens.color.isNotEmpty || ds.motionTokens.duration.isNotEmpty;
+    final st = ds.semanticTokens;
+    final mt = ds.motionTokens;
+    final hasSemantic = st.color.isNotEmpty ||
+        st.typography.isNotEmpty ||
+        st.spacing.isNotEmpty ||
+        st.shadow.isNotEmpty ||
+        st.borderRadius.isNotEmpty;
+    final hasMotion = mt.duration.isNotEmpty || mt.easing.isNotEmpty;
+    final hasAdvanced =
+        ds.gradients.values.isNotEmpty || ds.roles.values.isNotEmpty || hasSemantic || hasMotion;
     if (!hasAdvanced) return _buildPlaceholder('Advanced Tokens');
 
-    return _buildSectionCard('Advanced Tokens', Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (ds.gradients.values.isNotEmpty) _buildTokenList('Gradients', ds.gradients.values.entries.map((e) => e.key).toList()),
-        if (ds.gradients.values.isNotEmpty && (ds.roles.values.isNotEmpty || ds.semanticTokens.color.isNotEmpty || ds.motionTokens.duration.isNotEmpty)) const SizedBox(height: 16),
-        if (ds.roles.values.isNotEmpty) _buildTokenList('Roles', ds.roles.values.entries.map((e) => e.key).toList()),
-        if (ds.roles.values.isNotEmpty && (ds.semanticTokens.color.isNotEmpty || ds.motionTokens.duration.isNotEmpty)) const SizedBox(height: 16),
-        if (ds.semanticTokens.color.isNotEmpty) _buildTokenList('Semantic Tokens', ds.semanticTokens.color.keys.toList()),
-        if (ds.semanticTokens.color.isNotEmpty && ds.motionTokens.duration.isNotEmpty) const SizedBox(height: 16),
-        if (ds.motionTokens.duration.isNotEmpty) _buildTokenList('Motion', ds.motionTokens.duration.keys.toList()),
-      ],
-    ));
+    final blocks = <Widget>[];
+    void push(Widget w) {
+      if (blocks.isNotEmpty) blocks.add(const SizedBox(height: 16));
+      blocks.add(w);
+    }
+
+    if (ds.gradients.values.isNotEmpty) {
+      push(_buildTokenList('Gradients', ds.gradients.values.entries.map((e) => e.key).toList()));
+    }
+    if (ds.roles.values.isNotEmpty) {
+      push(_buildTokenList('Roles', ds.roles.values.entries.map((e) => e.key).toList()));
+    }
+    if (st.color.isNotEmpty) {
+      push(_buildTokenList('Semantic — color', st.color.keys.toList()));
+    }
+    if (st.typography.isNotEmpty) {
+      push(_buildTokenList('Semantic — typography', st.typography.keys.toList()));
+    }
+    if (st.spacing.isNotEmpty) {
+      push(_buildTokenList('Semantic — spacing', st.spacing.keys.toList()));
+    }
+    if (st.shadow.isNotEmpty) {
+      push(_buildTokenList('Semantic — shadow', st.shadow.keys.toList()));
+    }
+    if (st.borderRadius.isNotEmpty) {
+      push(_buildTokenList('Semantic — border radius', st.borderRadius.keys.toList()));
+    }
+    if (mt.duration.isNotEmpty) {
+      push(_buildTokenList('Motion — duration', mt.duration.keys.toList()));
+    }
+    if (mt.easing.isNotEmpty) {
+      push(_buildTokenList('Motion — easing', mt.easing.keys.toList()));
+    }
+
+    return _buildSectionCard(
+      'Advanced Tokens',
+      Column(crossAxisAlignment: CrossAxisAlignment.start, children: blocks),
+    );
   }
 
   Widget _buildTokenList(String title, List<String> items) {

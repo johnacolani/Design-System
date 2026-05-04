@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/design_system.dart' as models;
+import '../services/color_palette_service.dart';
 import '../utils/responsive.dart';
+import '../utils/token_display_order.dart';
 import 'platform_pickers_dialogs_demo.dart';
 
 const String _kTypographySample = 'The quick brown fox jumps over the lazy dog.';
@@ -844,26 +846,46 @@ class _SfColorSection extends StatelessWidget {
       ));
     }
 
-    final otherPalettes = <String, Map<String, dynamic>>{
-      'Semantic': ds.colors.semantic,
-      'Blue': ds.colors.blue ?? {},
-      'Green': ds.colors.green ?? {},
-      'Orange': ds.colors.orange ?? {},
-      'Purple': ds.colors.purple ?? {},
-      'Red': ds.colors.red ?? {},
-      'Grey': ds.colors.grey ?? {},
-    };
+    // Semantic last — after primary ramps and all other named palettes (Blue, Grey, …).
+    final otherPalettes = <(String title, Map<String, dynamic> map)>[
+      ('Blue', ds.colors.blue ?? {}),
+      ('Green', ds.colors.green ?? {}),
+      ('Orange', ds.colors.orange ?? {}),
+      ('Purple', ds.colors.purple ?? {}),
+      ('Red', ds.colors.red ?? {}),
+      ('Grey', ds.colors.grey ?? {}),
+      ('Semantic', ds.colors.semantic),
+    ];
 
-    for (final e in otherPalettes.entries) {
-      if (e.value.isEmpty) continue;
+    for (final e in otherPalettes) {
+      if (e.$2.isEmpty) continue;
       blocks.add(_SfColorBlock(
-        title: e.key,
+        title: e.$1,
         monoSubtitle: null,
-        orderedEntries: e.value.entries.toList()..sort((a, b) => a.key.toString().compareTo(b.key.toString())),
+        orderedEntries: e.$2.entries.toList()
+          ..sort((a, b) {
+            if (e.$1 == 'Semantic') {
+              final ra = TokenDisplayOrder.semanticColorFamilyRank(a.key.toString());
+              final rb = TokenDisplayOrder.semanticColorFamilyRank(b.key.toString());
+              if (ra != rb) return ra.compareTo(rb);
+            }
+            final la = ColorPaletteService.luminanceFromTokenValue(a.value);
+            final lb = ColorPaletteService.luminanceFromTokenValue(b.value);
+            if (la != null && lb != null) {
+              final c = la.compareTo(lb);
+              if (c != 0) return c;
+            } else if (la != null) {
+              return -1;
+            } else if (lb != null) {
+              return 1;
+            }
+            return a.key.toString().compareTo(b.key.toString());
+          }),
         tokens: tokens,
         maxColumns: 5,
       ));
     }
+
 
     if (blocks.isEmpty) {
       return _SfCard(
@@ -882,17 +904,21 @@ class _SfColorSection extends StatelessWidget {
 
   static List<MapEntry<String, dynamic>> _orderPrimaryRamp(Map<String, dynamic> ramp) {
     if (ramp.isEmpty) return [];
-    int tailNum(String k) {
-      final m = RegExp(r'(\d+)$').firstMatch(k);
-      return m != null ? int.parse(m.group(1)!) : 0;
-    }
-
-    final dark = ramp.entries.where((e) => _rampDark.hasMatch(e.key.toString())).toList()
-      ..sort((a, b) => tailNum(b.key.toString()).compareTo(tailNum(a.key.toString())));
-    final mid = ramp.entries.where((e) => e.key.toString() == 'primary').toList();
-    final light = ramp.entries.where((e) => _rampLight.hasMatch(e.key.toString())).toList()
-      ..sort((a, b) => tailNum(a.key.toString()).compareTo(tailNum(b.key.toString())));
-    return [...dark, ...mid, ...light];
+    final list = ramp.entries.toList()
+      ..sort((a, b) {
+        final la = ColorPaletteService.luminanceFromTokenValue(a.value);
+        final lb = ColorPaletteService.luminanceFromTokenValue(b.value);
+        if (la != null && lb != null) {
+          final c = la.compareTo(lb);
+          if (c != 0) return c;
+        } else if (la != null) {
+          return -1;
+        } else if (lb != null) {
+          return 1;
+        }
+        return a.key.toString().compareTo(b.key.toString());
+      });
+    return list;
   }
 }
 

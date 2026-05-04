@@ -191,4 +191,19 @@ class TokenDisplayOrder {
     }
     return double.tryParse(t) ?? 0;
   }
+
+  /// [colors.semantic] display: **Success** → **Warning** → **Error** → **Info** → other names.
+  /// Matches `success`, `success_dark1`, and labels with spaces (e.g. `Success message_dark10`).
+  /// Does not use a bare [String.startsWith] on `success` (avoids matching unrelated keys like `successor`).
+  /// Within a family, sort by luminance (see call sites) or [naturalCompare].
+  static int semanticColorFamilyRank(String tokenName) {
+    final k = tokenName.toLowerCase().trim();
+    bool isFamily(String base) =>
+        k == base || k.startsWith('${base}_') || k.startsWith('$base ');
+    if (isFamily('success')) return 0;
+    if (isFamily('warning')) return 1;
+    if (isFamily('error')) return 2;
+    if (isFamily('info')) return 3;
+    return 4;
+  }
 }

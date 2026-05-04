@@ -63,6 +63,10 @@ class DesignSystemWrapper {
         'inputs': ds.components.inputs,
         'navigation': ds.components.navigation,
         'avatars': ds.components.avatars,
+        if (ds.components.modals != null) 'modals': ds.components.modals,
+        if (ds.components.tables != null) 'tables': ds.components.tables,
+        if (ds.components.progress != null) 'progress': ds.components.progress,
+        if (ds.components.alerts != null) 'alerts': ds.components.alerts,
       },
       'grid': {
         'columns': ds.grid.columns,
